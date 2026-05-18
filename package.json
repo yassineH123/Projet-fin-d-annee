@@ -1,0 +1,21 @@
+{
+  "name": "atlasway",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,mobile -c green,cyan \"npm run dev --workspace backend\" \"npm run start --workspace mobile\"",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:mobile": "npm run start --workspace mobile",
+    "dev:web": "npm run dev --workspace web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "dependencies": {
+    "@react-native/metro-config": "^0.74.89"
+  }
+}
