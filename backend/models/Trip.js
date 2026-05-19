@@ -1,5 +1,9 @@
 const { DataTypes } = require('sequelize');
+<<<<<<< HEAD
 const { sequelize } = require('../config/database');
+=======
+const sequelize = require('../database');
+>>>>>>> 3445939 (chore: sync project files for aya)
 
 const Trip = sequelize.define('Trip', {
   id: {
