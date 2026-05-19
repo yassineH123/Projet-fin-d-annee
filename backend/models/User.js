@@ -1,5 +1,9 @@
 const { DataTypes } = require('sequelize');
+<<<<<<< HEAD
 const { sequelize } = require('../config/database');
+=======
+const sequelize = require('../database');
+>>>>>>> 3445939 (chore: sync project files for aya)
 
 const User = sequelize.define('User', {
   id: {
@@ -7,6 +11,7 @@ const User = sequelize.define('User', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+<<<<<<< HEAD
   firstName: {
     type: DataTypes.STRING(80),
     allowNull: false,
@@ -35,10 +40,32 @@ const User = sequelize.define('User', {
   },
   bio: {
     type: DataTypes.TEXT,
+=======
+  email: {
+    type: DataTypes.STRING,
+    unique: true,
+    allowNull: false,
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  firstName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  avatar: {
+    type: DataTypes.STRING,
+>>>>>>> 3445939 (chore: sync project files for aya)
     allowNull: true,
   },
   role: {
     type: DataTypes.ENUM('user', 'admin', 'superadmin'),
+<<<<<<< HEAD
     allowNull: false,
     defaultValue: 'user',
   },
@@ -83,6 +110,19 @@ const User = sequelize.define('User', {
 }, {
   tableName: 'users',
   timestamps: true,
+=======
+    defaultValue: 'user',
+    allowNull: false,
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'suspended'),
+    defaultValue: 'active',
+    allowNull: false,
+  },
+}, {
+  timestamps: true,
+  tableName: 'users',
+>>>>>>> 3445939 (chore: sync project files for aya)
 });
 
 module.exports = User;
