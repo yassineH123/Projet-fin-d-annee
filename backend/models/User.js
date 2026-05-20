@@ -32,6 +32,82 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  photo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  languages: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+  },
+  preferences: {
+    type: DataTypes.JSON,
+    defaultValue: { smoking: false, music: true, pets: false, chat: true },
+  },
+  avgRating: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+  totalRatings: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  totalTrips: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  isDriver: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  carModel: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  carColor: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  carYear: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  carPhoto: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  licensePlate: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  cinDoc: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  permisDoc: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  carteGriseDoc: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  driverVerified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  isHandicapped: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  handicapAccessible: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   role: {
     type: DataTypes.ENUM('user', 'admin', 'superadmin'),
     defaultValue: 'user',
@@ -51,6 +127,19 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     allowNull: false,
+  },
+  referralCode: {
+    type: DataTypes.STRING(20),
+    unique: true,
+    allowNull: true,
+  },
+  referredBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  badges: {
+    type: DataTypes.JSON,
+    defaultValue: [],
   },
 }, {
   timestamps: true,

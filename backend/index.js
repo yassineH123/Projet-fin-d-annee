@@ -8,6 +8,7 @@ const Review           = require('./models/Review');
 const Post             = require('./models/Post');
 const PostLike         = require('./models/PostLike');
 const PostComment      = require('./models/PostComment');
+const Notification     = require('./models/Notification');
 const Ride             = require('./models/Ride');
 const Booking          = require('./models/Booking');
 const Conversation     = require('./models/Conversation');
@@ -30,12 +31,14 @@ app.use(express.json());
 
 // Routes
 app.use('/auth',       require('./routes/authRoutes'));
-app.use('/users',      require('./routes/users')());
+app.use('/users',      require('./routes/userRoutes'));
+app.use('/uploads',    require('express').static(require('path').join(__dirname, 'uploads')));
 app.use('/trips',      require('./routes/trips')());
 app.use('/privacy',    require('./routes/privacy')());
 app.use('/admin',      require('./routes/admin')());
 app.use('/superadmin', require('./routes/superadmin')());
-app.use('/posts',      require('./routes/postRoutes'));
+app.use('/posts',         require('./routes/postRoutes'));
+app.use('/notifications', require('./routes/notificationRoutes'));
 
 const PORT = process.env.PORT || 4000;
 

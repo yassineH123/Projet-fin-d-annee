@@ -19,6 +19,13 @@ function getFirstError(req) {
   return errors.isEmpty() ? null : errors.array()[0].msg;
 }
 
+function generateReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return `AT-${code}`;
+}
+
 async function register(req, res, next) {
   try {
     const validationError = getFirstError(req);
@@ -26,22 +33,29 @@ async function register(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { firstName, lastName, email, password, phone } = req.body;
+    const { firstName, lastName, email, password, phone, referralCode: refCode } = req.body;
     const existing = await User.findOne({ where: { email } });
 
     if (existing && existing.verified) {
       return res.status(409).json({ message: 'Cet email est déjà utilisé.' });
     }
 
+    let referredById = null;
+    if (refCode) {
+      const referrer = await User.findOne({ where: { referralCode: refCode } });
+      if (referrer) referredById = referrer.id;
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
+    const newReferralCode = generateReferralCode();
 
     await User.findOrCreate({
       where: { email },
-      defaults: { firstName, lastName, email, password: hashedPassword, phone: phone || null, role: 'user', verified: false },
+      defaults: { firstName, lastName, email, password: hashedPassword, phone: phone || null, role: 'user', verified: false, referralCode: newReferralCode, referredBy: referredById },
     });
 
     if (existing && !existing.verified) {
-      await existing.update({ firstName, lastName, password: hashedPassword, phone: phone || null, verified: false });
+      await existing.update({ firstName, lastName, password: hashedPassword, phone: phone || null, referralCode: existing.referralCode || newReferralCode, referredBy: referredById || existing.referredBy });
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));

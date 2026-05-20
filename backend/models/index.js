@@ -5,6 +5,7 @@ const Review = require('./Review');
 const Conversation = require('./Conversation');
 const Message = require('./Message');
 const VerificationCode = require('./VerificationCode');
+const Notification = require('./Notification');
 
 // User → Rides (conducteur)
 User.hasMany(Ride, { foreignKey: 'driverId', as: 'rides' });
@@ -36,4 +37,8 @@ Conversation.hasMany(Message, { foreignKey: 'conversationId', as: 'messages' });
 Message.belongsTo(Conversation, { foreignKey: 'conversationId', as: 'conversation' });
 Message.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
 
-module.exports = { User, Ride, Booking, Review, Conversation, Message, VerificationCode };
+// Notifications
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+module.exports = { User, Ride, Booking, Review, Conversation, Message, VerificationCode, Notification };

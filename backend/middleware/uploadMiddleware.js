@@ -13,13 +13,23 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (_req, file, cb) => {
+const imageFilter = (_req, file, cb) => {
   const allowed = /jpeg|jpg|png|webp/;
   const ok = allowed.test(path.extname(file.originalname).toLowerCase()) &&
              allowed.test(file.mimetype);
   ok ? cb(null, true) : cb(new Error('Seules les images jpeg/jpg/png/webp sont acceptées.'));
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 3 * 1024 * 1024 } });
+const docFilter = (_req, file, cb) => {
+  const allowedExt  = /jpeg|jpg|png|webp|pdf/;
+  const allowedMime = /jpeg|jpg|png|webp|pdf/;
+  const ok = allowedExt.test(path.extname(file.originalname).toLowerCase()) &&
+             allowedMime.test(file.mimetype);
+  ok ? cb(null, true) : cb(new Error('Format accepté : image ou PDF.'));
+};
+
+const upload = multer({ storage, fileFilter: imageFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+
+upload.docs = multer({ storage, fileFilter: docFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 
 module.exports = upload;

@@ -1,4 +1,5 @@
 const { Booking, Ride, User } = require('../models');
+const { createNotification } = require('../services/notificationService');
 
 const includeDetails = [
   { model: Ride, as: 'ride', include: [{ model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating'] }] },
@@ -22,6 +23,14 @@ async function create(req, res, next) {
     if (ride.instantBooking) {
       await ride.update({ seatsAvailable: ride.seatsAvailable - seats });
     }
+
+    const passenger = await User.findByPk(req.user.id, { attributes: ['firstName', 'lastName'] });
+    createNotification(ride.driverId, {
+      type: 'booking',
+      title: 'Nouvelle réservation',
+      message: `${passenger.firstName} ${passenger.lastName} a réservé ${seats} place(s) sur votre trajet ${ride.from} → ${ride.to}`,
+      link: '/bookings',
+    });
 
     return res.status(201).json({ booking });
   } catch (err) { return next(err); }
@@ -62,6 +71,12 @@ async function accept(req, res, next) {
 
     await booking.update({ status: 'accepted' });
     await booking.ride.update({ seatsAvailable: booking.ride.seatsAvailable - booking.seats });
+    createNotification(booking.passengerId, {
+      type: 'booking',
+      title: 'Réservation acceptée ✅',
+      message: `Votre réservation pour ${booking.ride.from} → ${booking.ride.to} a été acceptée !`,
+      link: '/bookings',
+    });
     return res.json({ booking, message: 'Réservation acceptée.' });
   } catch (err) { return next(err); }
 }
@@ -76,6 +91,12 @@ async function refuse(req, res, next) {
     if (booking.status !== 'pending') return res.status(400).json({ message: 'Réservation déjà traitée.' });
 
     await booking.update({ status: 'refused' });
+    createNotification(booking.passengerId, {
+      type: 'booking',
+      title: 'Réservation refusée',
+      message: `Votre réservation pour ${booking.ride.from} → ${booking.ride.to} n'a pas été acceptée.`,
+      link: '/bookings',
+    });
     return res.json({ booking, message: 'Réservation refusée.' });
   } catch (err) { return next(err); }
 }

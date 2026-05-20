@@ -47,6 +47,14 @@ const Ride = sequelize.define('Ride', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  isRecurring: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  recurringDays: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+  },
 }, {
   tableName: 'rides',
   timestamps: true,

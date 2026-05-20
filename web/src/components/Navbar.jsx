@@ -2,19 +2,27 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
-  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, MapPin, CheckCircle, Clock, Rss
+  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 
-/* ── Notification factice (remplacer par API plus tard) ── */
-const DEMO_NOTIFS = [
-  { id: 1, icon: CheckCircle, color: '#006233', title: 'Réservation confirmée',  desc: 'Amine B. a accepté votre réservation Casablanca → Marrakech', time: 'Il y a 5 min',  read: false },
-  { id: 2, icon: MessageSquare, color: '#C1272D', title: 'Nouveau message',      desc: 'Sara M. vous a envoyé un message concernant votre trajet',    time: 'Il y a 18 min', read: false },
-  { id: 3, icon: MapPin,        color: '#D4890A', title: 'Trajet dans 2h',       desc: 'Rappel : votre trajet Rabat → Fès démarre bientôt',           time: 'Il y a 1h',    read: true  },
-  { id: 4, icon: CheckCircle,   color: '#006233', title: 'Avis reçu',            desc: 'Youssef K. vous a laissé une note 5 étoiles ⭐',              time: 'Hier',         read: true  },
-];
+const NOTIF_TYPE_META = {
+  booking: { icon: CheckCircle,   color: '#006233' },
+  message: { icon: MessageSquare, color: '#C1272D' },
+  review:  { icon: Star,          color: '#D4890A' },
+  ride:    { icon: Car,           color: '#C1272D' },
+  system:  { icon: Bell,          color: '#3B82F6' },
+};
+
+function timeAgo(date) {
+  const diff = (Date.now() - new Date(date)) / 1000;
+  if (diff < 60)   return 'À l\'instant';
+  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
+  return 'Hier';
+}
 
 export default function Navbar() {
   const { user, logout }  = useAuth();
@@ -29,7 +37,7 @@ export default function Navbar() {
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [profileOpen,  setProfileOpen]  = useState(false);
   const [searchQ,      setSearchQ]      = useState('');
-  const [notifs,       setNotifs]       = useState(DEMO_NOTIFS);
+  const [notifs,       setNotifs]       = useState([]);
 
   const notifRef   = useRef(null);
   const profileRef = useRef(null);
@@ -53,15 +61,16 @@ export default function Navbar() {
     if (location.pathname === '/bookings') setPendingBooks(0);
   }, [location.pathname]);
 
-  /* Poll counts */
+  /* Poll counts + notifications */
   useEffect(() => {
     if (!user) return;
-    const fetch = () => {
+    const poll = () => {
       api.get('/messages/unread-count').then(({ data }) => setUnreadMsg(data.count)).catch(() => {});
       api.get('/bookings/pending-count').then(({ data }) => setPendingBooks(data.count)).catch(() => {});
+      api.get('/notifications').then(({ data }) => setNotifs(data.notifications || [])).catch(() => {});
     };
-    fetch();
-    intervalRef.current = setInterval(fetch, 30_000);
+    poll();
+    intervalRef.current = setInterval(poll, 30_000);
     return () => clearInterval(intervalRef.current);
   }, [user]);
 
@@ -83,7 +92,14 @@ export default function Navbar() {
   };
 
   const unreadNotifs = notifs.filter(n => !n.read).length;
-  const markAllRead  = () => setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllRead  = () => {
+    api.put('/notifications/read-all').catch(() => {});
+    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+  };
+  const markOneRead = (id) => {
+    api.put(`/notifications/${id}/read`).catch(() => {});
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
@@ -229,27 +245,34 @@ export default function Navbar() {
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
-                      {notifs.map(({ id, icon: Icon, color, title, desc, time, read }) => (
-                        <div key={id}
-                          onClick={() => setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))}
-                          className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-all"
-                          style={{ background: read ? 'transparent' : 'rgba(193,39,45,0.04)', borderBottom: '1px solid var(--border-color)' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-700)'}
-                          onMouseLeave={e => e.currentTarget.style.background = read ? 'transparent' : 'rgba(193,39,45,0.04)'}
-                        >
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
-                            <Icon size={18} style={{ color }} />
+                      {notifs.length === 0 ? (
+                        <div className="text-center py-8 text-slate-500 text-sm">Aucune notification</div>
+                      ) : notifs.map((n) => {
+                        const meta = NOTIF_TYPE_META[n.type] || NOTIF_TYPE_META.system;
+                        const Icon = meta.icon;
+                        return (
+                          <div key={n.id}
+                            onClick={() => markOneRead(n.id)}
+                            className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-all"
+                            style={{ background: n.read ? 'transparent' : 'rgba(193,39,45,0.04)', borderBottom: '1px solid var(--border-color)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-700)'}
+                            onMouseLeave={e => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(193,39,45,0.04)'}
+                          >
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: `${meta.color}18` }}>
+                              <Icon size={18} style={{ color: meta.color }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold leading-tight" style={{ color: 'var(--text-base)' }}>{n.title}</p>
+                              <p className="text-xs mt-0.5 leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>{n.message}</p>
+                              <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#C1272D' }}>
+                                <Clock size={10} /> {timeAgo(n.createdAt)}
+                              </p>
+                            </div>
+                            {!n.read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: '#C1272D' }} />}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold leading-tight" style={{ color: 'var(--text-base)' }}>{title}</p>
-                            <p className="text-xs mt-0.5 leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>{desc}</p>
-                            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#C1272D' }}>
-                              <Clock size={10} /> {time}
-                            </p>
-                          </div>
-                          {!read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: '#C1272D' }} />}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="px-4 py-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
                       <button className="w-full text-sm font-semibold py-1.5 rounded-xl transition-all" style={{ color: '#C1272D' }}
@@ -311,11 +334,12 @@ export default function Navbar() {
                       </div>
                     </div>
                     {[
-                      { to: '/profile',      icon: User,         label: 'Mon profil' },
-                      { to: '/rides/publish', icon: Plus,        label: 'Publier un trajet' },
-                      { to: '/rides/mine',   icon: Car,          label: 'Mes trajets' },
-                      { to: '/bookings',     icon: BookOpen,     label: 'Réservations' },
-                      { to: '/messages',     icon: MessageSquare,label: 'Messages' },
+                      { to: '/profile',        icon: User,         label: 'Mon profil' },
+                      { to: '/driver-dashboard', icon: BarChart2,  label: 'Dashboard conducteur' },
+                      { to: '/rides/publish',  icon: Plus,         label: 'Publier un trajet' },
+                      { to: '/rides/mine',     icon: Car,          label: 'Mes trajets' },
+                      { to: '/bookings',       icon: BookOpen,     label: 'Réservations' },
+                      { to: '/messages',       icon: MessageSquare,label: 'Messages' },
                     ].map(({ to, icon: Icon, label }) => (
                       <Link key={to} to={to}
                         onClick={() => setProfileOpen(false)}

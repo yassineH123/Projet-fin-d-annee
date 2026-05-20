@@ -1,10 +1,10 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Shield, Star, Users, Car,
   CheckCircle, ChevronRight, ChevronDown,
   TrendingDown, Lock, ThumbsUp, MessageCircle, Award, ArrowLeftRight,
-  Navigation, Map
+  Navigation, Map, Leaf, Train, Bus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { reverseGeocode } from '../utils/geocode';
@@ -57,7 +57,239 @@ const FAQS = [
 
 const CITIES = ['Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger', 'Agadir', 'Meknès', 'Oujda', 'Tétouan', 'Laâyoune'];
 
+const DESTINATIONS = [
+  { city: 'Chefchaouen',  tag: 'La Ville Bleue',   gradient: 'linear-gradient(135deg,#1e40af,#3b82f6)', emoji: '🔵' },
+  { city: 'Merzouga',     tag: 'Dunes du Sahara',   gradient: 'linear-gradient(135deg,#92400e,#d97706)', emoji: '🏜️' },
+  { city: 'Essaouira',    tag: 'Cité des Vents',    gradient: 'linear-gradient(135deg,#065f46,#10b981)', emoji: '🌊' },
+  { city: 'Marrakech',    tag: 'La Ville Rouge',    gradient: 'linear-gradient(135deg,#7f1d1d,#C1272D)',  emoji: '🕌' },
+  { city: 'Ifrane',       tag: 'La Suisse du Maroc',gradient: 'linear-gradient(135deg,#1e3a5f,#4a90d9)', emoji: '❄️' },
+  { city: 'Agadir',       tag: 'Plage & Soleil',    gradient: 'linear-gradient(135deg,#D4890A,#f59e0b)', emoji: '🌴' },
+];
+
+const LIVE_FEED = [
+  { driver: 'Youssef K.', from: 'Casablanca', to: 'Marrakech', price: 80,  seats: 2, ago: '2 min' },
+  { driver: 'Sara M.',    from: 'Rabat',       to: 'Fès',       price: 60,  seats: 3, ago: '5 min' },
+  { driver: 'Ahmed B.',   from: 'Tanger',      to: 'Rabat',     price: 90,  seats: 1, ago: '8 min' },
+  { driver: 'Fatima Z.',  from: 'Agadir',      to: 'Marrakech', price: 50,  seats: 2, ago: '11 min' },
+  { driver: 'Omar L.',    from: 'Meknès',      to: 'Casablanca',price: 70,  seats: 4, ago: '14 min' },
+  { driver: 'Nadia C.',   from: 'Oujda',       to: 'Fès',       price: 100, seats: 2, ago: '17 min' },
+];
+
+const MAP_CITIES = [
+  { name: 'Tanger',     x: 180, y: 68  },
+  { name: 'Tétouan',   x: 215, y: 80  },
+  { name: 'Oujda',     x: 370, y: 130 },
+  { name: 'Fès',       x: 295, y: 145 },
+  { name: 'Meknès',    x: 255, y: 158 },
+  { name: 'Rabat',     x: 175, y: 190 },
+  { name: 'Casablanca',x: 170, y: 230 },
+  { name: 'Marrakech', x: 215, y: 320 },
+  { name: 'Agadir',    x: 140, y: 380 },
+  { name: 'Laâyoune',  x: 100, y: 490 },
+];
+
+const MAP_ROUTES = [
+  [0,5],[5,6],[6,4],[4,3],[3,1],[6,7],[7,8],[1,2],[2,3],
+];
+
+const CO2_BASE = 38420;
+
 /* ─── COMPONENTS ────────────────────────────────── */
+
+function CO2Counter() {
+  const [count, setCount] = useState(CO2_BASE);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(c => c + Math.floor(Math.random() * 3 + 1));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <section className="py-16 px-4" style={{ background: 'linear-gradient(135deg,#052e16,#064e3b)' }}>
+      <div className="max-w-5xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-5"
+          style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>
+          <Leaf size={12} /> Impact environnemental en temps réel
+        </div>
+        <h2 className="text-3xl md:text-4xl font-black text-white mb-2">
+          <span style={{ color: '#34d399', fontSize: 'clamp(2.5rem,6vw,4rem)', display: 'block', fontVariantNumeric: 'tabular-nums' }}>
+            {count.toLocaleString('fr-FR')} kg
+          </span>
+          de CO₂ évités grâce à AtlasWay
+        </h2>
+        <p className="text-sm mt-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          Chaque trajet partagé = moins de voitures sur la route. Ce compteur augmente en temps réel.
+        </p>
+        <div className="flex flex-wrap justify-center gap-8 mt-8">
+          <div className="text-center">
+            <p className="text-xl font-black" style={{ color: '#34d399' }}>{Math.round(count / 22)} arbres</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>équivalent arbres plantés</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-black" style={{ color: '#34d399' }}>{Math.round(count / 0.21).toLocaleString('fr-FR')} km</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>de trajets partagés</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-black" style={{ color: '#34d399' }}>{Math.round(count * 0.12).toLocaleString('fr-FR')} DH</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>économisés en carburant</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MoroccoMap() {
+  return (
+    <section className="py-16 px-4" style={{ background: 'var(--bg-800)' }}>
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#D4890A' }}>Réseau AtlasWay</p>
+          <h2 className="text-3xl font-black font-heading" style={{ color: 'var(--text-base)' }}>Connecté à tout le Maroc</h2>
+          <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Des trajets disponibles chaque jour entre toutes les grandes villes</p>
+        </div>
+        <div className="flex justify-center">
+          <svg viewBox="0 0 480 580" className="w-full max-w-xs">
+            <style>{`
+              @keyframes dashMove { to { stroke-dashoffset: -200; } }
+              @keyframes pulse { 0%,100%{r:5} 50%{r:7} }
+            `}</style>
+            {MAP_ROUTES.map(([a, b], i) => {
+              const ca = MAP_CITIES[a], cb = MAP_CITIES[b];
+              return (
+                <line key={i} x1={ca.x} y1={ca.y} x2={cb.x} y2={cb.y}
+                  stroke="#C1272D" strokeWidth="1.5" strokeOpacity="0.5"
+                  strokeDasharray="8 12"
+                  style={{ animation: `dashMove ${2.5 + i * 0.3}s linear infinite` }}
+                />
+              );
+            })}
+            {MAP_CITIES.map(({ name, x, y }) => (
+              <g key={name}>
+                <circle cx={x} cy={y} r="12" fill="rgba(193,39,45,0.08)" stroke="#C1272D" strokeWidth="1" strokeOpacity="0.25" />
+                <circle cx={x} cy={y} r="5" fill="#C1272D" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
+                <text x={x + 9} y={y + 4} fontSize="8.5" fill="var(--text-secondary)" fontWeight="700">{name}</text>
+              </g>
+            ))}
+          </svg>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SavingsCalculator() {
+  const [trips, setTrips] = useState(4);
+  const atlaswayPrice = 80;
+  const atlaswayTotal = atlaswayPrice * trips;
+  const comparisons = [
+    { label: 'Taxi',  icon: Car,   price: 350 },
+    { label: 'CTM',   icon: Bus,   price: 110 },
+    { label: 'Train', icon: Train, price: 145 },
+  ];
+  return (
+    <section className="py-16 px-4" style={{ background: 'var(--bg-900)' }}>
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#D4890A' }}>Calculateur</p>
+          <h2 className="text-3xl font-black font-heading" style={{ color: 'var(--text-base)' }}>Combien allez-vous économiser ?</h2>
+          <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Exemple sur le trajet Casablanca → Marrakech</p>
+        </div>
+        <div className="card p-6">
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-semibold" style={{ color: 'var(--text-base)' }}>Trajets par mois</label>
+              <span className="text-2xl font-black" style={{ color: '#C1272D' }}>{trips}</span>
+            </div>
+            <input type="range" min="1" max="20" value={trips} onChange={e => setTrips(Number(e.target.value))}
+              className="w-full cursor-pointer accent-red-600" />
+            <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              <span>1</span><span>20 trajets/mois</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {comparisons.map(({ label, icon: Icon, price }) => (
+              <div key={label} className="rounded-xl p-4 text-center" style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+                <Icon size={18} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-xs font-bold mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+                <p className="font-black line-through text-base" style={{ color: '#ef4444' }}>{price * trips} DH</p>
+                <p className="text-xs mt-1" style={{ color: '#10b981' }}>-{(price - atlaswayPrice) * trips} DH</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(193,39,45,0.08)', border: '1px solid rgba(193,39,45,0.25)' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Avec AtlasWay</p>
+            <p className="text-4xl font-black" style={{ color: '#C1272D' }}>{atlaswayTotal} DH</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{atlaswayPrice} DH / trajet · économisez jusqu'à <strong style={{ color: '#D4890A' }}>{(350 - atlaswayPrice) * trips} DH/mois</strong> vs taxi</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DestinationsSection({ navigate }) {
+  return (
+    <section className="py-16 px-4" style={{ background: 'var(--bg-800)' }}>
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-8">
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#D4890A' }}>Inspirations</p>
+          <h2 className="text-3xl font-black font-heading" style={{ color: 'var(--text-base)' }}>Découvrez le Maroc</h2>
+          <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Cliquez sur une destination pour trouver un trajet</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {DESTINATIONS.map(({ city, tag, gradient, emoji }) => (
+            <button key={city} onClick={() => navigate(`/rides/search?to=${city}`)}
+              className="relative rounded-2xl overflow-hidden group text-left hover:scale-[1.03] transition-transform duration-300"
+              style={{ height: 140, background: gradient }}>
+              <div className="absolute inset-0 flex flex-col justify-between p-4">
+                <span className="text-3xl">{emoji}</span>
+                <div>
+                  <p className="text-white font-black text-lg leading-none">{city}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>{tag}</p>
+                </div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: 'rgba(0,0,0,0.25)' }}>
+                <span className="text-white text-sm font-bold px-4 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  Voir les trajets →
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LiveFeedTicker() {
+  const [idx, setIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => { setIdx(i => (i + 1) % LIVE_FEED.length); setVisible(true); }, 350);
+    }, 3500);
+    return () => clearInterval(t);
+  }, []);
+  const item = LIVE_FEED[idx];
+  return (
+    <div className="py-2.5 px-4" style={{ background: '#C1272D' }}>
+      <div className="max-w-5xl mx-auto flex items-center gap-4">
+        <span className="text-xs font-black text-white shrink-0 flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" /> EN DIRECT
+        </span>
+        <p className="text-white text-xs font-medium flex-1 overflow-hidden whitespace-nowrap"
+          style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.35s ease' }}>
+          🚗 <strong>{item.driver}</strong> vient de publier <strong>{item.from} → {item.to}</strong> — <strong>{item.price} DH</strong> · {item.seats} place{item.seats > 1 ? 's' : ''} · il y a {item.ago}
+        </p>
+        <Link to="/rides/search" className="text-xs font-bold text-white underline shrink-0">Voir →</Link>
+      </div>
+    </div>
+  );
+}
+
 function Stars({ n = 5 }) {
   return (
     <div className="flex gap-0.5">
@@ -332,6 +564,8 @@ export default function Home() {
         </div>
       </section>
 
+      <LiveFeedTicker />
+
       {/* ── STATS BAR ── */}
       <div style={{ background: 'var(--bg-800)', borderBottom: '1px solid var(--border-color)' }}>
         <div className="h-1" style={{ background: 'linear-gradient(to right, #C1272D, #D4890A, #006233)' }} />
@@ -347,6 +581,8 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      <CO2Counter />
 
       {/* ── QUICK ROUTES (scroll horizontal) ── */}
       <section className="py-10 px-4" style={{ background: 'var(--bg-900)' }}>
@@ -381,6 +617,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <MoroccoMap />
 
       {/* ── PROMO BANNER ── */}
       <section className="px-4 py-4" style={{ background: 'var(--bg-900)' }}>
@@ -468,6 +706,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <DestinationsSection navigate={navigate} />
+      <SavingsCalculator />
 
       {/* ── TESTIMONIALS ── */}
       <section className="py-20 px-4" style={{ background: 'var(--bg-900)' }}>

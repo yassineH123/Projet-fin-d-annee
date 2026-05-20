@@ -18,9 +18,11 @@ import AdminDashboard from './pages/AdminDashboard';
 import EditRide      from './pages/EditRide';
 import WriteReview   from './pages/WriteReview';
 import Onboarding    from './pages/Onboarding';
-import NotFound      from './pages/NotFound';
-import Feed           from './pages/Feed';
-import ForgotPassword from './pages/ForgotPassword';
+import NotFound        from './pages/NotFound';
+import Feed             from './pages/Feed';
+import ForgotPassword   from './pages/ForgotPassword';
+import DriverDashboard  from './pages/DriverDashboard';
+import SOSButton        from './components/SOSButton';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -40,6 +42,7 @@ function AppRoutes() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      <SOSButton />
       <main className="flex-1">
         <Routes>
           <Route path="/"               element={<Home />} />
@@ -57,9 +60,10 @@ function AppRoutes() {
           <Route path="/profile/:id"    element={<Profile />} />
           <Route path="/messages"       element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/admin"          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/feed"          element={<Feed />} />
-          <Route path="/onboarding"    element={<Onboarding />} />
-          <Route path="*"              element={<NotFound />} />
+          <Route path="/feed"             element={<Feed />} />
+          <Route path="/onboarding"       element={<Onboarding />} />
+          <Route path="/driver-dashboard" element={<PrivateRoute><DriverDashboard /></PrivateRoute>} />
+          <Route path="*"                 element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
