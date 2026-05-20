@@ -23,6 +23,14 @@ const Conversation = sequelize.define('Conversation', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  type: {
+    type: DataTypes.ENUM('direct', 'group'),
+    defaultValue: 'direct',
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   tableName: 'conversations',
   timestamps: true,

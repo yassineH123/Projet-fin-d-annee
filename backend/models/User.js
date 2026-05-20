@@ -9,7 +9,6 @@ const User = sequelize.define('User', {
   },
   email: {
     type: DataTypes.STRING,
-    unique: true,
     allowNull: false,
   },
   password: {
@@ -130,8 +129,11 @@ const User = sequelize.define('User', {
   },
   referralCode: {
     type: DataTypes.STRING(20),
-    unique: true,
     allowNull: true,
+  },
+  availabilityStatus: {
+    type: DataTypes.ENUM('available', 'busy', 'offline'),
+    defaultValue: 'offline',
   },
   referredBy: {
     type: DataTypes.UUID,
@@ -144,6 +146,10 @@ const User = sequelize.define('User', {
 }, {
   timestamps: true,
   tableName: 'users',
+  indexes: [
+    { unique: true, fields: ['email'],       name: 'users_email_unique' },
+    { unique: true, fields: ['referralCode'], name: 'users_referral_unique' },
+  ],
 });
 
 module.exports = User;

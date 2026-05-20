@@ -3,12 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import {
   Camera, Save, Lock, MapPin, Clock, Star, ChevronRight,
   Car, FileText, Shield, ShieldCheck, Accessibility,
-  Music, Cigarette, PawPrint, MessageCircle, Upload, CheckCircle, AlertCircle
+  Music, Cigarette, PawPrint, MessageCircle, Upload, CheckCircle, AlertCircle, MessageSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
+import FriendButton from '../components/FriendButton';
 
 const LANGUAGES = ['Français', 'Arabe', 'Darija', 'Amazigh', 'Anglais', 'Espagnol'];
 
@@ -253,6 +254,22 @@ export default function Profile() {
               )}
             </div>
           </div>
+
+          {/* Action buttons — only on someone else's profile */}
+          {!isMe && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              <FriendButton userId={profile.id} />
+              <Link
+                to={`/messages?with=${profile.id}&name=${encodeURIComponent(profile.firstName + ' ' + profile.lastName)}&photo=${encodeURIComponent(profile.photo || '')}`}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                style={{ background: 'var(--bg-700)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#C1272D'; e.currentTarget.style.color = '#C1272D'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              >
+                <MessageSquare size={15} /> Message
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

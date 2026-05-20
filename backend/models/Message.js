@@ -23,6 +23,10 @@ const Message = sequelize.define('Message', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  reactions: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+  },
 }, {
   tableName: 'messages',
   timestamps: true,

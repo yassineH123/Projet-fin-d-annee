@@ -1,7 +1,10 @@
 require('dotenv').config();
+const http    = require('http');
 const express = require('express');
-const cors = require('cors');
+const cors    = require('cors');
 const sequelize = require('./database');
+const { init: initSocket } = require('./socket');
+
 const User             = require('./models/User');
 const Trip             = require('./models/Trip');
 const Review           = require('./models/Review');
@@ -12,8 +15,10 @@ const Notification     = require('./models/Notification');
 const Ride             = require('./models/Ride');
 const Booking          = require('./models/Booking');
 const Conversation     = require('./models/Conversation');
+const ConversationMember = require('./models/ConversationMember');
 const Message          = require('./models/Message');
 const VerificationCode = require('./models/VerificationCode');
+const Friendship       = require('./models/Friendship');
 
 /* Associations Feed */
 Post.belongsTo(User, { foreignKey: 'userId' });
@@ -25,69 +30,53 @@ PostComment.belongsTo(User, { foreignKey: 'userId' });
 PostComment.belongsTo(Post, { foreignKey: 'postId' });
 Post.hasMany(PostComment,   { foreignKey: 'postId' });
 
-const app = express();
+const app    = express();
+const server = http.createServer(app);
+initSocket(server);
+
 app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/auth',       require('./routes/authRoutes'));
-app.use('/users',      require('./routes/userRoutes'));
-app.use('/uploads',    require('express').static(require('path').join(__dirname, 'uploads')));
-app.use('/trips',      require('./routes/trips')());
-app.use('/privacy',    require('./routes/privacy')());
-app.use('/admin',      require('./routes/admin')());
-app.use('/superadmin', require('./routes/superadmin')());
+app.use('/auth',          require('./routes/authRoutes'));
+app.use('/users',         require('./routes/userRoutes'));
+app.use('/uploads',       require('express').static(require('path').join(__dirname, 'uploads')));
+app.use('/trips',         require('./routes/trips')());
+app.use('/privacy',       require('./routes/privacy')());
+app.use('/admin',         require('./routes/admin')());
+app.use('/superadmin',    require('./routes/superadmin')());
 app.use('/posts',         require('./routes/postRoutes'));
 app.use('/notifications', require('./routes/notificationRoutes'));
+app.use('/friends',       require('./routes/friendRoutes'));
+app.use('/messages',      require('./routes/messageRoutes'));
+app.use('/bookings',      require('./routes/bookingRoutes'));
+app.use('/rides',         require('./routes/rideRoutes'));
+app.use('/reviews',       require('./routes/reviewRoutes'));
 
 const PORT = process.env.PORT || 4000;
 
-// Sync database and start server
 (async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connected ✓');
 
-    await sequelize.sync({ alter: true }); // Create/alter tables to match models
+    await sequelize.sync({ alter: true });
     console.log('Database synced ✓');
 
-    // Insert super admin user if it doesn't exist
     await User.findOrCreate({
       where: { email: 'superadmin@local' },
-      defaults: {
-        email: 'superadmin@local',
-        password: 'superadmin123',
-        firstName: 'Super',
-        lastName: 'Admin',
-        role: 'superadmin'
-      }
+      defaults: { email: 'superadmin@local', password: 'superadmin123', firstName: 'Super', lastName: 'Admin', role: 'superadmin' }
     });
-
-    // Insert demo user if it doesn't exist
     await User.findOrCreate({
       where: { email: 'demo@local' },
-      defaults: {
-        email: 'demo@local',
-        password: 'password',
-        firstName: 'Demo',
-        lastName: 'User',
-        role: 'user'
-      }
+      defaults: { email: 'demo@local', password: 'password', firstName: 'Demo', lastName: 'User', role: 'user' }
     });
-
-    // Insert demo admin if it doesn't exist
     await User.findOrCreate({
       where: { email: 'admin@local' },
-      defaults: {
-        email: 'admin@local',
-        password: 'admin123',
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'admin'
-      }
+      defaults: { email: 'admin@local', password: 'admin123', firstName: 'Admin', lastName: 'User', role: 'admin' }
     });
 
-    app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+    server.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
   } catch (error) {
     console.error('Unable to connect to database:', error);
     process.exit(1);

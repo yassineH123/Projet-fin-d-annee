@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
-  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2
+  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
@@ -32,8 +32,9 @@ export default function Navbar() {
 
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [scrolled,     setScrolled]     = useState(false);
-  const [unreadMsg,    setUnreadMsg]    = useState(0);
-  const [pendingBooks, setPendingBooks] = useState(0);
+  const [unreadMsg,     setUnreadMsg]     = useState(0);
+  const [pendingBooks,  setPendingBooks]  = useState(0);
+  const [friendReqs,    setFriendReqs]    = useState(0);
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [profileOpen,  setProfileOpen]  = useState(false);
   const [searchQ,      setSearchQ]      = useState('');
@@ -68,6 +69,7 @@ export default function Navbar() {
       api.get('/messages/unread-count').then(({ data }) => setUnreadMsg(data.count)).catch(() => {});
       api.get('/bookings/pending-count').then(({ data }) => setPendingBooks(data.count)).catch(() => {});
       api.get('/notifications').then(({ data }) => setNotifs(data.notifications || [])).catch(() => {});
+      api.get('/friends/pending-count').then(({ data }) => setFriendReqs(data.count)).catch(() => {});
     };
     poll();
     intervalRef.current = setInterval(poll, 30_000);
@@ -215,6 +217,25 @@ export default function Navbar() {
                 )}
               </NavLink>
 
+              {/* Amis */}
+              <NavLink to="/friends"
+                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
+                title="Amis"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Users size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
+                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>Amis</span>
+                    {friendReqs > 0 && (
+                      <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                        {friendReqs > 9 ? '9+' : friendReqs}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+
               {/* ── Notifications ── */}
               <div ref={notifRef} className="relative hidden md:block">
                 <button
@@ -334,13 +355,14 @@ export default function Navbar() {
                       </div>
                     </div>
                     {[
-                      { to: '/profile',        icon: User,         label: 'Mon profil' },
-                      { to: '/driver-dashboard', icon: BarChart2,  label: 'Dashboard conducteur' },
-                      { to: '/rides/publish',  icon: Plus,         label: 'Publier un trajet' },
-                      { to: '/rides/mine',     icon: Car,          label: 'Mes trajets' },
-                      { to: '/bookings',       icon: BookOpen,     label: 'Réservations' },
-                      { to: '/messages',       icon: MessageSquare,label: 'Messages' },
-                    ].map(({ to, icon: Icon, label }) => (
+                      { to: '/profile',          icon: User,         label: 'Mon profil' },
+                      { to: '/friends',          icon: Users,        label: 'Amis & Réseau', badge: friendReqs },
+                      { to: '/driver-dashboard', icon: BarChart2,    label: 'Dashboard conducteur' },
+                      { to: '/rides/publish',    icon: Plus,         label: 'Publier un trajet' },
+                      { to: '/rides/mine',       icon: Car,          label: 'Mes trajets' },
+                      { to: '/bookings',         icon: BookOpen,     label: 'Réservations' },
+                      { to: '/messages',         icon: MessageSquare,label: 'Messages' },
+                    ].map(({ to, icon: Icon, label, badge }) => (
                       <Link key={to} to={to}
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all"
@@ -348,7 +370,13 @@ export default function Navbar() {
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-base)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                       >
-                        <Icon size={16} /> {label}
+                        <Icon size={16} />
+                        <span className="flex-1">{label}</span>
+                        {badge > 0 && (
+                          <span className="min-w-[18px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                            {badge > 9 ? '9+' : badge}
+                          </span>
+                        )}
                       </Link>
                     ))}
                     <div style={{ borderTop: '1px solid var(--border-color)' }}>
@@ -416,8 +444,9 @@ export default function Navbar() {
             <>
               <MobileLink to="/rides/publish" icon={<Plus size={16} />}         label="Publier un trajet" />
               <MobileLink to="/rides/mine"    icon={<Car size={16} />}           label="Mes trajets" />
-              <MobileLink to="/bookings"      icon={<BookOpen size={16} />}      label="Réservations" badge={pendingBooks} badgeColor="bg-yellow-500 text-black" />
-              <MobileLink to="/messages"      icon={<MessageSquare size={16} />} label="Messages"     badge={unreadMsg}    badgeColor="bg-red-500 text-white" />
+              <MobileLink to="/bookings"      icon={<BookOpen size={16} />}      label="Réservations"  badge={pendingBooks} badgeColor="bg-yellow-500 text-black" />
+              <MobileLink to="/messages"      icon={<MessageSquare size={16} />} label="Messages"      badge={unreadMsg}    badgeColor="bg-red-500 text-white" />
+              <MobileLink to="/friends"       icon={<Users size={16} />}         label="Amis & Réseau" badge={friendReqs}   badgeColor="bg-red-500 text-white" />
               <MobileLink to="/profile"       icon={<User size={16} />}          label="Mon profil" />
               {['admin','superadmin'].includes(user?.role) && (
                 <MobileLink to="/admin" icon={<Shield size={16} />} label="Administration" />
