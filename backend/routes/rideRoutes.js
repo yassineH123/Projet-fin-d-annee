@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+router.get('/home',   rideController.homeData);
 router.get('/search', rideController.search);
 router.get('/mine', authenticateToken, rideController.getMine);
 router.get('/:id', rideController.getOne);

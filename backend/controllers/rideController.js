@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Ride, User, Booking } = require('../models');
+const sequelize = require('../database');
 
 async function create(req, res, next) {
   try {
@@ -96,4 +97,28 @@ async function remove(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { create, search, getOne, getMine, update, complete, remove };
+async function homeData(req, res, next) {
+  try {
+    const [upcoming, topDrivers, trending] = await Promise.all([
+      Ride.findAll({
+        where: { status: 'active', seatsAvailable: { [Op.gt]: 0 }, departureDate: { [Op.gt]: new Date() } },
+        include: [{ model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating'] }],
+        order: [['departureDate', 'ASC']],
+        limit: 6,
+      }),
+      User.findAll({
+        where: { isDriver: true, avgRating: { [Op.gt]: 0 } },
+        attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating', 'totalRatings', 'totalTrips'],
+        order: [['avgRating', 'DESC'], ['totalTrips', 'DESC']],
+        limit: 6,
+      }),
+      sequelize.query(
+        'SELECT `to` AS city, COUNT(*) AS cnt FROM Rides WHERE status IN ("active","completed") GROUP BY `to` ORDER BY cnt DESC LIMIT 6',
+        { type: sequelize.QueryTypes.SELECT }
+      ),
+    ]);
+    return res.json({ upcoming, topDrivers, trending });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { create, search, getOne, getMine, update, complete, remove, homeData };

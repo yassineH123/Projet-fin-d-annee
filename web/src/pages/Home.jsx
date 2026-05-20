@@ -4,10 +4,12 @@ import {
   MapPin, ArrowRight, Shield, Star, Users, Car,
   CheckCircle, ChevronRight, ChevronDown,
   TrendingDown, Lock, ThumbsUp, MessageCircle, Award, ArrowLeftRight,
-  Navigation, Map, Leaf, Train, Bus
+  Navigation, Map, Leaf, Train, Bus,
+  Gift, Copy, Check, TrendingUp, Trophy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { reverseGeocode } from '../utils/geocode';
+import api from '../services/api';
 
 const MapPicker = lazy(() => import('../components/MapPicker'));
 const RouteMap  = lazy(() => import('../components/RouteMap'));
@@ -93,6 +95,40 @@ const MAP_ROUTES = [
 ];
 
 const CO2_BASE = 38420;
+
+const CITY_EMOJI = {
+  Casablanca: '🏙️', Marrakech: '🕌', Rabat: '🏛️', Fès: '⛩️',
+  Tanger: '🌊', Agadir: '🌴', Meknès: '🏰', Oujda: '🌿',
+  Tétouan: '🔵', 'Laâyoune': '🏜️', Chefchaouen: '💙',
+  Essaouira: '🌬️', Merzouga: '🐪', Ifrane: '❄️',
+};
+
+function formatRideDate(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
+  if (d.toDateString() === tomorrow.toDateString()) return 'Demain';
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function adaptRide(ride) {
+  const d = new Date(ride.departureDate);
+  return {
+    id: ride.id,
+    from: ride.from,
+    to: ride.to,
+    depTime: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    arrTime: '—',
+    date: formatRideDate(ride.departureDate),
+    driver: `${ride.driver?.firstName || ''} ${ride.driver?.lastName?.[0] || ''}.`,
+    rating: ride.driver?.avgRating || 0,
+    seats: ride.seatsAvailable,
+    price: ride.price,
+    avatar: `${ride.driver?.firstName?.[0] || '?'}${ride.driver?.lastName?.[0] || ''}`,
+  };
+}
 
 /* ─── COMPONENTS ────────────────────────────────── */
 
@@ -383,6 +419,142 @@ function TripCard({ trip }) {
   );
 }
 
+/* ─── NEW SECTIONS ─────────────────────────────── */
+
+function TopDriversSection({ drivers }) {
+  if (!drivers || drivers.length === 0) return null;
+  return (
+    <section className="py-14 px-4" style={{ background: 'var(--bg-800)' }}>
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#D4890A' }}>Communauté</p>
+            <h2 className="text-2xl font-black font-heading flex items-center gap-2" style={{ color: 'var(--text-base)' }}>
+              <Trophy size={22} style={{ color: '#D4890A' }} /> Top conducteurs
+            </h2>
+          </div>
+          <Link to="/rides/search" className="text-xs font-semibold flex items-center gap-1" style={{ color: '#C1272D' }}>
+            Voir tous les trajets <ChevronRight size={14} />
+          </Link>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+          {drivers.map((d, i) => (
+            <Link key={d.id} to={`/profile/${d.id}`}
+              className="flex-shrink-0 rounded-2xl p-5 text-center hover:scale-[1.02] transition-transform"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', minWidth: 155, borderTop: `3px solid ${i === 0 ? '#D4890A' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : '#C1272D'}` }}>
+              {i < 3 && (
+                <div className="text-lg mb-1">{['🥇', '🥈', '🥉'][i]}</div>
+              )}
+              {d.photo
+                ? <img src={d.photo} alt="" className="w-14 h-14 rounded-full object-cover mx-auto mb-3" />
+                : <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-lg mx-auto mb-3"
+                    style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
+                    {d.firstName?.[0]}{d.lastName?.[0]}
+                  </div>
+              }
+              <p className="font-bold text-sm leading-tight mb-1" style={{ color: 'var(--text-base)' }}>{d.firstName} {d.lastName}</p>
+              <p className="text-xs flex items-center justify-center gap-1 mb-1" style={{ color: '#D4890A' }}>
+                <Star size={11} className="fill-current" /> {d.avgRating?.toFixed(1) || '—'}
+                <span style={{ color: 'var(--text-muted)' }}>({d.totalRatings || 0})</span>
+              </p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{d.totalTrips || 0} trajet{d.totalTrips !== 1 ? 's' : ''}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TrendingSection({ trending }) {
+  if (!trending || trending.length === 0) return null;
+  return (
+    <section className="py-14 px-4" style={{ background: 'var(--bg-900)' }}>
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-8">
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#D4890A' }}>Cette semaine</p>
+          <h2 className="text-2xl font-black font-heading flex items-center justify-center gap-2" style={{ color: 'var(--text-base)' }}>
+            <TrendingUp size={22} style={{ color: '#C1272D' }} /> Destinations tendances
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          {trending.map((item, i) => (
+            <Link key={item.city} to={`/rides/search?to=${item.city}`}
+              className="rounded-2xl p-4 text-center hover:scale-[1.03] transition-all group"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+              <div className="relative inline-block mb-2">
+                <span className="text-3xl">{CITY_EMOJI[item.city] || '📍'}</span>
+                <span className="absolute -top-1 -right-2 w-5 h-5 rounded-full text-white font-black text-[10px] flex items-center justify-center"
+                  style={{ background: i < 3 ? '#C1272D' : 'var(--bg-700)', color: i < 3 ? '#fff' : 'var(--text-muted)', fontSize: 9 }}>
+                  #{i + 1}
+                </span>
+              </div>
+              <p className="font-bold text-sm leading-tight" style={{ color: 'var(--text-base)' }}>{item.city}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{item.cnt} trajet{item.cnt > 1 ? 's' : ''}</p>
+              <p className="text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity font-semibold" style={{ color: '#C1272D' }}>Voir →</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReferralSection({ user }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(user?.referralCode || '');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <section className="px-4 py-4" style={{ background: 'var(--bg-800)' }}>
+      <div className="max-w-5xl mx-auto">
+        <div className="rounded-2xl p-6 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg,#1a1a2e,#16213e)', border: '1px solid rgba(193,39,45,0.3)' }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='10' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E\")" }} />
+          <div className="relative flex flex-col sm:flex-row items-center gap-6">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-3"
+                style={{ background: 'rgba(212,137,10,0.15)', color: '#D4890A', border: '1px solid rgba(212,137,10,0.3)' }}>
+                <Gift size={12} /> Programme de parrainage
+              </div>
+              <h3 className="text-xl font-black text-white mb-1">Parrainez vos amis 🎉</h3>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                Partagez votre code et voyagez ensemble. Chaque parrainage vous rapproche d'un badge exclusif.
+              </p>
+            </div>
+            {user ? (
+              <div className="flex-shrink-0 text-center">
+                <p className="text-xs font-bold mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Votre code</p>
+                <div className="flex items-center gap-2">
+                  <div className="px-5 py-3 rounded-xl font-mono font-black text-xl tracking-widest"
+                    style={{ background: 'rgba(193,39,45,0.2)', color: '#fff', border: '1px solid rgba(193,39,45,0.4)', letterSpacing: '0.15em' }}>
+                    {user.referralCode || '—'}
+                  </div>
+                  <button onClick={copy}
+                    className="p-3 rounded-xl transition-all"
+                    style={{ background: copied ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.1)', color: copied ? '#22c55e' : '#fff', border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.2)'}` }}
+                    title="Copier le code">
+                    {copied ? <Check size={18} /> : <Copy size={18} />}
+                  </button>
+                </div>
+                <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.4)' }}>Partagez ce code à vos amis</p>
+              </div>
+            ) : (
+              <Link to="/register"
+                className="flex-shrink-0 flex items-center gap-2 font-bold px-5 py-3 rounded-xl transition-all"
+                style={{ background: '#C1272D', color: '#fff' }}>
+                <Gift size={16} /> Rejoindre & parrainer
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── PAGE ──────────────────────────────────────── */
 export default function Home() {
   const navigate    = useNavigate();
@@ -393,6 +565,17 @@ export default function Home() {
   const [pax,     setPax]     = useState(1);
   const [showMap, setShowMap] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [realTrips,   setRealTrips]   = useState([]);
+  const [topDrivers,  setTopDrivers]  = useState([]);
+  const [trending,    setTrending]    = useState([]);
+
+  useEffect(() => {
+    api.get('/rides/home').then(({ data }) => {
+      if (data.upcoming?.length)   setRealTrips(data.upcoming.map(adaptRide));
+      if (data.topDrivers?.length) setTopDrivers(data.topDrivers);
+      if (data.trending?.length)   setTrending(data.trending);
+    }).catch(() => {});
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -620,6 +803,8 @@ export default function Home() {
 
       <MoroccoMap />
 
+      <TrendingSection trending={trending} />
+
       {/* ── PROMO BANNER ── */}
       <section className="px-4 py-4" style={{ background: 'var(--bg-900)' }}>
         <div className="max-w-5xl mx-auto">
@@ -643,16 +828,19 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#D4890A' }}>Bientôt</p>
-              <h2 className="text-2xl font-black font-heading" style={{ color: 'var(--text-base)' }}>Prochains trajets</h2>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#D4890A' }}>En temps réel</p>
+              <h2 className="text-2xl font-black font-heading" style={{ color: 'var(--text-base)' }}>Prochains trajets disponibles</h2>
             </div>
             <Link to="/rides/search" className="btn-primary text-sm py-2 px-4 rounded-xl flex items-center gap-1.5">
               Voir tout <ArrowRight size={14} />
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {SAMPLE_TRIPS.map((trip, i) => <TripCard key={i} trip={trip} />)}
+            {(realTrips.length ? realTrips : SAMPLE_TRIPS).map((trip, i) => <TripCard key={i} trip={trip} />)}
           </div>
+          {realTrips.length === 0 && (
+            <p className="text-center text-xs mt-3" style={{ color: 'var(--text-muted)' }}>Exemples de trajets — publiez le premier trajet réel !</p>
+          )}
         </div>
       </section>
 
@@ -708,7 +896,9 @@ export default function Home() {
       </section>
 
       <DestinationsSection navigate={navigate} />
+      <TopDriversSection drivers={topDrivers} />
       <SavingsCalculator />
+      <ReferralSection user={user} />
 
       {/* ── TESTIMONIALS ── */}
       <section className="py-20 px-4" style={{ background: 'var(--bg-900)' }}>
