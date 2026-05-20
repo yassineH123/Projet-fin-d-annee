@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf } from 'lucide-react';
 import api from '../services/api';
 import RideCard from '../components/RideCard';
 import Spinner from '../components/Spinner';
+import { ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS, findRoutes, formatDuration, co2Color } from '../data/transportData';
 
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Laâyoune'];
 const SORT_OPTIONS = [
@@ -13,11 +14,65 @@ const SORT_OPTIONS = [
   { value: 'rating_desc', label: 'Mieux notés' },
 ];
 
+const TRANSPORT_TABS = [
+  { id: 'covoiturage', label: 'Covoiturage', icon: '🚗', color: '#C1272D' },
+  { id: 'train',       label: 'Train',       icon: '🚂', color: '#2196F3' },
+  { id: 'bus',         label: 'Bus',         icon: '🚌', color: '#FF9800' },
+  { id: 'grandtaxi',  label: 'Grand Taxi',  icon: '🚕', color: '#9C27B0' },
+  { id: 'avion',      label: 'Avion',       icon: '✈️', color: '#00BCD4' },
+];
+
+function StaticTransportCard({ item, mode }) {
+  const cfg = TRANSPORT_TABS.find(t => t.id === mode);
+  const price = item.price ?? item.pricePerPerson ?? item.priceFrom;
+  return (
+    <div className="card p-4" style={{ borderTop: `3px solid ${cfg?.color}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="font-black text-sm" style={{ color: cfg?.color }}>{item.operator}</p>
+          {item.class && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.class}</p>}
+        </div>
+        <div className="text-right">
+          <p className="font-black text-xl" style={{ color: cfg?.color }}>{price} DH</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>/pers</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 text-xs mb-3 flex-wrap">
+        {item.duration && <span className="flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}><Clock size={11}/> {formatDuration(item.duration)}</span>}
+        {item.co2      && <span className="flex items-center gap-1 font-semibold" style={{ color: co2Color(item.co2) }}><Leaf size={11}/> {item.co2}kg CO₂</span>}
+        {mode === 'grandtaxi' && <span style={{ color: 'var(--text-muted)' }}>~30 min attente · 5 passagers</span>}
+        {mode === 'avion'     && <span style={{ color: 'var(--text-muted)' }}>Prix à partir de</span>}
+      </div>
+      {item.departures && (
+        <div className="flex gap-1.5 flex-wrap mb-3">
+          {item.departures.slice(0, 6).map(d => (
+            <span key={d} className="text-xs px-2 py-0.5 rounded-lg font-mono"
+              style={{ background: `${cfg?.color}15`, color: cfg?.color, border: `1px solid ${cfg?.color}30` }}>{d}</span>
+          ))}
+          {item.departures.length > 6 && <span className="text-xs px-2 py-0.5 rounded-lg" style={{ color: 'var(--text-muted)', background: 'var(--bg-700)' }}>+{item.departures.length - 6}</span>}
+        </div>
+      )}
+      {item.bookingUrl ? (
+        <a href={item.bookingUrl} target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-sm font-bold"
+          style={{ background: `${cfg?.color}15`, color: cfg?.color, border: `1px solid ${cfg?.color}30` }}>
+          Réserver <ExternalLink size={13}/>
+        </a>
+      ) : (
+        <div className="flex items-center justify-center w-full py-2 rounded-xl text-sm" style={{ background: 'var(--bg-700)', color: 'var(--text-muted)' }}>
+          Disponible en station
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SearchRides() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [rides,    setRides]    = useState([]);
   const [loading,  setLoading]  = useState(false);
   const [showAdv,  setShowAdv]  = useState(false);
+  const [transportMode, setTransportMode] = useState('covoiturage');
 
   const [from,       setFrom]       = useState(searchParams.get('from') || '');
   const [to,         setTo]         = useState(searchParams.get('to')   || '');
@@ -30,6 +85,13 @@ export default function SearchRides() {
   const [seats,      setSeats]      = useState(1);
 
   const activeFilters = [verifiedOnly, pmrOnly, minRating > 0, maxPrice].filter(Boolean).length;
+
+  const staticResults = {
+    train:      findRoutes(ONCF,       from, to),
+    bus:        findRoutes(CTM_ROUTES, from, to),
+    grandtaxi:  findRoutes(GRAND_TAXI, from, to),
+    avion:      findRoutes(FLIGHTS,    from, to),
+  };
 
   const fetchRides = async (overrides = {}) => {
     setLoading(true);
@@ -58,7 +120,13 @@ export default function SearchRides() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-black text-white mb-6">Rechercher un trajet</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-black text-white">Rechercher un trajet</h1>
+        <Link to="/compare" className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all"
+          style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)' }}>
+          🗺️ Comparer tous les transports
+        </Link>
+      </div>
 
       {/* Barre de recherche principale */}
       <form onSubmit={handleSearch} className="card mb-4">
@@ -160,21 +228,69 @@ export default function SearchRides() {
         )}
       </form>
 
-      {/* Résultats */}
-      {loading ? <Spinner /> : rides.length === 0 ? (
-        <div className="text-center py-16">
-          <SlidersHorizontal size={40} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400 font-medium">Aucun trajet trouvé</p>
-          <p className="text-slate-600 text-sm mt-1">Essayez de modifier vos critères de recherche</p>
-        </div>
-      ) : (
-        <div>
-          <p className="text-slate-400 text-sm mb-4">{rides.length} trajet{rides.length > 1 ? 's' : ''} trouvé{rides.length > 1 ? 's' : ''}</p>
-          <div className="flex flex-col gap-4">
-            {rides.map(ride => <RideCard key={ride.id} ride={ride} />)}
+      {/* ── Transport mode tabs ── */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5" style={{ scrollbarWidth: 'none' }}>
+        {TRANSPORT_TABS.map(tab => (
+          <button key={tab.id} onClick={() => setTransportMode(tab.id)}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all"
+            style={{
+              background: transportMode === tab.id ? `${tab.color}18` : 'var(--bg-700)',
+              color:      transportMode === tab.id ? tab.color          : 'var(--text-muted)',
+              border:     transportMode === tab.id ? `1px solid ${tab.color}40` : '1px solid var(--border-color)',
+            }}>
+            {tab.icon} {tab.label}
+            {tab.id !== 'covoiturage' && from && to && staticResults[tab.id]?.length > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full"
+                style={{ background: tab.color, color: '#fff', fontSize: 10 }}>
+                {staticResults[tab.id].length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Résultats covoiturage ── */}
+      {transportMode === 'covoiturage' && (
+        loading ? <Spinner /> : rides.length === 0 ? (
+          <div className="text-center py-16">
+            <SlidersHorizontal size={40} className="text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400 font-medium">Aucun trajet covoiturage trouvé</p>
+            <p className="text-slate-600 text-sm mt-1">Essayez de modifier vos critères ou regardez les autres modes de transport</p>
           </div>
-        </div>
+        ) : (
+          <div>
+            <p className="text-slate-400 text-sm mb-4">{rides.length} trajet{rides.length > 1 ? 's' : ''} trouvé{rides.length > 1 ? 's' : ''}</p>
+            <div className="flex flex-col gap-4">
+              {rides.map(ride => <RideCard key={ride.id} ride={ride} />)}
+            </div>
+          </div>
+        )
       )}
+
+      {/* ── Résultats transport statique ── */}
+      {transportMode !== 'covoiturage' && (() => {
+        const results = staticResults[transportMode] || [];
+        return results.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-4xl mb-3">{TRANSPORT_TABS.find(t => t.id === transportMode)?.icon}</div>
+            <p className="text-slate-400 font-medium">
+              {!from || !to
+                ? 'Entrez une ville de départ et d\'arrivée pour voir les options'
+                : `Pas de ${TRANSPORT_TABS.find(t => t.id === transportMode)?.label} direct pour ce trajet`}
+            </p>
+            <p className="text-slate-600 text-sm mt-1">
+              <Link to="/compare" className="underline" style={{ color: '#C1272D' }}>Essayez le comparateur</Link> pour toutes les combinaisons
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-slate-400 text-sm mb-4">{results.length} option{results.length > 1 ? 's' : ''} disponible{results.length > 1 ? 's' : ''}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {results.map((item, i) => <StaticTransportCard key={i} item={item} mode={transportMode} />)}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

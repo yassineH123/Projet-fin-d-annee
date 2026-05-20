@@ -23,6 +23,7 @@ import Feed             from './pages/Feed';
 import ForgotPassword   from './pages/ForgotPassword';
 import DriverDashboard  from './pages/DriverDashboard';
 import Friends          from './pages/Friends';
+import Compare          from './pages/Compare';
 import SOSButton        from './components/SOSButton';
 
 function PrivateRoute({ children }) {
@@ -62,6 +63,7 @@ function AppRoutes() {
           <Route path="/messages"       element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/admin"          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/feed"             element={<Feed />} />
+          <Route path="/compare"          element={<Compare />} />
           <Route path="/onboarding"       element={<Onboarding />} />
           <Route path="/driver-dashboard" element={<PrivateRoute><DriverDashboard /></PrivateRoute>} />
           <Route path="/friends"          element={<PrivateRoute><Friends /></PrivateRoute>} />

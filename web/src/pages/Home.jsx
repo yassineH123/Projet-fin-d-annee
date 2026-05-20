@@ -956,6 +956,38 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── COMPARATEUR CTA ── */}
+      <section className="px-4 py-4" style={{ background: 'var(--bg-800)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,#0f172a,#1e293b)', border: '1px solid rgba(0,188,212,0.25)' }}>
+            <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='10' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E\")" }} />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🗺️</span>
+                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(0,188,212,0.15)', color: '#00BCD4', border: '1px solid rgba(0,188,212,0.3)' }}>
+                  Fonctionnalité unique au Maroc
+                </span>
+              </div>
+              <p className="font-black text-white text-xl mb-1">Comparez tous les transports</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                Covoiturage · Train ONCF · Bus CTM · Grand Taxi · Avion — tout en un coup d'œil
+              </p>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                {['🚗 80 DH · 3h30', '🚂 155 DH · 2h15', '🚌 110 DH · 4h', '✈️ 299 DH · 45min'].map(t => (
+                  <span key={t} className="text-xs px-2 py-1 rounded-lg font-mono" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)' }}>{t}</span>
+                ))}
+              </div>
+            </div>
+            <Link to="/compare"
+              className="flex-shrink-0 flex items-center gap-2 font-black px-6 py-3 rounded-xl transition-all"
+              style={{ background: '#00BCD4', color: '#fff', boxShadow: '0 4px 16px rgba(0,188,212,0.3)' }}>
+              Comparer maintenant <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ── */}
       <section className="py-20 px-4" style={{ background: 'var(--bg-900)' }}>
         <div className="max-w-2xl mx-auto">
