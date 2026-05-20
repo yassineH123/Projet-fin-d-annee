@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GOOGLE_WEB_CLIENT_ID } from '../utils/config';
 
 type AuthUser = {
   id: string;
@@ -25,6 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (GOOGLE_WEB_CLIENT_ID && GOOGLE_WEB_CLIENT_ID !== 'YOUR_GOOGLE_WEB_CLIENT_ID') {
+      GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+    }
+
     AsyncStorage.multiGet(['token', 'user']).then(([t, u]) => {
       if (t[1]) setToken(t[1]);
       if (u[1]) setUser(JSON.parse(u[1]));

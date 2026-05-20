@@ -8,3 +8,5 @@ export const API_BASE_URL = Platform.select({
   ios:     'http://localhost:4000/api',
   default: 'http://10.0.2.2:4000/api',
 }) as string;
+
+export const GOOGLE_WEB_CLIENT_ID = 'YOUR_GOOGLE_WEB_CLIENT_ID';
