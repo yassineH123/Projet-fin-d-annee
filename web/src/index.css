@@ -2,36 +2,266 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * { box-sizing: border-box; }
-  body {
-    @apply bg-dark-900 text-slate-100 font-sans antialiased;
-    min-height: 100vh;
-  }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-dark-800; }
-  ::-webkit-scrollbar-thumb { @apply bg-dark-500 rounded-full; }
+/* ═══════════════════════════════════════
+   VARIABLES DE THÈME
+   ═══════════════════════════════════════ */
+
+/* ── Mode sombre : "Nuit de Marrakech" ──
+   Bois de cèdre • Cuir de Fès • Lumière de lanterne
+   ──────────────────────────────────────── */
+:root {
+  /* Fonds chaleureux (bois de cèdre sombre / cuir rouge profond) */
+  --bg-900: #0F0804;   /* fond principal — presque noir mais très chaud */
+  --bg-800: #1C1008;   /* surface — bois de cèdre sombre */
+  --bg-700: #281608;   /* fond élevé */
+  --bg-600: #3A1E0C;   /* cartes */
+  --bg-500: #562C12;   /* bordures */
+  --bg-400: #7A4020;   /* éléments atténués */
+
+  /* Texte crème chaud — lumière de lanterne marocaine */
+  --text-base:       #F7E8C0;
+  --text-secondary:  rgba(247,232,192,0.62);
+  --text-muted:      rgba(247,232,192,0.35);
+
+  --border-color:    #3A1E0C;
+  --border-muted:    #562C12;
+  --scrollbar-thumb: #9e1f24;
+
+  --card-bg:         #1C1008;
+  --input-bg:        #22120A;
+  --input-placeholder: #7A4020;
 }
 
+/* Mode clair — blanc propre, texte noir, accents rouge & vert marocain */
+html.light {
+  --bg-900: #ffffff;
+  --bg-800: #f8f8f8;
+  --bg-700: #f0f0f0;
+  --bg-600: #e8e8e8;
+  --bg-500: #d4d4d4;
+  --bg-400: #a0a0a0;
+
+  --text-base:       #111111;
+  --text-secondary:  rgba(17,17,17,0.65);
+  --text-muted:      rgba(17,17,17,0.42);
+  --border-color:    #e5e5e5;
+  --border-muted:    #d4d4d4;
+  --scrollbar-thumb: #C1272D;
+
+  --card-bg:         #ffffff;
+  --input-bg:        #ffffff;
+  --input-placeholder: #9ca3af;
+}
+
+/* ═══════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════ */
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg-900);
+    color: var(--text-base);
+    font-family: 'Cairo', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    transition: background-color 0.35s ease, color 0.35s ease;
+    /* Zellige marocain enrichi — losanges + étoiles à 8 branches */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40Z' fill='none' stroke='%23C1272D' stroke-width='0.7' opacity='0.18'/%3E%3Cpath d='M40 14 L66 40 L40 66 L14 40Z' fill='none' stroke='%23D4890A' stroke-width='0.5' opacity='0.14'/%3E%3Cpath d='M40 0 L40 80 M0 40 L80 40' stroke='%23006233' stroke-width='0.3' opacity='0.08'/%3E%3Cpath d='M0 0 L80 80 M80 0 L0 80' stroke='%23C1272D' stroke-width='0.25' opacity='0.07'/%3E%3Ccircle cx='40' cy='40' r='4' fill='none' stroke='%23D4890A' stroke-width='0.5' opacity='0.2'/%3E%3Ccircle cx='40' cy='40' r='1.5' fill='%23D4890A' opacity='0.25'/%3E%3C/svg%3E");
+  }
+
+  h1, h2, h3 { letter-spacing: 0.025em; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-800); }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 9999px; }
+}
+
+/* ═══════════════════════════════════════
+   COMPOSANTS
+   ═══════════════════════════════════════ */
 @layer components {
+  /* ── Boutons ── */
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-[#C1272D] hover:bg-[#9e1f24] active:bg-[#7e181d]
+           text-white font-semibold px-5 py-2.5 rounded-xl
+           transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 4px 20px rgba(193, 39, 45, 0.18);
   }
   .btn-secondary {
-    @apply bg-dark-600 hover:bg-dark-500 text-slate-200 font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
+    @apply font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
+    background-color: var(--bg-600);
+    border: 1px solid var(--border-muted);
+    color: var(--text-base);
   }
+  .btn-secondary:hover { background-color: var(--bg-500); }
+
+  .btn-gold {
+    @apply text-[#0d0705] font-bold px-5 py-2.5 rounded-xl transition-all duration-200;
+    background-color: #D4890A;
+    box-shadow: 0 4px 20px rgba(212, 137, 10, 0.2);
+  }
+  .btn-gold:hover { background-color: #a86508; }
+
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
+    @apply bg-red-700 hover:bg-red-800 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
   }
+
+  /* ── Inputs ── */
   .input {
-    @apply w-full bg-dark-700 border border-dark-500 text-slate-100 placeholder-slate-500 rounded-xl px-4 py-3 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all duration-200;
+    @apply w-full rounded-xl px-4 py-3 focus:outline-none transition-all duration-200;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-muted);
+    color: var(--text-base);
   }
+  .input::placeholder { color: var(--input-placeholder); }
+  .input:focus {
+    border-color: #C1272D;
+    box-shadow: 0 0 0 1px rgba(193, 39, 45, 0.35);
+  }
+
+  /* ── Cards ── */
   .card {
-    @apply bg-dark-800 border border-dark-500 rounded-2xl p-5;
+    @apply rounded-2xl p-5;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-top: 2px solid rgba(193,39,45,0.35);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(212,137,10,0.08);
+    transition: background-color 0.35s ease, border-color 0.35s ease;
   }
-  .badge-pending   { @apply bg-yellow-500/20 text-yellow-400 text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-accepted  { @apply bg-green-500/20  text-green-400  text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-refused   { @apply bg-red-500/20    text-red-400    text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-cancelled { @apply bg-slate-500/20  text-slate-400  text-xs font-semibold px-2.5 py-1 rounded-full; }
-  .badge-active    { @apply bg-blue-500/20   text-blue-400   text-xs font-semibold px-2.5 py-1 rounded-full; }
+  .card:hover {
+    border-top-color: rgba(193,39,45,0.6);
+    box-shadow: 0 6px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(212,137,10,0.12);
+  }
+
+  /* ── Badges booking ── */
+  .badge-pending   { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(212,137,10,0.18); color: #D4890A; }
+  .badge-accepted  { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(0,98,51,0.18);   color: #1e9257; }
+  .badge-refused   { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(193,39,45,0.18); color: #C1272D; }
+  .badge-cancelled { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(100,80,60,0.2);  color: #d97706; }
+  .badge-active    { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(0,98,51,0.18);   color: #52ad80; }
+
+  /* ── Divider ornemental ── */
+  .divider-moroccan { @apply flex items-center gap-3; color: rgba(212,137,10,0.6); }
+  .divider-moroccan::before,
+  .divider-moroccan::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(212,137,10,0.4), transparent);
+  }
+
+  /* ── Logo gradient ── */
+  .logo-gradient {
+    background: linear-gradient(135deg, #C1272D 0%, #D4890A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
+
+/* ═══════════════════════════════════════
+   MODE CLAIR — OVERRIDES COMPLETS
+   Blanc propre · Texte noir · Rouge + Vert marocain
+   ═══════════════════════════════════════ */
+
+/* Corps de page */
+html.light body {
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40Z' fill='none' stroke='%23C1272D' stroke-width='0.7' opacity='0.07'/%3E%3Cpath d='M40 14 L66 40 L40 66 L14 40Z' fill='none' stroke='%23006233' stroke-width='0.5' opacity='0.06'/%3E%3Cpath d='M40 0 L40 80 M0 40 L80 40' stroke='%23C1272D' stroke-width='0.3' opacity='0.04'/%3E%3Ccircle cx='40' cy='40' r='4' fill='none' stroke='%23D4890A' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
+}
+
+/* Navbar en mode clair */
+html.light nav {
+  background-color: rgba(255,255,255,0.97) !important;
+  border-bottom-color: #e5e5e5 !important;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+
+/* Tout le texte amber/white/slate → noir */
+html.light [class*="text-amber-"],
+html.light [class*="text-white"] {
+  color: #111111;
+}
+html.light [class*="text-slate-"] {
+  color: rgba(17,17,17,0.55);
+}
+
+/* Accents marocains : garder leurs couleurs vives */
+html.light [class*="text-primary-"] { color: #C1272D !important; }
+html.light [class*="text-morocco-"] { color: #006233 !important; }
+html.light [class*="text-gold-"]    { color: #a86508 !important; }
+html.light [class*="text-green-"]   { color: #15803d !important; }
+html.light [class*="text-red-"]     { color: #b91c1c !important; }
+
+/* Cards en mode clair */
+html.light .card {
+  background-color: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-top: 2px solid #C1272D;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+html.light .card:hover {
+  box-shadow: 0 4px 20px rgba(193,39,45,0.1);
+}
+
+/* Bouton secondaire */
+html.light .btn-secondary {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #111111;
+}
+html.light .btn-secondary:hover {
+  background-color: #ebebeb;
+}
+
+/* Sections fond dark → blanc */
+html.light section { background-color: #ffffff; }
+html.light section:nth-child(even) { background-color: #f8f8f8; }
+
+/* Bandes de stats */
+html.light .border-y { border-color: #e5e5e5; }
+
+/* Logo gradient : toujours rouge→or */
+html.light .logo-gradient {
+  background: linear-gradient(135deg, #C1272D 0%, #D4890A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient texte du titre hero → rouge + vert marocain en mode clair */
+html.light .bg-gradient-to-r.from-primary-400.to-gold-400,
+html.light [class*="from-primary-4"][class*="to-gold-"] {
+  background: linear-gradient(135deg, #C1272D, #006233);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Footer en mode clair */
+html.light footer {
+  background-color: #f8f8f8 !important;
+  border-top-color: #e5e5e5 !important;
+}
+html.light footer .h-0\.5,
+html.light footer [class*="bg-gradient-to-r"] {
+  background: linear-gradient(to right, #C1272D, #006233, #C1272D);
+}
+
+/* Inputs en mode clair */
+html.light .input {
+  background-color: #ffffff;
+  border-color: #d4d4d4;
+  color: #111111;
+}
+html.light .input::placeholder { color: #9ca3af; }
+html.light .input:focus {
+  border-color: #C1272D;
+  box-shadow: 0 0 0 2px rgba(193,39,45,0.15);
+}
+
+/* Burger mobile */
+html.light button[class*="text-slate-"] { color: rgba(17,17,17,0.6); }
+html.light button[class*="text-slate-"]:hover { color: #111111; }

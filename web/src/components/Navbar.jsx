@@ -1,11 +1,13 @@
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Car, Search, MessageSquare, User, LogOut, Shield, Plus, Menu, X, BookOpen } from 'lucide-react';
+import { Car, Search, MessageSquare, User, LogOut, Shield, Plus, Menu, X, BookOpen, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const navigate         = useNavigate();
   const location         = useLocation();
   const [open,     setOpen]     = useState(false);
@@ -50,24 +52,24 @@ export default function Navbar() {
 
   const navLink = ({ isActive }) =>
     `flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
-      isActive ? 'text-primary-400' : 'text-slate-400 hover:text-white'
+      isActive ? 'text-primary-400' : 'text-amber-200/60 hover:text-amber-50'
     }`;
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled
-        ? 'bg-dark-900/95 backdrop-blur-md shadow-xl shadow-black/20 border-b border-dark-500'
-        : 'bg-dark-800/90 backdrop-blur border-b border-dark-500'
+        ? 'bg-dark-900/97 backdrop-blur-md shadow-xl shadow-black/40 border-b border-primary-900/60'
+        : 'bg-dark-800/95 backdrop-blur border-b border-dark-600'
     }`}>
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 flex-shrink-0 group">
-          <div className="w-8 h-8 rounded-xl bg-primary-500/20 flex items-center justify-center group-hover:bg-primary-500/30 transition-colors">
+          <div className="w-8 h-8 rounded-xl bg-primary-500/20 flex items-center justify-center group-hover:bg-primary-500/30 transition-colors border border-primary-800/40">
             <Car className="text-primary-400" size={18} />
           </div>
-          <span className="font-black text-xl tracking-tight">
-            <span className="text-white">Atlas</span><span className="text-primary-400">Way</span>
+          <span className="font-black text-xl tracking-tight font-heading">
+            <span style={{ color: 'var(--text-base)' }}>Atlas</span><span className="logo-gradient">Way</span>
           </span>
         </Link>
 
@@ -119,12 +121,12 @@ export default function Navbar() {
                 {user.photo
                   ? <img src={user.photo} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-dark-500 group-hover:ring-primary-500 transition" />
                   : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center text-white text-sm font-black">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-gold-500 flex items-center justify-center text-white text-sm font-black">
                       {user.firstName?.[0]}
                     </div>
                   )
                 }
-                <span className="text-sm text-slate-300 font-medium group-hover:text-white transition-colors">
+                <span className="text-sm text-amber-100 font-medium group-hover:text-amber-50 transition-colors">
                   {user.firstName}
                 </span>
               </NavLink>
@@ -138,7 +140,7 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/login" className="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors rounded-xl hover:bg-dark-700">
+              <Link to="/login" className="px-4 py-2 text-sm font-semibold text-amber-200/70 hover:text-amber-50 transition-colors rounded-xl hover:bg-dark-700">
                 Connexion
               </Link>
               <Link to="/register" className="btn-primary text-sm py-2 px-4 rounded-xl">
@@ -148,9 +150,23 @@ export default function Navbar() {
           )}
         </div>
 
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+          className="p-2 rounded-lg transition-all duration-200 hover:bg-dark-600 border border-transparent hover:border-dark-500"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          {theme === 'dark'
+            ? <Sun size={18} className="text-gold-400" />
+            : <Moon size={18} className="text-primary-500" />
+          }
+        </button>
+
         {/* Mobile burger */}
         <button
-          className="md:hidden p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-dark-700"
+          className="md:hidden p-2 transition-colors rounded-lg hover:bg-dark-700"
+          style={{ color: 'var(--text-secondary)' }}
           onClick={() => setOpen(!open)}
         >
           {open ? <X size={20} /> : <Menu size={20} />}
@@ -159,19 +175,19 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden bg-dark-800 border-t border-dark-500 px-4 py-5 flex flex-col gap-1">
+        <div className="md:hidden bg-dark-800 border-t border-primary-900/50 px-4 py-5 flex flex-col gap-1">
           <MobileLink to="/rides/search" icon={<Search size={16} />} label="Rechercher un trajet" />
           {user ? (
             <>
               <MobileLink to="/rides/publish" icon={<Plus size={16} />}        label="Publier un trajet" />
               <MobileLink to="/rides/mine"    icon={<Car size={16} />}          label="Mes trajets" />
-              <MobileLink to="/bookings"      icon={<BookOpen size={16} />}     label="Mes réservations" badge={pendingBooks} badgeColor="bg-yellow-500 text-dark-900" />
+              <MobileLink to="/bookings"      icon={<BookOpen size={16} />}     label="Mes réservations" badge={pendingBooks} badgeColor="bg-gold-500 text-dark-900" />
               <MobileLink to="/messages"      icon={<MessageSquare size={16} />} label="Messages" badge={unreadMsg} badgeColor="bg-primary-500 text-white" />
               <MobileLink to="/profile"       icon={<User size={16} />}         label="Mon profil" />
               {['admin', 'superadmin'].includes(user?.role) && (
                 <MobileLink to="/admin" icon={<Shield size={16} />} label="Administration" />
               )}
-              <div className="border-t border-dark-500 mt-2 pt-3">
+              <div className="border-t border-primary-900/40 mt-2 pt-3">
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 text-red-400 text-sm font-medium px-3 py-2 rounded-xl hover:bg-red-400/10 transition-colors w-full"
@@ -198,7 +214,7 @@ function MobileLink({ to, icon, label, badge = 0, badgeColor = '' }) {
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-          isActive ? 'bg-primary-500/10 text-primary-400' : 'text-slate-400 hover:text-white hover:bg-dark-700'
+          isActive ? 'bg-primary-500/10 text-primary-400' : 'text-amber-200/60 hover:text-amber-50 hover:bg-dark-700'
         }`
       }
     >

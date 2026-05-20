@@ -5,18 +5,27 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import './index.css';
 
+function ThemedToaster() {
+  const isLight = document.documentElement.classList.contains('light');
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        style: isLight
+          ? { background: '#fffdf8', color: '#2c1810', border: '1px solid #ddd0bc' }
+          : { background: '#1a0e08', color: '#fefce8', border: '1px solid #321c10' },
+        success: { iconTheme: { primary: '#006233', secondary: '#fff' } },
+        error:   { iconTheme: { primary: '#C1272D', secondary: '#fff' } },
+      }}
+    />
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: { background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155' },
-          success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
-          error:   { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-        }}
-      />
+      <ThemedToaster />
     </BrowserRouter>
   </React.StrictMode>
 );

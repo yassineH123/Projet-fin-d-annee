@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-require('./server');
-=======
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./database');
@@ -28,10 +25,10 @@ const PORT = process.env.PORT || 4000;
   try {
     await sequelize.authenticate();
     console.log('Database connected ✓');
-    
+
     await sequelize.sync({ alter: true }); // Create/alter tables to match models
     console.log('Database synced ✓');
-    
+
     // Insert super admin user if it doesn't exist
     await User.findOrCreate({
       where: { email: 'superadmin@local' },
@@ -67,11 +64,10 @@ const PORT = process.env.PORT || 4000;
         role: 'admin'
       }
     });
-    
+
     app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
   } catch (error) {
     console.error('Unable to connect to database:', error);
     process.exit(1);
   }
 })();
->>>>>>> 3445939 (chore: sync project files for aya)
