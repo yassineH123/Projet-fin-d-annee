@@ -16,6 +16,8 @@
     "concurrently": "^9.0.1"
   },
   "dependencies": {
-    "@react-native/metro-config": "^0.74.89"
+    "@react-native/metro-config": "^0.74.89",
+    "resend": "^6.12.3",
+    "twilio": "^6.0.2"
   }
 }

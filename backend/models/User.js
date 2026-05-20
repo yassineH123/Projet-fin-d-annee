@@ -24,6 +24,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   avatar: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -36,6 +40,16 @@ const User = sequelize.define('User', {
   status: {
     type: DataTypes.ENUM('active', 'suspended'),
     defaultValue: 'active',
+    allowNull: false,
+  },
+  verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+  },
+  onboardingDone: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
     allowNull: false,
   },
 }, {

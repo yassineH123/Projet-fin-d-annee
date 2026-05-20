@@ -11,6 +11,7 @@ router.post(
     body('lastName').trim().notEmpty().withMessage('Le nom est requis.'),
     body('email').isEmail().withMessage('Email invalide.'),
     body('password').isLength({ min: 8 }).withMessage('Le mot de passe doit contenir au moins 8 caractères.'),
+    body('phone').optional().isMobilePhone().withMessage('Numéro de téléphone invalide.'),
   ],
   authController.register
 );
@@ -27,6 +28,18 @@ router.post(
   '/login',
   [body('email').isEmail().withMessage('Email invalide.'), body('password').notEmpty().withMessage('Le mot de passe est requis.')],
   authController.login
+);
+
+router.post('/forgot-password', [body('email').isEmail().withMessage('Email invalide.')], authController.forgotPassword);
+
+router.post(
+  '/reset-password',
+  [
+    body('email').isEmail().withMessage('Email invalide.'),
+    body('code').isLength({ min: 6, max: 6 }).withMessage('Code invalide.'),
+    body('newPassword').isLength({ min: 8 }).withMessage('Le mot de passe doit contenir au moins 8 caractères.'),
+  ],
+  authController.resetPassword
 );
 
 router.post(

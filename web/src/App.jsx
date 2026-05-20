@@ -19,6 +19,8 @@ import EditRide      from './pages/EditRide';
 import WriteReview   from './pages/WriteReview';
 import Onboarding    from './pages/Onboarding';
 import NotFound      from './pages/NotFound';
+import Feed           from './pages/Feed';
+import ForgotPassword from './pages/ForgotPassword';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -43,6 +45,7 @@ function AppRoutes() {
           <Route path="/"               element={<Home />} />
           <Route path="/login"          element={<Login />} />
           <Route path="/register"       element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/rides/search"   element={<SearchRides />} />
           <Route path="/rides/:id"      element={<RideDetail />} />
           <Route path="/rides/publish"  element={<PrivateRoute><PublishRide /></PrivateRoute>} />
@@ -54,6 +57,7 @@ function AppRoutes() {
           <Route path="/profile/:id"    element={<Profile />} />
           <Route path="/messages"       element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/admin"          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/feed"          element={<Feed />} />
           <Route path="/onboarding"    element={<Onboarding />} />
           <Route path="*"              element={<NotFound />} />
         </Routes>

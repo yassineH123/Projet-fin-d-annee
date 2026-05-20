@@ -1,16 +1,17 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
-});
+const { Resend } = require('resend');
 
 async function sendVerificationEmail({ to, firstName, code }) {
-  await transporter.sendMail({
-    from: `"AtlasWay" <${process.env.GMAIL_USER}>`,
+  if (!process.env.RESEND_API_KEY) {
+    console.log('\n========================================');
+    console.log(`  CODE DE VERIFICATION pour ${to}`);
+    console.log(`  👉  ${code}`);
+    console.log('========================================\n');
+    return;
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  await resend.emails.send({
+    from: 'AtlasWay <onboarding@resend.dev>',
     to,
     subject: 'Votre code de confirmation AtlasWay',
     html: `

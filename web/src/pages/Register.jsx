@@ -9,7 +9,7 @@ export default function Register() {
   const { login } = useAuth();
   const navigate  = useNavigate();
   const [step, setStep]       = useState(1); // 1=form, 2=otp
-  const [form, setForm]       = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [form, setForm]       = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
   const [otp, setOtp]         = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export default function Register() {
     setLoading(true);
     try {
       await api.post('/auth/register', form);
-      toast.success('Code envoyé à votre email !');
+      toast.success(form.phone ? 'Code envoyé par SMS !' : 'Code envoyé à votre email !');
       setStep(2);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur inscription');
@@ -54,7 +54,7 @@ export default function Register() {
           </div>
           <h1 className="text-3xl font-black text-white">{step === 1 ? 'Inscription' : 'Vérification'}</h1>
           <p className="text-slate-400 mt-2">
-            {step === 1 ? 'Créez votre compte AtlasWay' : `Code envoyé à ${form.email}`}
+            {step === 1 ? 'Créez votre compte AtlasWay' : `Code envoyé ${form.phone ? `au ${form.phone}` : `à ${form.email}`}`}
           </p>
         </div>
 
@@ -76,6 +76,10 @@ export default function Register() {
                 <input type="email" value={form.email} onChange={set('email')} placeholder="vous@example.com" className="input" required />
               </div>
               <div>
+                <label className="text-sm text-slate-400 mb-1.5 block">Téléphone <span className="text-slate-500">(optionnel — pour recevoir le code par SMS)</span></label>
+                <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+212600000000" className="input" />
+              </div>
+              <div>
                 <label className="text-sm text-slate-400 mb-1.5 block">Mot de passe</label>
                 <div className="relative">
                   <input type={showPwd ? 'text' : 'password'} value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" className="input pr-11" required minLength={8} />
@@ -90,7 +94,7 @@ export default function Register() {
             </form>
           ) : (
             <form onSubmit={handleVerify} className="flex flex-col gap-4">
-              <p className="text-slate-400 text-sm text-center">Entrez le code à 6 chiffres reçu par email</p>
+              <p className="text-slate-400 text-sm text-center">Entrez le code à 6 chiffres reçu par {form.phone ? 'SMS' : 'email'}</p>
               <input
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}

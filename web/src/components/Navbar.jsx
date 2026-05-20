@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
-  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, MapPin, CheckCircle, Clock
+  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, MapPin, CheckCircle, Clock, Rss
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
@@ -133,6 +133,20 @@ export default function Navbar() {
 
           {user ? (
             <>
+              {/* Feed */}
+              <NavLink to="/feed"
+                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
+                title="Fil d'actualité"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Rss size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
+                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>Feed</span>
+                  </>
+                )}
+              </NavLink>
+
               {/* Mes Trajets */}
               <NavLink to="/rides/mine"
                 className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group"
@@ -373,6 +387,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden px-4 py-4 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
           <MobileLink to="/rides/search"  icon={<Search size={16} />}       label="Rechercher" />
+          <MobileLink to="/feed"          icon={<Rss size={16} />}           label="Fil d'actualité" />
           {user ? (
             <>
               <MobileLink to="/rides/publish" icon={<Plus size={16} />}         label="Publier un trajet" />

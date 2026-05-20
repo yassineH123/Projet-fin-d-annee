@@ -1,22 +1,41 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./database');
-const User = require('./models/User');
-const Trip = require('./models/Trip');
-const Review = require('./models/Review');
-const Post = require('./models/Post');
+const User             = require('./models/User');
+const Trip             = require('./models/Trip');
+const Review           = require('./models/Review');
+const Post             = require('./models/Post');
+const PostLike         = require('./models/PostLike');
+const PostComment      = require('./models/PostComment');
+const Ride             = require('./models/Ride');
+const Booking          = require('./models/Booking');
+const Conversation     = require('./models/Conversation');
+const Message          = require('./models/Message');
+const VerificationCode = require('./models/VerificationCode');
+
+/* Associations Feed */
+Post.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Post,   { foreignKey: 'userId' });
+PostLike.belongsTo(User, { foreignKey: 'userId' });
+PostLike.belongsTo(Post, { foreignKey: 'postId' });
+Post.hasMany(PostLike,    { foreignKey: 'postId' });
+PostComment.belongsTo(User, { foreignKey: 'userId' });
+PostComment.belongsTo(Post, { foreignKey: 'postId' });
+Post.hasMany(PostComment,   { foreignKey: 'postId' });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/auth', require('./routes/auth')());
-app.use('/users', require('./routes/users')());
-app.use('/trips', require('./routes/trips')());
-app.use('/privacy', require('./routes/privacy')());
-app.use('/admin', require('./routes/admin')());
+app.use('/auth',       require('./routes/authRoutes'));
+app.use('/users',      require('./routes/users')());
+app.use('/trips',      require('./routes/trips')());
+app.use('/privacy',    require('./routes/privacy')());
+app.use('/admin',      require('./routes/admin')());
 app.use('/superadmin', require('./routes/superadmin')());
+app.use('/posts',      require('./routes/postRoutes'));
 
 const PORT = process.env.PORT || 4000;
 
