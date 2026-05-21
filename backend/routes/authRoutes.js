@@ -30,6 +30,12 @@ router.post(
 );
 
 router.post(
+  '/google',
+  [body('idToken').notEmpty().withMessage('idToken requis.')],
+  authController.googleLogin
+);
+
+router.post(
   '/change-password',
   [
     body('email').isEmail().withMessage('Email invalide.'),
