@@ -3,13 +3,15 @@ import {
   View, Text, TextInput, Pressable, ActivityIndicator,
   ScrollView, TouchableOpacity,
 } from 'react-native';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 // Icons remplacés par Text pour éviter react-native-svg natif
 const CarIcon   = () => <Text style={{ fontSize: 26 }}>🚗</Text>;
 const EyeIcon   = ({ color }: any) => <Text style={{ fontSize: 16, color }}>👁</Text>;
 const EyeOffIcon= ({ color }: any) => <Text style={{ fontSize: 16, color }}>🚫</Text>;
 const AlertIcon = () => <Text style={{ fontSize: 14 }}>⚠️</Text>;
-import { login } from '../../services/auth';
+import { login, loginWithGoogle } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
+import { GOOGLE_WEB_CLIENT_ID } from '../../utils/config';
 
 const C = {
   bg:        '#020617',
@@ -33,6 +35,7 @@ export default function LoginScreen({ navigation }: any) {
   const [showPwd,  setShowPwd]  = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -49,6 +52,34 @@ export default function LoginScreen({ navigation }: any) {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      if (!GOOGLE_WEB_CLIENT_ID || GOOGLE_WEB_CLIENT_ID === 'YOUR_GOOGLE_WEB_CLIENT_ID') {
+        setError('Google OAuth non configure.');
+        return;
+      }
+
+      await GoogleSignin.hasPlayServices();
+      const { idToken } = await GoogleSignin.signIn();
+      if (!idToken) throw new Error('Jeton Google manquant');
+      const response = await loginWithGoogle(idToken);
+      await saveSession(response.token, response.user);
+    } catch (err: any) {
+      if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (err?.code === statusCodes.IN_PROGRESS) return;
+      if (err?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setError('Google Play Services indisponible.');
+        return;
+      }
+      const msg = err?.response?.data?.message || err?.message || 'Erreur Google';
+      setError(msg);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -90,6 +121,33 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={{ color: C.red, fontSize: 13, flex: 1 }}>{error}</Text>
           </View>
         )}
+
+        <Pressable
+          onPress={handleGoogleLogin}
+          disabled={googleLoading}
+          style={{
+            height: 48,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ffffff',
+            borderWidth: 1,
+            borderColor: C.border,
+            marginBottom: 18,
+            opacity: googleLoading ? 0.8 : 1,
+          }}
+        >
+          {googleLoading
+            ? <ActivityIndicator color="#0f172a" />
+            : <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 15 }}>Continuer avec Google</Text>}
+        </Pressable>
+
+        {/* Divider */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+          <Text style={{ color: '#64748b', fontSize: 12, marginHorizontal: 12 }}>ou</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+        </View>
 
         {/* Email */}
         <Text style={{ color: C.slate3, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>
@@ -148,15 +206,8 @@ export default function LoginScreen({ navigation }: any) {
             : <Text style={{ color: C.white, fontWeight: '700', fontSize: 15 }}>Se connecter</Text>}
         </Pressable>
 
-        {/* Divider */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-          <Text style={{ color: '#64748b', fontSize: 12, marginHorizontal: 12 }}>ou</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-        </View>
-
         {/* Register link */}
-        <Text style={{ textAlign: 'center', color: C.slate4, fontSize: 14 }}>
+        <Text style={{ textAlign: 'center', color: C.slate4, fontSize: 14, marginTop: 12 }}>
           Pas encore de compte ?{' '}
           <Text
             onPress={() => navigation.navigate('Register')}

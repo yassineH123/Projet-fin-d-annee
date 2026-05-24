@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Car, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 export default function Login() {
   const { login }   = useAuth();
@@ -12,6 +13,7 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.value });
@@ -35,6 +37,22 @@ export default function Login() {
     }
   };
 
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const { data } = await api.post('/auth/google', { idToken: credential });
+      login(data.token, data.user);
+      toast.success('Connexion Google reussie !');
+      navigate(data.user.role === 'admin' || data.user.role === 'superadmin' ? '/admin' : '/');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Erreur Google';
+      setError(msg);
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [login, navigate]);
+
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-dark-900">
       <div className="w-full max-w-md">
@@ -57,6 +75,22 @@ export default function Login() {
               <span>{error}</span>
             </div>
           )}
+
+          <div className="flex flex-col gap-2 mb-4">
+            <GoogleAuthButton onCredential={handleGoogleCredential} onError={setError} />
+            {googleLoading && (
+              <span className="text-center text-slate-500 text-xs">Connexion Google...</span>
+            )}
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-dark-500" />
+            </div>
+            <div className="relative text-center">
+              <span className="bg-dark-800 px-3 text-slate-500 text-xs">ou</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Email */}
@@ -107,16 +141,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-dark-500" />
-            </div>
-            <div className="relative text-center">
-              <span className="bg-dark-800 px-3 text-slate-500 text-xs">ou</span>
-            </div>
-          </div>
-
-          <p className="text-center text-slate-400 text-sm">
+          <p className="text-center text-slate-400 text-sm mt-6">
             Pas encore de compte ?{' '}
             <Link to="/register" className="text-primary-400 font-semibold hover:text-primary-300 hover:underline transition-colors">
               Créer un compte
