@@ -55,6 +55,11 @@ const Ride = sequelize.define('Ride', {
     type: DataTypes.JSON,
     defaultValue: [],
   },
+  transportMode: {
+    type: DataTypes.ENUM('voiture', 'moto', 'minibus', 'van'),
+    defaultValue: 'voiture',
+    allowNull: false,
+  },
 }, {
   tableName: 'rides',
   timestamps: true,

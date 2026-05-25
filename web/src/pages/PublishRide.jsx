@@ -4,6 +4,13 @@ import { MapPin, Calendar, DollarSign, Users, Zap, RefreshCw } from 'lucide-reac
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
+const TRANSPORT_MODES = [
+  { id: 'voiture',  label: 'Voiture',  emoji: '🚗', desc: 'Berline, SUV, citadine…'   },
+  { id: 'moto',     label: 'Moto',     emoji: '🏍️', desc: 'Moto ou scooter'            },
+  { id: 'minibus',  label: 'Minibus',  emoji: '🚐', desc: 'Van, minibus jusqu\'à 9 places' },
+  { id: 'van',      label: 'Van',      emoji: '🚌', desc: 'Grand van ou bus privé'     },
+];
+
 const DAYS = [
   { val: 1, short: 'Lun' },
   { val: 2, short: 'Mar' },
@@ -21,6 +28,7 @@ export default function PublishRide() {
   const [form, setForm] = useState({
     from: '', to: '', departureDate: '', price: '', seats: 1,
     description: '', instantBooking: false, isRecurring: false, recurringDays: [],
+    transportMode: 'voiture',
   });
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +71,30 @@ export default function PublishRide() {
 
       <div className="card">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+          {/* Transport Mode */}
+          <div>
+            <label className="text-sm text-slate-400 mb-3 block font-semibold">Moyen de transport</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {TRANSPORT_MODES.map(({ id, label, emoji, desc }) => {
+                const active = form.transportMode === id;
+                return (
+                  <button key={id} type="button" onClick={() => setForm(f => ({ ...f, transportMode: id }))}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all text-center"
+                    style={{
+                      borderColor: active ? '#C1272D' : 'var(--border-color)',
+                      background:  active ? 'rgba(193,39,45,0.08)' : 'var(--bg-700)',
+                      transform:   active ? 'scale(1.04)' : 'scale(1)',
+                      boxShadow:   active ? '0 0 0 3px rgba(193,39,45,0.15)' : 'none',
+                    }}>
+                    <span style={{ fontSize: 28 }}>{emoji}</span>
+                    <span className="font-black text-sm" style={{ color: active ? '#C1272D' : 'var(--text-base)' }}>{label}</span>
+                    <span className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>{desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

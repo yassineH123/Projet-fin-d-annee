@@ -19,7 +19,7 @@ async function create(req, res, next) {
 
 async function search(req, res, next) {
   try {
-    const { from, to, date, minPrice, maxPrice } = req.query;
+    const { from, to, date, minPrice, maxPrice, transportMode } = req.query;
     const where = { status: 'active', seatsAvailable: { [Op.gt]: 0 } };
 
     if (from) where.from = { [Op.like]: `%${from}%` };
@@ -32,6 +32,7 @@ async function search(req, res, next) {
     }
     if (minPrice) where.price = { ...where.price, [Op.gte]: Number(minPrice) };
     if (maxPrice) where.price = { ...where.price, [Op.lte]: Number(maxPrice) };
+    if (transportMode && transportMode !== 'all') where.transportMode = transportMode;
 
     const rides = await Ride.findAll({
       where,

@@ -17,9 +17,17 @@ const SORT_OPTIONS = [
 const TRANSPORT_TABS = [
   { id: 'covoiturage', label: 'Covoiturage', icon: '🚗', color: '#C1272D' },
   { id: 'train',       label: 'Train',       icon: '🚂', color: '#2196F3' },
-  { id: 'bus',         label: 'Bus',         icon: '🚌', color: '#FF9800' },
-  { id: 'grandtaxi',  label: 'Grand Taxi',  icon: '🚕', color: '#9C27B0' },
-  { id: 'avion',      label: 'Avion',       icon: '✈️', color: '#00BCD4' },
+  { id: 'bus',         label: 'Bus CTM',     icon: '🚌', color: '#FF9800' },
+  { id: 'grandtaxi',   label: 'Grand Taxi',  icon: '🚕', color: '#9C27B0' },
+  { id: 'avion',       label: 'Avion',       icon: '✈️', color: '#00BCD4' },
+];
+
+const VEHICLE_MODES = [
+  { id: 'all',      label: 'Tous',     emoji: '🔍' },
+  { id: 'voiture',  label: 'Voiture',  emoji: '🚗' },
+  { id: 'moto',     label: 'Moto',     emoji: '🏍️' },
+  { id: 'minibus',  label: 'Minibus',  emoji: '🚐' },
+  { id: 'van',      label: 'Van',      emoji: '🚌' },
 ];
 
 function StaticTransportCard({ item, mode }) {
@@ -73,6 +81,7 @@ export default function SearchRides() {
   const [loading,  setLoading]  = useState(false);
   const [showAdv,  setShowAdv]  = useState(false);
   const [transportMode, setTransportMode] = useState('covoiturage');
+  const [vehicleMode,   setVehicleMode]   = useState('all');
 
   const [from,       setFrom]       = useState(searchParams.get('from') || '');
   const [to,         setTo]         = useState(searchParams.get('to')   || '');
@@ -96,7 +105,8 @@ export default function SearchRides() {
   const fetchRides = async (overrides = {}) => {
     setLoading(true);
     try {
-      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, sortBy, seats, ...overrides };
+      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, sortBy, seats,
+        transportMode: vehicleMode !== 'all' ? vehicleMode : undefined, ...overrides };
       Object.keys(params).forEach(k => !params[k] && params[k] !== 0 && delete params[k]);
       const { data } = await api.get('/rides/search', { params });
       setRides(data.rides || []);
@@ -251,20 +261,51 @@ export default function SearchRides() {
 
       {/* ── Résultats covoiturage ── */}
       {transportMode === 'covoiturage' && (
-        loading ? <Spinner /> : rides.length === 0 ? (
-          <div className="text-center py-16">
-            <SlidersHorizontal size={40} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 font-medium">Aucun trajet covoiturage trouvé</p>
-            <p className="text-slate-600 text-sm mt-1">Essayez de modifier vos critères ou regardez les autres modes de transport</p>
+        <>
+          {/* Sous-filtre véhicule */}
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-4" style={{ scrollbarWidth: 'none' }}>
+            {VEHICLE_MODES.map(({ id, label, emoji }) => {
+              const active = vehicleMode === id;
+              return (
+                <button key={id} onClick={() => { setVehicleMode(id); fetchRides({ transportMode: id !== 'all' ? id : undefined }); }}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold transition-all"
+                  style={{
+                    background: active ? 'rgba(193,39,45,0.10)' : 'var(--bg-700)',
+                    color:      active ? '#C1272D' : 'var(--text-muted)',
+                    border:     active ? '1.5px solid rgba(193,39,45,0.4)' : '1.5px solid var(--border-color)',
+                    transform:  active ? 'scale(1.05)' : 'scale(1)',
+                  }}>
+                  <span style={{ fontSize: 16 }}>{emoji}</span> {label}
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <div>
-            <p className="text-slate-400 text-sm mb-4">{rides.length} trajet{rides.length > 1 ? 's' : ''} trouvé{rides.length > 1 ? 's' : ''}</p>
-            <div className="flex flex-col gap-4">
-              {rides.map(ride => <RideCard key={ride.id} ride={ride} />)}
+
+          {loading ? <Spinner /> : rides.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="text-4xl mb-3">{VEHICLE_MODES.find(v => v.id === vehicleMode)?.emoji || '🔍'}</div>
+              <p className="text-slate-400 font-medium">Aucun trajet trouvé</p>
+              <p className="text-slate-600 text-sm mt-1">Essayez un autre véhicule ou regardez les autres modes de transport</p>
             </div>
-          </div>
-        )
+          ) : (
+            <div>
+              <p className="text-slate-400 text-sm mb-4">{rides.length} trajet{rides.length > 1 ? 's' : ''} trouvé{rides.length > 1 ? 's' : ''}</p>
+              <div className="flex flex-col gap-4">
+                {rides.map(ride => (
+                  <div key={ride.id} className="relative">
+                    {ride.transportMode && ride.transportMode !== 'voiture' && (
+                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                        style={{ background: 'rgba(193,39,45,0.12)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)' }}>
+                        {VEHICLE_MODES.find(v => v.id === ride.transportMode)?.emoji} {VEHICLE_MODES.find(v => v.id === ride.transportMode)?.label}
+                      </div>
+                    )}
+                    <RideCard ride={ride} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Résultats transport statique ── */}
