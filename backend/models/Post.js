@@ -13,6 +13,8 @@ const Post = sequelize.define('Post', {
   price:      { type: DataTypes.INTEGER },
   seats:      { type: DataTypes.INTEGER },
   likesCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  mediaUrl:   { type: DataTypes.STRING, allowNull: true },
+  mediaType:  { type: DataTypes.ENUM('image', 'video'), allowNull: true },
 }, { timestamps: true, tableName: 'posts' });
 
 module.exports = Post;

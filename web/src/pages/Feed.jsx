@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Heart, MessageCircle, Share2, ArrowRight,
-  Send, Trash2, Car, HelpCircle, FileText
+  Send, Trash2, Car, HelpCircle, FileText,
+  Image, X as XIcon, Play
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -82,6 +83,18 @@ function PostCard({ post, currentUser, onLike, onComment, onDelete }) {
       {/* Contenu */}
       <div style={{ padding: '0 16px 14px' }}>
         <p style={{ fontSize: 15, color: 'var(--text-base)', lineHeight: 1.6, margin: 0 }}>{post.content}</p>
+
+        {/* Media */}
+        {post.mediaUrl && post.mediaType === 'image' && (
+          <div style={{ marginTop: 10, borderRadius: 14, overflow: 'hidden', maxHeight: 420, background: 'var(--bg-700)' }}>
+            <img src={post.mediaUrl} alt="" style={{ width: '100%', maxHeight: 420, objectFit: 'cover', display: 'block' }} />
+          </div>
+        )}
+        {post.mediaUrl && post.mediaType === 'video' && (
+          <div style={{ marginTop: 10, borderRadius: 14, overflow: 'hidden', background: '#000' }}>
+            <video src={post.mediaUrl} controls style={{ width: '100%', maxHeight: 420, display: 'block', borderRadius: 14 }} />
+          </div>
+        )}
 
         {/* Carte trajet */}
         {post.type === 'trip' && post.fromCity && post.toCity && (
@@ -189,24 +202,58 @@ function PostCard({ post, currentUser, onLike, onComment, onDelete }) {
 
 /* ── Composant CreatePost ── */
 function CreatePost({ user, onPost }) {
-  const [open,     setOpen]     = useState(false);
-  const [type,     setType]     = useState('text');
-  const [content,  setContent]  = useState('');
-  const [fromCity, setFromCity] = useState('');
-  const [toCity,   setToCity]   = useState('');
-  const [tripDate, setTripDate] = useState('');
-  const [price,    setPrice]    = useState('');
-  const [seats,    setSeats]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [open,      setOpen]      = useState(false);
+  const [type,      setType]      = useState('text');
+  const [content,   setContent]   = useState('');
+  const [fromCity,  setFromCity]  = useState('');
+  const [toCity,    setToCity]    = useState('');
+  const [tripDate,  setTripDate]  = useState('');
+  const [price,     setPrice]     = useState('');
+  const [seats,     setSeats]     = useState('');
+  const [loading,   setLoading]   = useState(false);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
+  const fileRef = useRef(null);
 
-  const reset = () => { setContent(''); setFromCity(''); setToCity(''); setTripDate(''); setPrice(''); setSeats(''); setType('text'); setOpen(false); };
+  const reset = () => {
+    setContent(''); setFromCity(''); setToCity(''); setTripDate('');
+    setPrice(''); setSeats(''); setType('text'); setOpen(false);
+    setMediaFile(null); setMediaPreview(null); setMediaType(null);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const isVideo = file.type.startsWith('video/');
+    setMediaFile(file);
+    setMediaType(isVideo ? 'video' : 'image');
+    setMediaPreview(URL.createObjectURL(file));
+  };
+
+  const removeMedia = () => {
+    setMediaFile(null); setMediaPreview(null); setMediaType(null);
+    if (fileRef.current) fileRef.current.value = '';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim()) return;
     setLoading(true);
     try {
-      const { data } = await api.post('/posts', { type, content, fromCity, toCity, tripDate, price, seats });
+      const formData = new FormData();
+      formData.append('type', type);
+      formData.append('content', content);
+      if (fromCity) formData.append('fromCity', fromCity);
+      if (toCity)   formData.append('toCity', toCity);
+      if (tripDate) formData.append('tripDate', tripDate);
+      if (price)    formData.append('price', price);
+      if (seats)    formData.append('seats', seats);
+      if (mediaFile) formData.append('media', mediaFile);
+
+      const { data } = await api.post('/posts', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       onPost(data);
       toast.success('Post publié !');
       reset();
@@ -280,16 +327,40 @@ function CreatePost({ user, onPost }) {
             </div>
           )}
 
-          {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingLeft: 48 }}>
-            <button type="button" onClick={reset}
-              className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>
-              Annuler
-            </button>
-            <button type="submit" disabled={loading || !content.trim()} className="btn-primary"
-              style={{ padding: '8px 18px', fontSize: 13, opacity: (!content.trim() || loading) ? 0.6 : 1 }}>
-              {loading ? 'Publication…' : 'Publier'}
-            </button>
+          {/* Preview media */}
+          {mediaPreview && (
+            <div style={{ position: 'relative', marginBottom: 12, paddingLeft: 48 }}>
+              {mediaType === 'image' ? (
+                <img src={mediaPreview} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 12 }} />
+              ) : (
+                <video src={mediaPreview} controls style={{ width: '100%', maxHeight: 260, borderRadius: 12 }} />
+              )}
+              <button type="button" onClick={removeMedia}
+                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+                <XIcon size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Actions barre */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 48 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFileChange} />
+              <button type="button" onClick={() => fileRef.current?.click()}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 20, border: '1.5px solid var(--border-color)', background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: mediaFile ? '#006233' : 'var(--text-muted)', borderColor: mediaFile ? '#006233' : 'var(--border-color)' }}>
+                {mediaType === 'video' ? <Play size={13} /> : <Image size={13} />}
+                {mediaFile ? 'Média ajouté ✓' : 'Photo / Vidéo'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={reset} className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>
+                Annuler
+              </button>
+              <button type="submit" disabled={loading || !content.trim()} className="btn-primary"
+                style={{ padding: '8px 18px', fontSize: 13, opacity: (!content.trim() || loading) ? 0.6 : 1 }}>
+                {loading ? 'Publication…' : 'Publier'}
+              </button>
+            </div>
           </div>
         </form>
       )}

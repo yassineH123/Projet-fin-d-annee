@@ -4,6 +4,7 @@ const Post        = require('../models/Post');
 const PostLike    = require('../models/PostLike');
 const PostComment = require('../models/PostComment');
 const User        = require('../models/User');
+const upload      = require('../middleware/uploadMiddleware');
 
 /* ── Auth middleware ── */
 const jwt = require('jsonwebtoken');
@@ -52,16 +53,25 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-/* ── POST /posts ── créer un post ── */
-router.post('/', auth, async (req, res) => {
+/* ── POST /posts ── créer un post (avec media optionnel) ── */
+router.post('/', auth, upload.media.single('media'), async (req, res) => {
   try {
     const { type, content, fromCity, toCity, tripDate, price, seats } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: 'Contenu requis' });
+
+    let mediaUrl  = null;
+    let mediaType = null;
+    if (req.file) {
+      mediaUrl  = `/uploads/${req.file.filename}`;
+      mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
+    }
+
     const post = await Post.create({
       userId: req.user.id, type: type || 'text',
       content: content.trim(), fromCity, toCity, tripDate,
       price: price ? parseInt(price) : null,
       seats: seats ? parseInt(seats) : null,
+      mediaUrl, mediaType,
     });
     const full = await Post.findByPk(post.id, {
       include: [{ model: User, attributes: ['id','firstName','lastName','avatar'] }]
