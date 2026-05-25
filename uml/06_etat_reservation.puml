@@ -1,0 +1,53 @@
+@startuml État - Réservation
+title Diagramme d'État — Cycle de Vie d'une Réservation
+
+skinparam stateBackgroundColor #EFF6FF
+skinparam stateBorderColor #2563EB
+skinparam stateFontColor #1E293B
+skinparam stateArrowColor #475569
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+[*] --> pending : Passager envoie\nune demande
+
+state pending #1e3a5f {
+  pending : En attente de\nconfirmation du conducteur
+}
+
+state accepted #1e4d2b {
+  accepted : Réservation confirmée\nPlaces déduites du trajet
+}
+
+state refused #4d1e1e {
+  refused : Réservation refusée\npar le conducteur
+}
+
+state cancelled #3d2a00 {
+  cancelled : Réservation annulée
+}
+
+pending --> accepted : Conducteur accepte\n[PATCH /bookings/:id {status: accepted}]
+pending --> refused : Conducteur refuse\n[PATCH /bookings/:id {status: refused}]
+pending --> cancelled : Passager annule\n[PATCH /bookings/:id {status: cancelled}]
+accepted --> cancelled : Passager ou admin annule
+
+note right of accepted
+  Quand acceptée :
+  - seatsAvailable -= seats
+  - Notification envoyée au passager
+  - Conversation créée si inexistante
+end note
+
+note right of pending
+  Si instantBooking=true :
+  La réservation passe
+  directement à "accepted"
+end note
+
+refused --> [*]
+cancelled --> [*]
+accepted --> [*] : Trajet terminé\n(completed)
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml État - Trajet
+title Diagramme d'État — Cycle de Vie d'un Trajet
+
+skinparam stateBackgroundColor #EFF6FF
+skinparam stateBorderColor #2563EB
+skinparam stateFontColor #1E293B
+skinparam stateArrowColor #475569
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+[*] --> active : Conducteur publie le trajet\n[POST /rides]
+
+state active #1e4d2b {
+  active : Trajet visible et\nouvert aux réservations
+}
+
+state cancelled #4d1e1e {
+  cancelled : Trajet annulé\nRéservations annulées
+}
+
+state completed #1e3a5f {
+  completed : Trajet terminé\nAvis disponibles
+}
+
+active --> cancelled : Conducteur annule\n[PATCH /rides/:id {status: cancelled}]
+active --> cancelled : Admin annule\n[PATCH /admin/rides/:id/cancel]
+active --> completed : Date de départ passée\nou conducteur clôture
+
+note right of active
+  - seatsAvailable diminue à\n  chaque réservation acceptée
+  - Visible dans la recherche
+  - Modifications possibles
+end note
+
+note right of completed
+  - Les passagers peuvent\n  laisser un avis
+  - Plus modifiable
+end note
+
+note right of cancelled
+  - Toutes les réservations\n  pending/accepted → cancelled
+  - Notifications envoyées
+  - Places remises à zéro
+end note
+
+cancelled --> [*]
+completed --> [*]
+
+@enduml

@@ -1,0 +1,99 @@
+@startuml Activité - Processus de Réservation
+title Diagramme d'Activité — Processus Complet de Réservation
+
+skinparam activityBackgroundColor #EFF6FF
+skinparam activityBorderColor #2563EB
+skinparam activityFontColor #1E293B
+skinparam activityArrowColor #475569
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+skinparam swimlaneBorderColor #CBD5E1
+skinparam swimlaneFontColor #1E293B
+skinparam swimlaneBackgroundColor #F8FAFC
+
+|Passager|
+start
+:Rechercher un trajet\n(ville départ, arrivée, date);
+
+:Consulter les résultats;
+
+if (Trajet trouvé ?) then (oui)
+  :Voir le détail du trajet\net le profil du conducteur;
+
+  if (Connecté ?) then (non)
+    :Se connecter / S'inscrire;
+  endif
+
+  :Sélectionner le nombre\nde places;
+  :Ajouter un message\n(optionnel);
+  :Confirmer la réservation;
+
+  |Système|
+  :Vérifier disponibilité\ndes places;
+
+  if (Places disponibles ?) then (oui)
+    if (Réservation instantanée ?) then (oui)
+      :Créer réservation\n(status = accepted);
+      :Déduire les places\ndu trajet;
+
+      |Passager|
+      :Réservation confirmée\nimmédiatement !;
+
+    else (non)
+      :Créer réservation\n(status = pending);
+      :Envoyer notification\nau conducteur;
+
+      |Conducteur|
+      :Recevoir notification\nde demande;
+      :Consulter la demande\n(profil passager, message);
+
+      if (Accepter ?) then (oui)
+        |Système|
+        :Mettre à jour statut\n→ accepted;
+        :Déduire les places;
+        :Notifier le passager;
+
+        |Passager|
+        :Réservation confirmée !;
+
+      else (non)
+        |Système|
+        :Mettre à jour statut\n→ refused;
+        :Notifier le passager;
+
+        |Passager|
+        :Réservation refusée;
+      endif
+    endif
+
+    |Passager|
+    :Contacter le conducteur\nvia messagerie;
+
+    |Système|
+    :Jour J — Trajet effectué;
+    :Marquer trajet\n→ completed;
+
+    |Passager|
+    :Laisser un avis\nsur le conducteur;
+
+    |Conducteur|
+    :Laisser un avis\nsur le passager;
+
+  else (non)
+    |Système|
+    :Retourner erreur\n"Plus de places disponibles";
+
+    |Passager|
+    :Chercher un autre trajet;
+  endif
+
+else (non)
+  :Aucun trajet trouvé;
+  :Publier une demande\ndans le fil d'actualité;
+endif
+
+stop
+
+@enduml

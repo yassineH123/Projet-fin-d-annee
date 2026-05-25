@@ -1,0 +1,187 @@
+@startuml Diagramme de Classes - AtlasWay
+title Diagramme de Classes — AtlasWay
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classBackgroundColor #EFF6FF
+skinparam classBorderColor #2563EB
+skinparam classArrowColor #475569
+skinparam classFontColor #1E293B
+skinparam classHeaderBackgroundColor #DBEAFE
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+class User {
+  +id : UUID
+  +email : String
+  +password : String
+  +firstName : String
+  +lastName : String
+  +phone : String
+  +avatar : String
+  +photo : String
+  +bio : Text
+  +languages : JSON
+  +preferences : JSON
+  +avgRating : Float
+  +totalRatings : Integer
+  +totalTrips : Integer
+  +isDriver : Boolean
+  +carModel : String
+  +carColor : String
+  +carYear : Integer
+  +carPhoto : String
+  +licensePlate : String
+  +cinDoc : String
+  +permisDoc : String
+  +carteGriseDoc : String
+  +driverVerified : Boolean
+  +isHandicapped : Boolean
+  +handicapAccessible : Boolean
+  +role : ENUM(user, admin, superadmin)
+  +status : ENUM(active, suspended, blocked)
+  +verified : Boolean
+  +onboardingDone : Boolean
+  +referralCode : String
+  +availabilityStatus : ENUM(available, busy, offline)
+  +referredBy : UUID
+  +badges : JSON
+}
+
+class Ride {
+  +id : UUID
+  +driverId : UUID
+  +from : String
+  +to : String
+  +departureDate : DateTime
+  +price : Decimal
+  +seats : Integer
+  +seatsAvailable : Integer
+  +description : Text
+  +status : ENUM(active, cancelled, completed)
+  +instantBooking : Boolean
+  +isRecurring : Boolean
+  +recurringDays : JSON
+}
+
+class Booking {
+  +id : UUID
+  +rideId : UUID
+  +passengerId : UUID
+  +seats : Integer
+  +status : ENUM(pending, accepted, refused, cancelled)
+  +message : Text
+}
+
+class Review {
+  +id : UUID
+  +reviewerId : UUID
+  +reviewedId : UUID
+  +rideId : UUID
+  +rating : Integer
+  +comment : Text
+}
+
+class Conversation {
+  +id : UUID
+  +participant1Id : UUID
+  +participant2Id : UUID
+  +rideId : UUID
+  +lastMessageAt : DateTime
+  +type : ENUM(direct, group)
+  +name : String
+}
+
+class ConversationMember {
+  +id : UUID
+  +conversationId : UUID
+  +userId : UUID
+  +role : ENUM(admin, member)
+}
+
+class Message {
+  +id : UUID
+  +conversationId : UUID
+  +senderId : UUID
+  +content : Text
+  +read : Boolean
+  +reactions : JSON
+}
+
+class Notification {
+  +id : UUID
+  +userId : UUID
+  +type : ENUM(booking, message, review, ride, system)
+  +title : String
+  +message : Text
+  +link : String
+  +read : Boolean
+}
+
+class Friendship {
+  +id : UUID
+  +requesterId : UUID
+  +receiverId : UUID
+  +status : ENUM(pending, accepted, refused, blocked)
+}
+
+class Post {
+  +id : UUID
+  +userId : UUID
+  +content : Text
+  +type : ENUM(text, trip, question)
+  +fromCity : String
+  +toCity : String
+  +tripDate : String
+  +price : Integer
+  +seats : Integer
+  +likesCount : Integer
+}
+
+class PostLike {
+  +id : UUID
+  +userId : UUID
+  +postId : UUID
+}
+
+class PostComment {
+  +id : UUID
+  +userId : UUID
+  +postId : UUID
+  +content : Text
+}
+
+class VerificationCode {
+  +id : UUID
+  +email : String
+  +code : String
+  +expiresAt : DateTime
+}
+
+' Relations
+User "1" --o{ "0..*" Ride : "conduit"
+User "1" --o{ "0..*" Booking : "réserve"
+User "1" --o{ "0..*" Review : "rédige (reviewer)"
+User "1" --o{ "0..*" Review : "reçoit (reviewed)"
+User "1" --o{ "0..*" Message : "envoie"
+User "1" --o{ "0..*" Notification : "reçoit"
+User "1" --o{ "0..*" Post : "publie"
+User "1" --o{ "0..*" PostLike : "aime"
+User "1" --o{ "0..*" PostComment : "commente"
+User "1" --o{ "0..*" Friendship : "envoie (requester)"
+User "1" --o{ "0..*" Friendship : "reçoit (receiver)"
+User "1" --o{ "0..*" ConversationMember : "participe"
+
+Ride "1" --o{ "0..*" Booking : "contient"
+Ride "1" --o{ "0..*" Review : "concerne"
+Ride "0..1" --o{ "0..*" Conversation : "liée à"
+
+Conversation "1" --o{ "1..*" ConversationMember : "a"
+Conversation "1" --o{ "0..*" Message : "contient"
+
+Post "1" --o{ "0..*" PostLike : "reçoit"
+Post "1" --o{ "0..*" PostComment : "reçoit"
+
+@enduml

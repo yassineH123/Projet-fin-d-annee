@@ -1,0 +1,91 @@
+@startuml Séquence - Réservation
+title Diagramme de Séquence — Réservation d'un Trajet
+
+skinparam sequenceArrowColor #2563EB
+skinparam sequenceParticipantBackgroundColor #DBEAFE
+skinparam sequenceParticipantBorderColor #2563EB
+skinparam sequenceParticipantFontColor #1E293B
+skinparam sequenceLifeLineBorderColor #94A3B8
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+actor "Passager" as Passenger
+actor "Conducteur" as Driver
+participant "Frontend" as Front
+participant "API\n(rideController\nbookingController)" as API
+participant "Socket.IO" as Socket
+participant "Base de données" as DB
+participant "Notifications" as Notif
+
+== Recherche et Sélection ==
+
+Passenger -> Front : Rechercher trajet\n(from, to, date)
+Front -> API : GET /rides/search?from=&to=&date=
+API -> DB : SELECT rides WHERE status=active\nAND departureDate >= date
+DB --> API : Liste des trajets
+API --> Front : [{ride1}, {ride2}, ...]
+Front --> Passenger : Afficher résultats
+
+Passenger -> Front : Cliquer sur un trajet
+Front -> API : GET /rides/:id
+API -> DB : SELECT ride + driver info + bookings
+DB --> API : Détail complet
+API --> Front : {ride, driver, seatsAvailable}
+Front --> Passenger : Afficher détail du trajet
+
+== Réservation ==
+
+Passenger -> Front : Cliquer "Réserver"\n(seats, message?)
+Front -> API : POST /bookings\n{rideId, seats, message}\nAuthorization: Bearer token
+
+API -> API : Vérifier authentification
+API -> DB : SELECT ride WHERE id=rideId
+alt Trajet complet
+  DB --> API : seatsAvailable < seats
+  API --> Front : 400 - Plus assez de places
+  Front --> Passenger : Afficher erreur
+else Places disponibles
+  DB --> API : Trajet trouvé
+
+  alt Réservation instantanée
+    API -> DB : INSERT booking (status=accepted)
+    API -> DB : UPDATE ride SET seatsAvailable -= seats
+    API --> Front : 201 - {booking, status: accepted}
+    Front --> Passenger : Réservation confirmée !
+    API -> Notif : Notifier conducteur (nouvelle réservation acceptée)
+  else Réservation manuelle
+    API -> DB : INSERT booking (status=pending)
+    API --> Front : 201 - {booking, status: pending}
+    Front --> Passenger : En attente de confirmation...
+    API -> Notif : Notifier conducteur (nouvelle demande)
+    Socket -> Driver : Événement "new_booking"
+  end
+end
+
+== Traitement par le Conducteur ==
+
+Driver -> Front : Voir les demandes de réservation
+Front -> API : GET /bookings/ride/:rideId
+API -> DB : SELECT bookings WHERE rideId=?
+DB --> API : Liste des demandes
+API --> Front : [{booking + passenger info}]
+Front --> Driver : Afficher demandes
+
+Driver -> Front : Accepter ou Refuser
+Front -> API : PATCH /bookings/:id\n{status: accepted | refused}
+API -> DB : UPDATE booking SET status=?
+
+alt Accepté
+  API -> DB : UPDATE ride SET seatsAvailable -= seats
+  API -> Notif : Notifier passager (réservation acceptée)
+  Socket -> Passenger : Événement "booking_accepted"
+  Front --> Passenger : Réservation confirmée !
+else Refusé
+  API -> Notif : Notifier passager (réservation refusée)
+  Socket -> Passenger : Événement "booking_refused"
+  Front --> Passenger : Réservation refusée
+end
+
+@enduml
