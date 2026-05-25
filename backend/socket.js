@@ -11,6 +11,7 @@ function init(httpServer) {
     const userId = socket.handshake.query.userId;
     if (userId) socket.join(`user:${userId}`);
 
+    socket.join('feed');
     socket.on('join_conversation',  (id) => socket.join(`conv:${id}`));
     socket.on('leave_conversation', (id) => socket.leave(`conv:${id}`));
 
