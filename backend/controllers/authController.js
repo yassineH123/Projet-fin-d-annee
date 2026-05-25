@@ -192,6 +192,10 @@ async function login(req, res, next) {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
     }
 
+    if (!user.referralCode) {
+      await user.update({ referralCode: generateReferralCode() });
+    }
+
     return res.json({
       message: 'Connexion réussie.',
       token: signToken(user),
