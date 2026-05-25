@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Car, Eye, EyeOff } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Car, Eye, EyeOff, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -8,8 +8,9 @@ import { useAuth } from '../context/AuthContext';
 export default function Register() {
   const { login } = useAuth();
   const navigate  = useNavigate();
-  const [step, setStep]       = useState(1); // 1=form, 2=otp
-  const [form, setForm]       = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+  const [searchParams]        = useSearchParams();
+  const [step, setStep]       = useState(1);
+  const [form, setForm]       = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', referralCode: searchParams.get('ref') || '' });
   const [otp, setOtp]         = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -87,6 +88,19 @@ export default function Register() {
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1.5 block">
+                  <Gift size={13} className="inline mr-1 mb-0.5" style={{ color: '#D4890A' }} />
+                  Code de parrainage <span className="text-slate-500">(optionnel)</span>
+                </label>
+                <input
+                  value={form.referralCode}
+                  onChange={set('referralCode')}
+                  placeholder="Ex: ADAM42"
+                  className="input uppercase"
+                  maxLength={10}
+                />
               </div>
               <button type="submit" disabled={loading} className="btn-primary h-12 mt-2">
                 {loading ? <span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5 inline-block" /> : 'Créer mon compte'}
