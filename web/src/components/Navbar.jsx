@@ -168,10 +168,8 @@ export default function Navbar() {
           onClick={() => { if (location.pathname === '/' || location.pathname === '/admin/home') window.location.reload(); }}
           className="flex items-center gap-2 flex-shrink-0 group"
         >
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-            style={{ background: 'linear-gradient(135deg, #C1272D, #9e1f24)', boxShadow: '0 4px 12px rgba(193,39,45,0.3)' }}>
-            <Car size={18} className="text-white" />
-          </div>
+          <img src="/logo.svg" alt="AtlasWay" className="w-9 h-9 rounded-xl transition-all group-hover:scale-105"
+            style={{ boxShadow: '0 4px 12px rgba(193,39,45,0.35)' }} />
           <span className="font-black text-xl tracking-tight font-heading hidden sm:block">
             <span style={{ color: 'var(--text-base)' }}>Atlas</span><span className="logo-gradient">Way</span>
           </span>
