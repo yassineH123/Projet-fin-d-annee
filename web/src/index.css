@@ -240,14 +240,20 @@ html.light [class*="from-primary-4"][class*="to-gold-"] {
   background-clip: text;
 }
 
-/* Footer en mode clair */
-html.light footer {
+/* Footer en mode clair (exclut le footer marocain toujours sombre) */
+html.light footer:not(.footer-moroccan) {
   background-color: #f8f8f8 !important;
   border-top-color: #e5e5e5 !important;
 }
-html.light footer .h-0\.5,
-html.light footer [class*="bg-gradient-to-r"] {
+html.light footer:not(.footer-moroccan) .h-0\.5,
+html.light footer:not(.footer-moroccan) [class*="bg-gradient-to-r"] {
   background: linear-gradient(to right, #C1272D, #006233, #C1272D);
+}
+/* Footer marocain — toujours sombre, même en mode clair */
+html.light footer.footer-moroccan {
+  background-color: #0C0503 !important;
+  background:       #0C0503 !important;
+  color: rgba(255,255,255,0.75) !important;
 }
 
 /* Inputs en mode clair */
@@ -265,3 +271,557 @@ html.light .input:focus {
 /* Burger mobile */
 html.light button[class*="text-slate-"] { color: rgba(17,17,17,0.6); }
 html.light button[class*="text-slate-"]:hover { color: #111111; }
+
+/* ═══════════════════════════════════════
+   FRONTEND-DESIGN SKILL — Neo-Moroccan Editorial
+   Syne display · Plus Jakarta Sans body
+   Deep grain · Asymmetric · Orchestrated
+   ═══════════════════════════════════════ */
+
+/* ── Palette Neo-Marocaine — Midnight Navy ── */
+:root {
+  --bg-900: #07090F;
+  --bg-800: #0D1120;
+  --bg-700: #131828;
+  --bg-600: #1A2238;
+  --bg-500: #242D4A;
+  --bg-400: #303D60;
+  --text-base:      #EEF2FF;
+  --text-secondary: rgba(238,242,255,0.65);
+  --text-muted:     rgba(238,242,255,0.35);
+  --border-color:   #1A2238;
+  --border-muted:   #242D4A;
+  --card-bg:   #0D1120;
+  --input-bg:  #0A0D18;
+  --input-placeholder: #303D60;
+  /* Couleurs Marocaines vives & modernes */
+  --rouge-drapeau: #E8192C;
+  --vert-etoile:   #00875A;
+  --or-safran:     #F5A623;
+  --terracotta:    #E8502A;
+  --chefchaouen:   #2563EB;
+  --cedre-atlas:   #0D1120;
+  --creme-lanterne:#EEF2FF;
+}
+
+/* ── Typographie marocaine — Amiri calligraphique ── */
+body {
+  font-family: 'Cairo', system-ui, sans-serif !important;
+}
+h1, h2, h3, h4 {
+  font-family: 'Amiri', Georgia, serif !important;
+  letter-spacing: 0.01em;
+}
+
+/* ── Subtle grain on dark sections only (applied via .grain-overlay class) ── */
+
+/* ── Keyframes ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmerPass {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+@keyframes goldPulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+/* ── Animation utility classes ── */
+.animate-fade-up    { animation: fadeUp   0.75s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in    { animation: fadeIn   0.6s  ease both; }
+.animate-slide-left { animation: slideLeft 0.75s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.stagger-1 { animation-delay: 0.08s; }
+.stagger-2 { animation-delay: 0.20s; }
+.stagger-3 { animation-delay: 0.34s; }
+.stagger-4 { animation-delay: 0.50s; }
+.stagger-5 { animation-delay: 0.66s; }
+.stagger-6 { animation-delay: 0.82s; }
+
+/* ── Grain overlay (inline use) ── */
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  mix-blend-mode: overlay;
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+/* ── Hero rainbow top bar ── */
+.hero-rainbow-bar {
+  height: 3px;
+  background: linear-gradient(to right, transparent, #8A1520 15%, #C4882A 35%, #004F28 50%, #C4882A 65%, #8A1520 85%, transparent);
+}
+
+/* ── Gold vertical accent bar ── */
+.gold-bar {
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, transparent, #C4882A 30%, #C4882A 70%, transparent);
+  flex-shrink: 0;
+}
+
+/* ── Enhanced card — deeper shadow + lift on hover ── */
+.card {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow  0.28s ease,
+              border-color 0.28s ease,
+              background-color 0.35s ease !important;
+}
+.card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,136,42,0.1) !important;
+}
+
+/* ── Button primary — shimmer on hover ── */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.01em;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 0;
+  width: 60%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.14), transparent);
+  transform: translateX(-120%);
+  transition: transform 0.55s ease;
+}
+.btn-primary:hover::after { transform: translateX(220%); }
+
+/* ── Input refinement ── */
+.input {
+  font-family: 'Cairo', system-ui, sans-serif !important;
+  font-size: 0.875rem !important;
+}
+
+/* ── Gold section divider ── */
+.gold-section-rule {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(196,136,42,0.4), transparent);
+}
+
+/* ── Section eyebrow label ── */
+.section-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #C4882A;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ── Hero grid responsive ── */
+.hero-grid {
+  grid-template-columns: minmax(0,1fr) minmax(0,420px) !important;
+}
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Destinations grid responsive ── */
+.dest-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 768px) {
+  .dest-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 500px) {
+  .dest-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Destination card hover overlay ── */
+button:hover .dest-hover-overlay {
+  opacity: 1 !important;
+}
+
+/* ── Light mode — hero stays dark intentionally ── */
+html.light .grain-overlay { opacity: 0.02; mix-blend-mode: multiply; }
+html.light .gold-bar { background: linear-gradient(to bottom, transparent, #a86508 30%, #a86508 70%, transparent); }
+
+/* Light mode — fix text colors that use hardcoded white/cream */
+html.light .section-eyebrow { color: #a86508; }
+html.light .gold-section-rule { background: linear-gradient(to right, transparent, rgba(168,101,8,0.35), transparent); }
+
+/* ── Scrollbar marocain ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-800); }
+::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #B8232A, #D4890A, #005A2E); border-radius: 999px; }
+
+/* ═══════════════════════════════════════════════════════
+   IDENTITÉ MAROCAINE IMPÉRIALE
+   Zellige · Étoile · Arc Mauresque · Safran · Terracotta
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Corps — zellige élaboré en fond ── */
+html:not(.light) body {
+  background-color: #07090F !important;
+  background-image:
+    linear-gradient(rgba(232,25,44,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,25,44,0.025) 1px, transparent 1px),
+    linear-gradient(rgba(245,166,35,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,166,35,0.015) 1px, transparent 1px) !important;
+  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
+}
+
+/* ── Mode clair — zellige discret ── */
+html.light body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M50 0 L100 50 L50 100 L0 50Z' fill='none' stroke='%23B8232A' stroke-width='0.4' opacity='0.05'/%3E%3Cpath d='M70,50 L57.4,46.9 L64.1,35.9 L53.1,42.6 L50,30 L46.9,42.6 L35.9,35.9 L42.6,46.9 L30,50 L42.6,53.1 L35.9,64.1 L46.9,57.4 L50,70 L53.1,57.4 L64.1,64.1 L57.4,53.1Z' fill='none' stroke='%23D4890A' stroke-width='0.35' opacity='0.07'/%3E%3Ccircle cx='50' cy='50' r='1.5' fill='%23D4890A' opacity='0.1'/%3E%3C/svg%3E") !important;
+  background-size: 100px 100px !important;
+}
+
+/* ── Diviseur étoile marocaine ── */
+.moroccan-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgba(212,137,10,0.55);
+}
+.moroccan-divider::before,
+.moroccan-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(212,137,10,0.35), transparent);
+}
+.moroccan-divider span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-family: 'Cairo', system-ui;
+}
+
+/* ── Label arabesque de section ── */
+.arabesque-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #D4890A;
+  font-family: 'Cairo', system-ui;
+}
+.arabesque-label::before { content: '✦'; font-size: 0.5rem; opacity: 0.75; }
+.arabesque-label::after  { content: '✦'; font-size: 0.5rem; opacity: 0.75; }
+
+/* ── Bandeau live — terracotta marocain ── */
+.ticker-terracotta {
+  background: linear-gradient(135deg, #8A1520 0%, #B8232A 50%, #8A1520 100%);
+}
+
+/* ── Carte avec arc mauresque en tête ── */
+.card-moroccan {
+  position: relative;
+}
+.card-moroccan::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 60px; height: 30px;
+  border: 1.5px solid rgba(212,137,10,0.3);
+  border-bottom: none;
+  border-radius: 30px 30px 0 0;
+  pointer-events: none;
+}
+
+/* ── Barre drapeau — rouge/vert exact ── */
+.flag-bar {
+  height: 4px;
+  background: linear-gradient(to right,
+    #B8232A 0%, #B8232A 40%,
+    #005A2E 40%, #005A2E 60%,
+    #B8232A 60%, #B8232A 100%
+  );
+}
+.flag-bar-full {
+  height: 3px;
+  background: linear-gradient(to right,
+    transparent 0%, #B8232A 10%, #D4890A 30%, #005A2E 50%, #D4890A 70%, #B8232A 90%, transparent 100%
+  );
+}
+
+/* ── Animations marocaines ── */
+@keyframes lanternSway {
+  0%, 100% { transform: rotate(-2.5deg) translateY(0); }
+  50%       { transform: rotate(2.5deg)  translateY(-4px); }
+}
+@keyframes zelligeFade {
+  from { opacity: 0; transform: scale(0.95) rotate(-3deg); }
+  to   { opacity: 1; transform: scale(1)    rotate(0deg);  }
+}
+@keyframes safranGlow {
+  0%, 100% { box-shadow: 0 0 0   0   rgba(212,137,10,0); }
+  50%       { box-shadow: 0 0 24px 4px rgba(212,137,10,0.18); }
+}
+
+.lantern-sway    { animation: lanternSway 4s ease-in-out infinite; }
+.zellige-appear  { animation: zelligeFade 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+.safran-glow     { animation: safranGlow 3s ease-in-out infinite; }
+
+/* ── Étoile marocaine pulsante ── */
+@keyframes starPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+.star-pulse { animation: starPulse 2.5s ease-in-out infinite; }
+
+/* ── Mode clair — overrides marocains ── */
+html.light .arabesque-label  { color: #a86508; }
+html.light .moroccan-divider { color: rgba(168,101,8,0.55); }
+html.light .ticker-terracotta{ background: linear-gradient(135deg, #7f1218, #B8232A, #7f1218); }
+html.light .card-moroccan::after { border-color: rgba(168,101,8,0.25); }
+
+/* ── Footer toujours sombre (thème "nuit de cèdre") ── */
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════
+   SKELETON SHIMMER
+   ═══════════════════════════════════════ */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-700) 25%,
+    var(--bg-600) 50%,
+    var(--bg-700) 75%
+  );
+  background-size: 1200px 100%;
+  animation: shimmer 1.8s infinite linear;
+  border-radius: 8px;
+}
+
+/* ═══════════════════════════════════════
+   SCROLL ANIMATIONS (useInView)
+   ═══════════════════════════════════════ */
+.section-hidden {
+  opacity: 0;
+  transform: translateY(36px);
+}
+.section-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
+              transform 0.75s cubic-bezier(0.16,1,0.3,1);
+}
+.section-hidden-left {
+  opacity: 0;
+  transform: translateX(-36px);
+}
+.section-visible-left {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
+              transform 0.75s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* counter up */
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.counter-appear { animation: countUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+
+.footer-moroccan {
+  background: #05070D !important;
+  color: rgba(255,255,255,0.75) !important;
+}
+.footer-moroccan .press-logo {
+  color: rgba(255,255,255,0.3) !important;
+  border-color: rgba(212,137,10,0.18) !important;
+}
+
+/* curseur personnalisé désactivé — curseur système natif */
+
+/* ═══════════════════════════════════════
+   SPLASH SCREEN
+   ═══════════════════════════════════════ */
+@keyframes splashStarDraw {
+  0%   { stroke-dashoffset: 160; opacity: 0; }
+  20%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes splashTextRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashExit {
+  to { opacity: 0; transform: scale(1.04); }
+}
+.splash-overlay {
+  position: fixed; inset: 0; z-index: 999998;
+  background: #07090F;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 18px;
+  pointer-events: all;
+}
+.splash-overlay.exiting { animation: splashExit 0.55s ease forwards; pointer-events: none; }
+.splash-star-path {
+  stroke-dasharray: 160;
+  animation: splashStarDraw 1.4s cubic-bezier(0.16,1,0.3,1) 0.15s both;
+}
+.splash-title { animation: splashTextRise 0.5s ease 1.1s both; }
+.splash-sub   { animation: splashTextRise 0.5s ease 1.3s both; }
+
+/* ═══════════════════════════════════════
+   CONFETTI — Éruption drapeau
+   ═══════════════════════════════════════ */
+@keyframes confettiFall {
+  0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(90px) rotate(540deg); }
+}
+.confetti-container { position: absolute; top: 0; left: 50%; pointer-events: none; z-index: 20; }
+.confetti-piece {
+  position: absolute;
+  width: 7px; height: 7px; border-radius: 1px;
+  animation: confettiFall 1s ease-out both;
+}
+
+/* ═══════════════════════════════════════
+   BANDEAU SAISONNIER — Aïd
+   ═══════════════════════════════════════ */
+.seasonal-banner {
+  background: linear-gradient(90deg, #003d1f 0%, #005A2E 40%, #006b37 50%, #005A2E 60%, #003d1f 100%);
+  border-bottom: 1px solid rgba(212,137,10,0.3);
+  position: relative; overflow: hidden;
+}
+.seasonal-banner::after {
+  content: '☪';
+  position: absolute; right: 24px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 3.5rem; opacity: 0.06;
+  color: #D4890A; pointer-events: none;
+}
+
+/* ═══════════════════════════════════════
+   PRESSE — Logos
+   ═══════════════════════════════════════ */
+.press-logo {
+  padding: 8px 16px; border-radius: 8px;
+  border: 1px solid rgba(212,137,10,0.18);
+  color: rgba(255,255,255,0.3);
+  font-family: 'Cairo', sans-serif; font-weight: 800;
+  font-size: 0.82rem; letter-spacing: 0.05em;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  display: inline-flex; align-items: center;
+}
+html.light .press-logo { color: rgba(0,0,0,0.28); border-color: rgba(0,0,0,0.1); }
+.press-logo:hover { border-color: rgba(212,137,10,0.45); color: #D4890A; background: rgba(212,137,10,0.06); }
+
+/* ═══════════════════════════════════════
+   BADGE CONDUCTEUR VÉRIFIÉ
+   ═══════════════════════════════════════ */
+@keyframes verifiedPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,90,46,0); }
+  50%      { box-shadow: 0 0 0 3px rgba(0,90,46,0.18); }
+}
+.badge-verified {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em;
+  padding: 2px 6px; border-radius: 99px;
+  background: rgba(0,90,46,0.1); color: #00b055;
+  border: 1px solid rgba(0,90,46,0.22);
+  animation: verifiedPulse 2.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════
+   BARRES DE PRIX — Animation scroll
+   ═══════════════════════════════════════ */
+.price-bar-animated {
+  height: 10px; border-radius: 99px;
+  transition: width 1.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── Podium ── */
+.podium-card { transition: transform 0.2s, box-shadow 0.2s; }
+.podium-card:hover { transform: translateY(-5px); box-shadow: 0 12px 32px rgba(0,0,0,0.25); }
+
+/* ═══════════════════════════════════════
+   TRANSITIONS DE PAGES
+   ═══════════════════════════════════════ */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ═══════════════════════════════════════
+   BARRE DE PROGRESSION MAROCAINE
+   ═══════════════════════════════════════ */
+.route-progress-track {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 3px; z-index: 999997; pointer-events: none;
+}
+.route-progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, #B8232A 0%, #D4890A 45%, #005A2E 100%);
+  box-shadow: 0 0 10px rgba(212,137,10,0.55), 0 0 3px rgba(184,35,42,0.4);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ═══════════════════════════════════════
+   SÉLECTEUR DE LANGUE — Login
+   ═══════════════════════════════════════ */
+.lang-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 99px;
+  font-size: 0.75rem; font-weight: 700; font-family: 'Cairo', sans-serif;
+  border: 1px solid rgba(212,137,10,0.25);
+  color: rgba(255,255,255,0.5);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.lang-btn.active {
+  background: rgba(212,137,10,0.12);
+  border-color: rgba(212,137,10,0.6);
+  color: #D4890A;
+  box-shadow: 0 0 12px rgba(212,137,10,0.15);
+}
+.lang-btn:hover:not(.active) {
+  border-color: rgba(212,137,10,0.4);
+  color: rgba(255,255,255,0.75);
+}
+
+/* ═══════════════════════════════════════
+   SKELETON LOADING
+   ═══════════════════════════════════════ */
+@keyframes shimmerLoad {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--bg-700) 25%, var(--bg-600) 50%, var(--bg-700) 75%);
+  background-size: 800px 100%;
+  animation: shimmerLoad 1.4s ease-in-out infinite;
+}

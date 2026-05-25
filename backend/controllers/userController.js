@@ -1,6 +1,28 @@
 const { Op } = require('sequelize');
 const { User, Ride, Booking, Review } = require('../models');
 
+async function searchUsers(req, res, next) {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q || q.length < 2) return res.json({ users: [] });
+
+    const users = await User.findAll({
+      where: {
+        status: 'active',
+        [Op.or]: [
+          { firstName: { [Op.like]: `%${q}%` } },
+          { lastName:  { [Op.like]: `%${q}%` } },
+        ],
+      },
+      attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating', 'totalTrips', 'isDriver', 'driverVerified'],
+      limit: 6,
+      order: [['avgRating', 'DESC']],
+    });
+
+    return res.json({ users });
+  } catch (err) { return next(err); }
+}
+
 async function me(req, res, next) {
   try {
     const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
@@ -169,4 +191,4 @@ function computeBadges(user, totalRides, referredCount) {
   return badges;
 }
 
-module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats };
+module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats, searchUsers };
