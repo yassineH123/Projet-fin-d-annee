@@ -14,9 +14,10 @@ export default function RideDetail() {
   const [ride, setRide]       = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState(false);
-  const [seats,   setSeats]   = useState(1);
-  const [message, setMessage] = useState('');
+  const [booking,    setBooking]    = useState(false);
+  const [seats,      setSeats]      = useState(1);
+  const [message,    setMessage]    = useState('');
+  const [useCredits, setUseCredits] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -32,7 +33,7 @@ export default function RideDetail() {
     if (!user) { navigate('/login'); return; }
     setBooking(true);
     try {
-      await api.post('/bookings', { rideId: id, seats, message });
+      await api.post('/bookings', { rideId: id, seats, message, useCredits });
       toast.success('Réservation envoyée !');
       navigate('/bookings');
     } catch (err) {
@@ -176,6 +177,25 @@ export default function RideDetail() {
                   className="input text-sm mb-3 resize-none"
                   rows={3}
                 />
+                {user?.referralCredits > 0 && (
+                  <label className="flex items-center gap-2 mb-3 cursor-pointer p-2.5 rounded-xl"
+                    style={{ background: 'rgba(212,137,10,0.08)', border: '1px solid rgba(212,137,10,0.25)' }}>
+                    <input
+                      type="checkbox"
+                      checked={useCredits}
+                      onChange={e => setUseCredits(e.target.checked)}
+                      className="accent-yellow-500 w-4 h-4"
+                    />
+                    <span className="text-sm font-semibold" style={{ color: '#D4890A' }}>
+                      🎁 Utiliser mes crédits parrainage ({user.referralCredits} DH)
+                    </span>
+                  </label>
+                )}
+                {useCredits && user?.referralCredits > 0 && (
+                  <p className="text-xs mb-3 text-center" style={{ color: '#00875A' }}>
+                    ✓ -{Math.min(user.referralCredits, ride.price * seats)} DH appliqué sur ce trajet
+                  </p>
+                )}
                 <button onClick={handleBook} disabled={booking} className="btn-primary w-full mb-2">
                   {booking ? 'Réservation...' : ride.instantBooking ? '⚡ Réserver instantanément' : 'Demander à réserver'}
                 </button>

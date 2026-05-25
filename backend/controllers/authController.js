@@ -111,6 +111,11 @@ async function verifyEmail(req, res, next) {
     await user.update({ verified: true, onboardingDone: false });
     await entry.destroy();
 
+    // Créditer le parrain de 10 DH
+    if (user.referredBy) {
+      await User.increment({ referralCredits: 10 }, { where: { id: user.referredBy } });
+    }
+
     return res.json({
       message: 'Email vérifié avec succès.',
       token: signToken(user),

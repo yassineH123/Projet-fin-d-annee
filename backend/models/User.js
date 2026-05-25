@@ -139,6 +139,11 @@ const User = sequelize.define('User', {
     type: DataTypes.UUID,
     allowNull: true,
   },
+  referralCredits: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+  },
   badges: {
     type: DataTypes.JSON,
     defaultValue: [],

@@ -8,7 +8,7 @@ const includeDetails = [
 
 async function create(req, res, next) {
   try {
-    const { rideId, seats = 1, message } = req.body;
+    const { rideId, seats = 1, message, useCredits = false } = req.body;
     const ride = await Ride.findByPk(rideId);
     if (!ride || ride.status !== 'active') return res.status(404).json({ message: 'Trajet introuvable.' });
     if (ride.driverId === req.user.id) return res.status(400).json({ message: 'Vous ne pouvez pas réserver votre propre trajet.' });
@@ -17,14 +17,21 @@ async function create(req, res, next) {
     const exists = await Booking.findOne({ where: { rideId, passengerId: req.user.id, status: ['pending', 'accepted'] } });
     if (exists) return res.status(409).json({ message: 'Vous avez déjà une réservation pour ce trajet.' });
 
+    const passenger = await User.findByPk(req.user.id);
+    let creditsUsed = 0;
+    if (useCredits && passenger.referralCredits > 0) {
+      const totalPrice = ride.price * seats;
+      creditsUsed = Math.min(passenger.referralCredits, totalPrice);
+      await passenger.decrement({ referralCredits: creditsUsed });
+    }
+
     const status = ride.instantBooking ? 'accepted' : 'pending';
-    const booking = await Booking.create({ rideId, passengerId: req.user.id, seats, message, status });
+    const booking = await Booking.create({ rideId, passengerId: req.user.id, seats, message, status, creditsUsed });
 
     if (ride.instantBooking) {
       await ride.update({ seatsAvailable: ride.seatsAvailable - seats });
     }
 
-    const passenger = await User.findByPk(req.user.id, { attributes: ['firstName', 'lastName'] });
     createNotification(ride.driverId, {
       type: 'booking',
       title: 'Nouvelle réservation',

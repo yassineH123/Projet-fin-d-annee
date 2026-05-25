@@ -1083,6 +1083,13 @@ function ReferralSection({ user }) {
                   </button>
                 </div>
                 <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.4)' }}>{h.shareCodeNote}</p>
+                {user.referralCredits > 0 && (
+                  <div className="mt-3 px-4 py-2 rounded-xl text-center"
+                    style={{ background: 'rgba(0,135,90,0.15)', border: '1px solid rgba(0,135,90,0.3)' }}>
+                    <p className="text-sm font-black" style={{ color: '#00875A' }}>🎁 {user.referralCredits} DH de crédits disponibles</p>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Utilisables à la prochaine réservation</p>
+                  </div>
+                )}
               </div>
             ) : (
               <Link to="/register"
