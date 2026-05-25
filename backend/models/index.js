@@ -2,6 +2,7 @@ const User = require('./User');
 const Ride = require('./Ride');
 const Booking = require('./Booking');
 const Review = require('./Review');
+const Report = require('./Report');
 const Conversation = require('./Conversation');
 const ConversationMember = require('./ConversationMember');
 const Message = require('./Message');
@@ -49,10 +50,16 @@ User.hasMany(Friendship, { foreignKey: 'receiverId',  as: 'receivedRequests' });
 Friendship.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
 Friendship.belongsTo(User, { foreignKey: 'receiverId',  as: 'receiver' });
 
+// Reports
+Report.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter' });
+Report.belongsTo(User, { foreignKey: 'reportedId', as: 'reported' });
+User.hasMany(Report,   { foreignKey: 'reporterId', as: 'sentReports' });
+User.hasMany(Report,   { foreignKey: 'reportedId', as: 'receivedReports' });
+
 // Group conversations
 Conversation.hasMany(ConversationMember, { foreignKey: 'conversationId', as: 'members' });
 ConversationMember.belongsTo(Conversation, { foreignKey: 'conversationId', as: 'conversation' });
 ConversationMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.hasMany(ConversationMember, { foreignKey: 'userId', as: 'conversationMemberships' });
 
-module.exports = { User, Ride, Booking, Review, Conversation, ConversationMember, Message, VerificationCode, Notification, Friendship };
+module.exports = { User, Ride, Booking, Review, Report, Conversation, ConversationMember, Message, VerificationCode, Notification, Friendship };

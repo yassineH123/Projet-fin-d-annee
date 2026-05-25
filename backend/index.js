@@ -19,6 +19,13 @@ const ConversationMember = require('./models/ConversationMember');
 const Message          = require('./models/Message');
 const VerificationCode = require('./models/VerificationCode');
 const Friendship       = require('./models/Friendship');
+const Report           = require('./models/Report');
+
+/* Report associations */
+Report.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter' });
+Report.belongsTo(User, { foreignKey: 'reportedId', as: 'reported' });
+User.hasMany(Report,   { foreignKey: 'reporterId', as: 'sentReports' });
+User.hasMany(Report,   { foreignKey: 'reportedId', as: 'receivedReports' });
 
 /* Associations Feed */
 Post.belongsTo(User, { foreignKey: 'userId' });
@@ -52,6 +59,7 @@ app.use('/messages',      require('./routes/messageRoutes'));
 app.use('/bookings',      require('./routes/bookingRoutes'));
 app.use('/rides',         require('./routes/rideRoutes'));
 app.use('/reviews',       require('./routes/reviewRoutes'));
+app.use('/reports',       require('./routes/reportRoutes'));
 
 const PORT = process.env.PORT || 4000;
 

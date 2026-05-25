@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Check, X, Star, MessageSquare } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MapPin, Clock, Check, X, Star, MessageSquare, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import BookingStatusBadge from '../components/BookingStatusBadge';
+import ReportModal from '../components/ReportModal';
 import { useAuth } from '../context/AuthContext';
 
 export default function MyBookings() {
-  const navigate               = useNavigate();
   const { user: me }           = useAuth();
   const [tab, setTab]          = useState('passenger');
   const [bookings, setBookings] = useState([]);
   const [loading,  setLoading]  = useState(true);
+  const [report,   setReport]   = useState(null); // { id, name, rideId }
 
   const fetchBookings = (t = tab) => {
     setLoading(true);
@@ -125,6 +126,20 @@ export default function MyBookings() {
                       </Link>
                     )}
 
+                    {/* Signaler le conducteur */}
+                    {tab === 'passenger' && b.status === 'accepted' && (() => {
+                      const driver = b.ride?.driver;
+                      if (!driver) return null;
+                      return (
+                        <button
+                          onClick={() => setReport({ id: driver.id, name: `${driver.firstName} ${driver.lastName}`, rideId: b.ride?.id })}
+                          className="inline-flex items-center gap-1.5 text-sm text-red-400/70 hover:text-red-400 font-medium mt-2 transition-colors"
+                        >
+                          <Flag size={13} /> Signaler le conducteur
+                        </button>
+                      );
+                    })()}
+
                     {/* Contacter */}
                     {other && other.id !== me?.id && ['pending', 'accepted'].includes(b.status) && (
                       <Link
@@ -168,6 +183,16 @@ export default function MyBookings() {
             );
           })}
         </div>
+      )}
+
+      {/* Modal signalement */}
+      {report && (
+        <ReportModal
+          reportedId={report.id}
+          reportedName={report.name}
+          rideId={report.rideId}
+          onClose={() => setReport(null)}
+        />
       )}
     </div>
   );

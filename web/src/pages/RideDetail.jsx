@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Check, X } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Check, X, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { StarDisplay } from '../components/StarRating';
 import Spinner from '../components/Spinner';
+import ReportModal from '../components/ReportModal';
 
 export default function RideDetail() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export default function RideDetail() {
   const [seats,      setSeats]      = useState(1);
   const [message,    setMessage]    = useState('');
   const [useCredits, setUseCredits] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -204,6 +206,17 @@ export default function RideDetail() {
                     <MessageSquare size={15} /> Contacter
                   </button>
                 )}
+                {!isOwn && user && (
+                  <button
+                    onClick={() => setShowReport(true)}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium transition-colors mt-1"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#F87171'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                  >
+                    <Flag size={12} /> Signaler ce conducteur
+                  </button>
+                )}
               </>
             )}
 
@@ -219,6 +232,15 @@ export default function RideDetail() {
           </div>
         </div>
       </div>
+
+      {showReport && ride?.driver && (
+        <ReportModal
+          reportedId={ride.driver.id}
+          reportedName={`${ride.driver.firstName} ${ride.driver.lastName}`}
+          rideId={ride.id}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </div>
   );
 }
