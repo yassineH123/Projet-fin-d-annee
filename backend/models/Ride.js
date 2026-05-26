@@ -60,6 +60,14 @@ const Ride = sequelize.define('Ride', {
     defaultValue: 'voiture',
     allowNull: false,
   },
+  stops: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+  },
+  distanceKm: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 }, {
   tableName: 'rides',
   timestamps: true,

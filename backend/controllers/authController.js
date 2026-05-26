@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
 const { User, VerificationCode } = require('../models');
+const { record: recordLogin } = require('./loginHistoryController');
 const { sendVerificationEmail } = require('../services/emailService');
 const { sendVerificationSMS }   = require('../services/smsService');
 
@@ -201,6 +202,8 @@ async function login(req, res, next) {
       await user.update({ referralCode: generateReferralCode() });
     }
 
+    recordLogin(user.id, req, true);
+
     return res.json({
       message: 'Connexion réussie.',
       token: signToken(user),
@@ -210,9 +213,13 @@ async function login(req, res, next) {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        walletBalance: user.walletBalance,
+        level: user.level,
+        badges: user.badges,
       },
     });
   } catch (error) {
+    recordLogin(null, req, false);
     return next(error);
   }
 }

@@ -1,5 +1,15 @@
-const { Booking, Ride, User } = require('../models');
+const { Booking, Ride, User, Transaction } = require('../models');
 const { createNotification } = require('../services/notificationService');
+const { notifyWaitlist } = require('./waitlistController');
+const { assignBadges } = require('./analyticsController');
+const sequelize = require('../database');
+
+function refundPolicy(ride) {
+  const hoursUntil = (new Date(ride.departureDate) - Date.now()) / 3600000;
+  if (hoursUntil >= 24) return 1.0;
+  if (hoursUntil >= 2)  return 0.5;
+  return 0;
+}
 
 const includeDetails = [
   { model: Ride, as: 'ride', include: [{ model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating'] }] },
@@ -78,6 +88,10 @@ async function accept(req, res, next) {
 
     await booking.update({ status: 'accepted' });
     await booking.ride.update({ seatsAvailable: booking.ride.seatsAvailable - booking.seats });
+
+    // Badge & level check for driver
+    assignBadges(req.user.id);
+
     createNotification(booking.passengerId, {
       type: 'booking',
       title: 'Réservation acceptée ✅',
@@ -116,11 +130,49 @@ async function cancel(req, res, next) {
     if (!booking) return res.status(404).json({ message: 'Réservation introuvable.' });
     if (booking.passengerId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
 
+    let refundAmount = 0;
+    let refundRate = 0;
+
     if (booking.status === 'accepted') {
-      await booking.ride.update({ seatsAvailable: booking.ride.seatsAvailable + booking.seats });
+      const newSeats = booking.ride.seatsAvailable + booking.seats;
+      await booking.ride.update({ seatsAvailable: newSeats });
+
+      // Politique de remboursement
+      refundRate = refundPolicy(booking.ride);
+      const totalPaid = parseFloat(booking.ride.price) * booking.seats;
+      refundAmount = Math.round(totalPaid * refundRate * 100) / 100;
+
+      if (refundAmount > 0) {
+        const passenger = await User.findByPk(req.user.id);
+        const newBalance = parseFloat(passenger.walletBalance) + refundAmount;
+        await passenger.update({ walletBalance: newBalance });
+        await Transaction.create({
+          userId: req.user.id,
+          type: 'credit',
+          amount: refundAmount,
+          description: `Remboursement annulation trajet ${booking.ride.from} → ${booking.ride.to}`,
+          rideId: booking.rideId,
+          balanceAfter: newBalance,
+        });
+      }
+
+      // Notifier la liste d'attente si une place s'est libérée
+      notifyWaitlist(booking.rideId);
+
+      createNotification(booking.ride.driverId, {
+        type: 'booking',
+        title: 'Réservation annulée',
+        message: `${booking.seats} place(s) annulée(s) sur votre trajet ${booking.ride.from} → ${booking.ride.to}.`,
+        link: '/bookings',
+      });
     }
+
     await booking.update({ status: 'cancelled' });
-    return res.json({ message: 'Réservation annulée.' });
+
+    const msg = refundAmount > 0
+      ? `Réservation annulée. ${refundAmount} DH remboursés dans votre portefeuille (${Math.round(refundRate * 100)}%).`
+      : 'Réservation annulée.';
+    return res.json({ message: msg, refundAmount, refundRate });
   } catch (err) { return next(err); }
 }
 

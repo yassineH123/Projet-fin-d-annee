@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Check, X, Flag } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { StarDisplay } from '../components/StarRating';
 import Spinner from '../components/Spinner';
 import ReportModal from '../components/ReportModal';
+import GPSTracker from '../components/GPSTracker';
 
 export default function RideDetail() {
   const { id } = useParams();
@@ -19,7 +20,9 @@ export default function RideDetail() {
   const [seats,      setSeats]      = useState(1);
   const [message,    setMessage]    = useState('');
   const [useCredits, setUseCredits] = useState(false);
-  const [showReport, setShowReport] = useState(false);
+  const [showReport,   setShowReport]   = useState(false);
+  const [inWaitlist,   setInWaitlist]   = useState(false);
+  const [joiningWait,  setJoiningWait]  = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -43,6 +46,24 @@ export default function RideDetail() {
     } finally {
       setBooking(false);
     }
+  };
+
+  const handleWaitlist = async () => {
+    if (!user) { navigate('/login'); return; }
+    setJoiningWait(true);
+    try {
+      if (inWaitlist) {
+        await api.post(`/waitlist/${id}/leave`);
+        toast.success('Retiré de la liste d\'attente.');
+        setInWaitlist(false);
+      } else {
+        await api.post(`/waitlist/${id}/join`, { seats });
+        toast.success('Ajouté à la liste d\'attente ! Vous serez notifié si une place se libère.');
+        setInWaitlist(true);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur');
+    } finally { setJoiningWait(false); }
   };
 
   const handleMessage = async () => {
@@ -223,11 +244,33 @@ export default function RideDetail() {
             {ride.status !== 'active' && (
               <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Trajet non disponible</div>
             )}
-            {ride.seatsAvailable === 0 && (
-              <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Complet</div>
+            {ride.status === 'active' && ride.seatsAvailable === 0 && !isOwn && (
+              <div className="flex flex-col gap-2">
+                <div className="text-center py-2 text-slate-400 text-sm bg-dark-700 rounded-xl">Complet</div>
+                {user && (
+                  <button onClick={handleWaitlist} disabled={joiningWait}
+                    className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                    style={{
+                      background: inWaitlist ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)',
+                      color:      inWaitlist ? '#F87171' : '#60A5FA',
+                      border:     `1.5px solid ${inWaitlist ? '#EF4444' : '#3B82F6'}40`,
+                    }}>
+                    {joiningWait
+                      ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      : inWaitlist ? '✕ Quitter la liste d\'attente' : '🔔 Rejoindre la liste d\'attente'
+                    }
+                  </button>
+                )}
+              </div>
             )}
             {isOwn && (
-              <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Votre trajet</div>
+              <div className="flex flex-col gap-3">
+                <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Votre trajet</div>
+                <GPSTracker rideId={ride.id} isDriver={true} />
+              </div>
+            )}
+            {!isOwn && ride.status === 'active' && ride.seatsAvailable > 0 && (
+              <GPSTracker rideId={ride.id} isDriver={false} />
             )}
           </div>
         </div>

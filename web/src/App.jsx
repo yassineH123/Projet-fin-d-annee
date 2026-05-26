@@ -25,6 +25,10 @@ import ForgotPassword   from './pages/ForgotPassword';
 import DriverDashboard  from './pages/DriverDashboard';
 import Friends          from './pages/Friends';
 import Compare          from './pages/Compare';
+import WalletPage       from './pages/Wallet';
+import Leaderboard      from './pages/Leaderboard';
+import DriverAnalytics  from './pages/DriverAnalytics';
+import LoginHistory     from './pages/LoginHistory';
 import SOSButton        from './components/SOSButton';
 
 function PrivateRoute({ children }) {
@@ -66,9 +70,13 @@ function AppRoutes() {
           <Route path="/feed"             element={<Feed />} />
           <Route path="/compare"          element={<Compare />} />
           <Route path="/onboarding"       element={<Onboarding />} />
-          <Route path="/driver-dashboard" element={<PrivateRoute><DriverDashboard /></PrivateRoute>} />
-          <Route path="/friends"          element={<PrivateRoute><Friends /></PrivateRoute>} />
-          <Route path="*"                 element={<NotFound />} />
+          <Route path="/driver-dashboard"  element={<PrivateRoute><DriverDashboard /></PrivateRoute>} />
+          <Route path="/friends"           element={<PrivateRoute><Friends /></PrivateRoute>} />
+          <Route path="/wallet"            element={<PrivateRoute><WalletPage /></PrivateRoute>} />
+          <Route path="/leaderboard"       element={<Leaderboard />} />
+          <Route path="/analytics/driver"  element={<PrivateRoute><DriverAnalytics /></PrivateRoute>} />
+          <Route path="/login-history"     element={<PrivateRoute><LoginHistory /></PrivateRoute>} />
+          <Route path="*"                  element={<NotFound />} />
         </Routes>
       </main>
       <Footer />

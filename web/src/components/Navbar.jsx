@@ -146,13 +146,17 @@ export default function Navbar() {
   };
 
   const profileMenuItems = [
-    { to: '/profile',          icon: User,          label: t.profileMenu.profile },
-    { to: '/friends',          icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
-    { to: '/driver-dashboard', icon: BarChart2,     label: t.profileMenu.dashboard },
-    { to: '/rides/publish',    icon: Plus,          label: t.profileMenu.publish },
-    { to: '/rides/mine',       icon: Car,           label: t.profileMenu.rides },
-    { to: '/bookings',         icon: BookOpen,      label: t.profileMenu.bookings },
-    { to: '/messages',         icon: MessageSquare, label: t.profileMenu.messages },
+    { to: '/profile',           icon: User,          label: t.profileMenu.profile },
+    { to: '/friends',           icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
+    { to: '/driver-dashboard',  icon: BarChart2,     label: t.profileMenu.dashboard },
+    { to: '/analytics/driver',  icon: BarChart2,     label: 'Mes statistiques' },
+    { to: '/wallet',            icon: Star,          label: 'Portefeuille' },
+    { to: '/leaderboard',       icon: Star,          label: 'Classement' },
+    { to: '/rides/publish',     icon: Plus,          label: t.profileMenu.publish },
+    { to: '/rides/mine',        icon: Car,           label: t.profileMenu.rides },
+    { to: '/bookings',          icon: BookOpen,      label: t.profileMenu.bookings },
+    { to: '/messages',          icon: MessageSquare, label: t.profileMenu.messages },
+    { to: '/login-history',     icon: Globe,         label: 'Historique connexions' },
   ];
 
   return (

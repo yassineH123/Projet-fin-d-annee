@@ -148,6 +148,26 @@ const User = sequelize.define('User', {
     type: DataTypes.JSON,
     defaultValue: [],
   },
+  walletBalance: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0,
+    allowNull: false,
+  },
+  totalKm: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+  },
+  level: {
+    type: DataTypes.ENUM('bronze', 'argent', 'or', 'platine', 'diamant'),
+    defaultValue: 'bronze',
+    allowNull: false,
+  },
+  kycStatus: {
+    type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'),
+    defaultValue: 'none',
+    allowNull: false,
+  },
 }, {
   timestamps: true,
   tableName: 'users',
