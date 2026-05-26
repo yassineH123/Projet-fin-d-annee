@@ -10,6 +10,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 import FriendButton from '../components/FriendButton';
+import ReliabilityScore from '../components/ReliabilityScore';
 
 const LANGUAGES = ['Français', 'Arabe', 'Darija', 'Amazigh', 'Anglais', 'Espagnol'];
 
@@ -272,6 +273,13 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Score de fiabilité — visible par tous */}
+      {profile.totalTrips > 0 || profile.driverVerified ? (
+        <div className="mt-6">
+          <ReliabilityScore user={profile} />
+        </div>
+      ) : null}
 
       {isMe ? (
         <>

@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
-  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe
+  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
@@ -44,6 +44,7 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState({ users: [], cities: [] });
   const [searchOpen,   setSearchOpen]   = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [listening,    setListening]    = useState(false);
   const searchRef = useRef(null);
   const searchTimer = useRef(null);
   const [notifs,       setNotifs]       = useState([]);
@@ -125,6 +126,23 @@ export default function Navbar() {
     else navigate('/rides/search');
   };
 
+  const handleVoiceSearch = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Votre navigateur ne supporte pas la recherche vocale.'); return; }
+    const rec = new SR();
+    rec.lang = 'fr-FR';
+    rec.interimResults = false;
+    rec.onstart = () => setListening(true);
+    rec.onend   = () => setListening(false);
+    rec.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      setSearchQ(text);
+      setSearchOpen(true);
+      navigate(`/rides/search?from=${encodeURIComponent(text.trim())}`);
+    };
+    rec.start();
+  };
+
   const handleSelectCity = (city) => {
     setSearchQ(city); setSearchOpen(false);
     navigate(`/rides/search?to=${encodeURIComponent(city)}`);
@@ -195,7 +213,7 @@ export default function Navbar() {
                 value={searchQ}
                 onChange={handleSearchChange}
                 placeholder={t.nav.searchPlaceholder}
-                className="w-full pl-9 pr-4 py-2 rounded-xl text-sm font-medium transition-all"
+                className="w-full pl-9 pr-10 py-2 rounded-xl text-sm font-medium transition-all"
                 style={{
                   background: 'var(--bg-700)',
                   border: '1.5px solid var(--border-color)',
@@ -206,6 +224,11 @@ export default function Navbar() {
                 onBlur={e  => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
                 autoComplete="off"
               />
+              <button type="button" onClick={handleVoiceSearch} title="Recherche vocale"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-lg transition-all"
+                style={{ color: listening ? '#C1272D' : 'var(--text-muted)' }}>
+                {listening ? <MicOff size={14} /> : <Mic size={14} />}
+              </button>
             </div>
           </form>
 

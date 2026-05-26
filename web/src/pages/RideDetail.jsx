@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import Spinner from '../components/Spinner';
 import ReportModal from '../components/ReportModal';
 import GPSTracker from '../components/GPSTracker';
 import RideMap from '../components/RideMap';
+import PaymentModal from '../components/PaymentModal';
 
 export default function RideDetail() {
   const { id } = useParams();
@@ -25,6 +26,7 @@ export default function RideDetail() {
   const [inWaitlist,   setInWaitlist]   = useState(false);
   const [joiningWait,  setJoiningWait]  = useState(false);
   const [isFav,        setIsFav]        = useState(false);
+  const [showPayment,  setShowPayment]  = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -75,6 +77,12 @@ export default function RideDetail() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
     } finally { setJoiningWait(false); }
+  };
+
+  const handleWhatsApp = () => {
+    const dateStr = ride ? new Date(ride.departureDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+    const text = encodeURIComponent(`🚗 Trajet AtlasWay\n${ride.from} → ${ride.to}\n📅 ${dateStr}\n💰 ${Number(ride.price).toFixed(0)} MAD/pers\n🔗 ${window.location.href}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleMessage = async () => {
@@ -243,7 +251,7 @@ export default function RideDetail() {
                     ✓ -{Math.min(user.referralCredits, ride.price * seats)} DH appliqué sur ce trajet
                   </p>
                 )}
-                <button onClick={handleBook} disabled={booking} className="btn-primary w-full mb-2">
+                <button onClick={() => setShowPayment(true)} disabled={booking} className="btn-primary w-full mb-2">
                   {booking ? 'Réservation...' : ride.instantBooking ? '⚡ Réserver instantanément' : 'Demander à réserver'}
                 </button>
                 {!isOwn && (
@@ -251,6 +259,11 @@ export default function RideDetail() {
                     <MessageSquare size={15} /> Contacter
                   </button>
                 )}
+                <button onClick={handleWhatsApp}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366', border: '1.5px solid rgba(37,211,102,0.3)' }}>
+                  <Share2 size={14} /> Partager sur WhatsApp
+                </button>
                 {!isOwn && user && (
                   <button
                     onClick={() => setShowReport(true)}
@@ -306,6 +319,15 @@ export default function RideDetail() {
           reportedName={`${ride.driver.firstName} ${ride.driver.lastName}`}
           rideId={ride.id}
           onClose={() => setShowReport(false)}
+        />
+      )}
+      {showPayment && ride && (
+        <PaymentModal
+          amount={ride.price * seats}
+          rideFrom={ride.from}
+          rideTo={ride.to}
+          onConfirm={handleBook}
+          onClose={() => setShowPayment(false)}
         />
       )}
     </div>
