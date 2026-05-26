@@ -97,6 +97,8 @@ export default function Profile() {
   const [langs, setLangs] = useState([]);
   const [isHandicapped, setIsHandicapped]     = useState(false);
   const [handicapAccessible, setHandicapAccessible] = useState(false);
+  const [nationality, setNationality] = useState('moroccan');
+  const [country, setCountry] = useState('');
 
   const [pwdForm,   setPwdForm]   = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [pwdSaving, setPwdSaving] = useState(false);
@@ -123,6 +125,8 @@ export default function Profile() {
         setLangs(u.languages   || []);
         setIsHandicapped(u.isHandicapped       || false);
         setHandicapAccessible(u.handicapAccessible || false);
+        setNationality(u.nationality || 'moroccan');
+        setCountry(u.country || '');
       }
     }).finally(() => setLoading(false));
   }, [id]);
@@ -137,6 +141,8 @@ export default function Profile() {
       fd.append('languages',         JSON.stringify(langs));
       fd.append('isHandicapped',     isHandicapped);
       fd.append('handicapAccessible', handicapAccessible);
+      fd.append('nationality', nationality);
+      fd.append('country', country);
       Object.entries(docFiles).forEach(([k, f]) => fd.append(k, f));
       const { data } = await api.put('/users/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       updateUser(data.user);
@@ -226,6 +232,16 @@ export default function Profile() {
                   <Accessibility size={11} /> PMR
                 </span>
               )}
+              {profile.nationality === 'foreign' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
+                  🌍 {profile.country || 'Étranger'}
+                </span>
+              )}
+              {profile.nationality === 'moroccan' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
+                  🇲🇦 Marocain
+                </span>
+              )}
               {verifBadge && (
                 <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${verifBadge.bg} ${verifBadge.color}`}>
                   <verifBadge.icon size={11} /> {verifBadge.label}
@@ -308,6 +324,34 @@ export default function Profile() {
                   <label className="text-sm text-slate-400 mb-1.5 block">Bio</label>
                   <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} placeholder="Parlez de vous en quelques mots..." className="input resize-none" rows={3} maxLength={300} />
                   <p className="text-slate-600 text-xs mt-1 text-right">{form.bio.length}/300</p>
+                </div>
+
+                {/* Nationalité */}
+                <div>
+                  <label className="text-sm text-slate-400 mb-2 block">Nationalité</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'moroccan', emoji: '🇲🇦', label: 'Marocain(e)' },
+                      { value: 'foreign',  emoji: '🌍', label: 'Étranger(ère)' },
+                    ].map(opt => (
+                      <button key={opt.value} type="button" onClick={() => setNationality(opt.value)}
+                        className="flex items-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all"
+                        style={{
+                          background: nationality === opt.value ? 'rgba(193,39,45,0.1)' : 'var(--bg-700)',
+                          border: `1.5px solid ${nationality === opt.value ? '#C1272D' : 'var(--border-color)'}`,
+                          color: nationality === opt.value ? '#C1272D' : 'var(--text-secondary)',
+                        }}>
+                        <span className="text-base">{opt.emoji}</span> {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {nationality === 'foreign' && (
+                    <div className="mt-3">
+                      <label className="text-sm text-slate-400 mb-1.5 block">Pays d'origine</label>
+                      <input value={country} onChange={e => setCountry(e.target.value)}
+                        placeholder="ex: France, Espagne, Sénégal..." className="input" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Langues */}
@@ -402,13 +446,15 @@ export default function Profile() {
                   <Shield size={18} className={profile.driverVerified ? 'text-green-400' : 'text-slate-400'} />
                   <div className="text-left">
                     <p className="font-bold text-white">Vérification conducteur</p>
-                    <p className="text-xs text-slate-500">CIN, Permis de conduire, Carte grise — obligatoires</p>
+                    <p className="text-xs text-slate-500">
+                      {nationality === 'foreign' ? 'Passeport, Permis de conduire, Carte grise — obligatoires' : 'CIN, Permis de conduire, Carte grise — obligatoires'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {profile.driverVerified
                     ? <span className="text-xs text-green-400 flex items-center gap-1"><ShieldCheck size={13} /> Vérifié</span>
-                    : (profile.cinDoc && profile.permisDoc && profile.carteGriseDoc)
+                    : (nationality === 'foreign' ? (profile.passportDoc && profile.permisDoc && profile.carteGriseDoc) : (profile.cinDoc && profile.permisDoc && profile.carteGriseDoc))
                       ? <span className="text-xs text-yellow-400">En attente</span>
                       : <span className="text-xs text-slate-500">Non soumis</span>
                   }
@@ -423,12 +469,16 @@ export default function Profile() {
                       <ShieldCheck size={16} /> Votre compte conducteur est vérifié par l'administration.
                     </div>
                   )}
-                  {!profile.driverVerified && (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc) && (
+                  {!profile.driverVerified && (nationality === 'foreign' ? (profile.passportDoc || profile.permisDoc || profile.carteGriseDoc) : (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc)) && (
                     <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">
                       <AlertCircle size={16} /> Documents en cours de vérification par l'administration.
                     </div>
                   )}
-                  <DocUploadField label="Carte Nationale d'Identité (CIN)" fieldName="cinDoc" currentDoc={profile.cinDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
+                  {nationality === 'foreign' ? (
+                    <DocUploadField label="Passeport" fieldName="passportDoc" currentDoc={profile.passportDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
+                  ) : (
+                    <DocUploadField label="Carte Nationale d'Identité (CIN)" fieldName="cinDoc" currentDoc={profile.cinDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
+                  )}
                   <DocUploadField label="Permis de conduire" fieldName="permisDoc" currentDoc={profile.permisDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
                   <DocUploadField label="Carte grise du véhicule" fieldName="carteGriseDoc" currentDoc={profile.carteGriseDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
                   <p className="text-slate-500 text-xs">Les documents sont traités de manière confidentielle et servent uniquement à la vérification de votre identité.</p>

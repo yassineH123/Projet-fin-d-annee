@@ -66,6 +66,7 @@ async function updateProfile(req, res, next) {
       firstName, lastName, phone, bio, preferences, languages,
       carModel, carColor, carYear, licensePlate,
       isHandicapped, handicapAccessible,
+      nationality, country,
     } = req.body;
 
     const updates = {};
@@ -79,6 +80,8 @@ async function updateProfile(req, res, next) {
     if (licensePlate !== undefined)      updates.licensePlate      = licensePlate;
     if (isHandicapped !== undefined)     updates.isHandicapped     = isHandicapped === 'true' || isHandicapped === true;
     if (handicapAccessible !== undefined) updates.handicapAccessible = handicapAccessible === 'true' || handicapAccessible === true;
+    if (nationality !== undefined)        updates.nationality        = nationality;
+    if (country     !== undefined)        updates.country            = country;
 
     if (preferences) {
       updates.preferences = typeof preferences === 'string' ? JSON.parse(preferences) : preferences;
@@ -89,11 +92,12 @@ async function updateProfile(req, res, next) {
 
     if (req.files?.photo?.[0])        updates.photo        = `/uploads/${req.files.photo[0].filename}`;
     if (req.files?.carPhoto?.[0])     updates.carPhoto     = `/uploads/${req.files.carPhoto[0].filename}`;
-    if (req.files?.cinDoc?.[0])       updates.cinDoc       = `/uploads/${req.files.cinDoc[0].filename}`;
-    if (req.files?.permisDoc?.[0])    updates.permisDoc    = `/uploads/${req.files.permisDoc[0].filename}`;
+    if (req.files?.cinDoc?.[0])        updates.cinDoc        = `/uploads/${req.files.cinDoc[0].filename}`;
+    if (req.files?.permisDoc?.[0])     updates.permisDoc     = `/uploads/${req.files.permisDoc[0].filename}`;
     if (req.files?.carteGriseDoc?.[0]) updates.carteGriseDoc = `/uploads/${req.files.carteGriseDoc[0].filename}`;
+    if (req.files?.passportDoc?.[0])   updates.passportDoc   = `/uploads/${req.files.passportDoc[0].filename}`;
 
-    if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0]) {
+    if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0] || req.files?.passportDoc?.[0]) {
       updates.driverVerified = false; // reset, admin doit re-valider
     }
 

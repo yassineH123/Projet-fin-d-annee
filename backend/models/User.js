@@ -95,6 +95,19 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  passportDoc: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  nationality: {
+    type: DataTypes.ENUM('moroccan', 'foreign'),
+    defaultValue: 'moroccan',
+    allowNull: false,
+  },
+  country: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
   driverVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
