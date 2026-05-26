@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List } from 'lucide-react';
+import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import Spinner from '../components/Spinner';
+import { SkeletonList } from '../components/SkeletonCard';
+import EmptyState from '../components/EmptyState';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import ReportModal from '../components/ReportModal';
 import BookingQR from '../components/BookingQR';
@@ -82,11 +83,16 @@ export default function MyBookings() {
         ))}
       </div>
 
-      {loading ? <Spinner /> : bookings.length === 0 ? (
-        <div className="text-center py-16 card">
-          <MapPin size={40} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">Aucune réservation</p>
-        </div>
+      {loading ? <SkeletonList count={3} /> : bookings.length === 0 ? (
+        <EmptyState
+          emoji={tab === 'passenger' ? '🎫' : '🚗'}
+          title="Aucune réservation"
+          description={tab === 'passenger'
+            ? "Vous n'avez pas encore réservé de trajet. Trouvez votre prochain voyage !"
+            : "Vous n'avez pas encore reçu de demandes de réservation."}
+          actionLabel={tab === 'passenger' ? 'Rechercher un trajet' : 'Publier un trajet'}
+          actionTo={tab === 'passenger' ? '/rides/search' : '/rides/publish'}
+        />
       ) : viewMode === 'calendar' ? (
         <CalendarView bookings={bookings} />
       ) : (

@@ -3,7 +3,8 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf } from 'lucide-react';
 import api from '../services/api';
 import RideCard from '../components/RideCard';
-import Spinner from '../components/Spinner';
+import { SkeletonList } from '../components/SkeletonCard';
+import EmptyState from '../components/EmptyState';
 import { ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS, findRoutes, formatDuration, co2Color } from '../data/transportData';
 
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Laâyoune'];
@@ -281,12 +282,14 @@ export default function SearchRides() {
             })}
           </div>
 
-          {loading ? <Spinner /> : rides.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-4xl mb-3">{VEHICLE_MODES.find(v => v.id === vehicleMode)?.emoji || '🔍'}</div>
-              <p className="text-slate-400 font-medium">Aucun trajet trouvé</p>
-              <p className="text-slate-600 text-sm mt-1">Essayez un autre véhicule ou regardez les autres modes de transport</p>
-            </div>
+          {loading ? <SkeletonList count={4} card="ride" /> : rides.length === 0 ? (
+            <EmptyState
+              emoji={VEHICLE_MODES.find(v => v.id === vehicleMode)?.emoji || '🔍'}
+              title="Aucun trajet trouvé"
+              description="Essayez un autre véhicule ou regardez les autres modes de transport ci-dessus."
+              actionLabel="Voir tous les trajets"
+              actionTo="/rides/search"
+            />
           ) : (
             <div>
               <p className="text-slate-400 text-sm mb-4">{rides.length} trajet{rides.length > 1 ? 's' : ''} trouvé{rides.length > 1 ? 's' : ''}</p>

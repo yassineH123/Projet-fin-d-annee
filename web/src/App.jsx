@@ -61,7 +61,8 @@ import Premium          from './pages/Premium';
 import Support          from './pages/Support';
 import RideAlerts       from './pages/RideAlerts';
 import EmergencyContacts from './pages/EmergencyContacts';
-import SOSButton        from './components/SOSButton';
+import SOSButton           from './components/SOSButton';
+import AccessibilityWidget from './components/AccessibilityWidget';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -82,6 +83,7 @@ function AppRoutes() {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <SOSButton />
+      <AccessibilityWidget />
       <main className="flex-1">
         <ErrorBoundary>
         <Routes>

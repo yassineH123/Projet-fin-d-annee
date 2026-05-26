@@ -825,3 +825,58 @@ html.light .press-logo { color: rgba(0,0,0,0.28); border-color: rgba(0,0,0,0.1);
   background-size: 800px 100%;
   animation: shimmerLoad 1.4s ease-in-out infinite;
 }
+
+/* ═══════════════════════════════════════
+   CONTRASTE ÉLEVÉ (accessibilité WCAG AA)
+   ═══════════════════════════════════════ */
+html.high-contrast {
+  --bg-900: #000000;
+  --bg-800: #0a0a0a;
+  --bg-700: #111111;
+  --bg-600: #1a1a1a;
+  --text-base:      #ffffff;
+  --text-secondary: #eeeeee;
+  --text-muted:     #cccccc;
+  --border-color:   #ffffff;
+  --border-muted:   #dddddd;
+  --card-bg:        #0a0a0a;
+  --input-bg:       #000000;
+  --input-placeholder: #aaaaaa;
+}
+html.high-contrast .card {
+  border: 2px solid #ffffff !important;
+}
+html.high-contrast .btn-primary {
+  background: #ff0000 !important;
+  outline: 2px solid #fff;
+}
+html.high-contrast a, html.high-contrast button {
+  outline-offset: 2px;
+}
+html.high-contrast a:focus-visible,
+html.high-contrast button:focus-visible {
+  outline: 3px solid #ffff00 !important;
+}
+
+/* ═══════════════════════════════════════
+   RTL — Support arabe / darija
+   ═══════════════════════════════════════ */
+[dir="rtl"] {
+  font-family: 'Cairo', 'Amiri', system-ui, sans-serif;
+  text-align: right;
+}
+[dir="rtl"] .flex { flex-direction: row-reverse; }
+[dir="rtl"] .flex.items-center { flex-direction: row-reverse; }
+[dir="rtl"] input, [dir="rtl"] textarea { text-align: right; }
+[dir="rtl"] .ml-auto { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .mr-auto { margin-right: 0; margin-left: auto; }
+
+/* ═══════════════════════════════════════
+   FOCUS VISIBLE — navigation clavier
+   ═══════════════════════════════════════ */
+*:focus-visible {
+  outline: 2px solid #C1272D;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
