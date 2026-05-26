@@ -22,7 +22,7 @@ export default function WalletPage() {
     api.get('/wallet').then(({ data: d }) => setData(d)).finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const handleTopUp = async (e) => {
     e.preventDefault();

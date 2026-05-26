@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';

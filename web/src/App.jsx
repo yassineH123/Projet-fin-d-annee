@@ -4,6 +4,31 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { Component } from 'react';
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, color: '#fff', background: '#1a0a0a', minHeight: '100vh', fontFamily: 'monospace' }}>
+          <h2 style={{ color: '#F87171', marginBottom: 16 }}>Erreur React détectée</h2>
+          <pre style={{ background: '#2a0a0a', padding: 16, borderRadius: 8, overflow: 'auto', color: '#fca5a5', fontSize: 13 }}>
+            {this.state.error.toString()}
+            {'\n\n'}
+            {this.state.error.stack}
+          </pre>
+          <button onClick={() => { this.setState({ error: null }); window.location.href = '/'; }}
+            style={{ marginTop: 16, padding: '8px 20px', background: '#C1272D', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            Retour à l'accueil
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 import Home          from './pages/Home';
 import Login         from './pages/Login';
@@ -58,6 +83,7 @@ function AppRoutes() {
       <Navbar />
       <SOSButton />
       <main className="flex-1">
+        <ErrorBoundary>
         <Routes>
           <Route path="/"               element={<Home />} />
           <Route path="/login"          element={<Login />} />
@@ -92,6 +118,7 @@ function AppRoutes() {
           <Route path="/emergency-contacts" element={<PrivateRoute><EmergencyContacts /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
+        </ErrorBoundary>
       </main>
       <Footer />
     </div>

@@ -13,7 +13,7 @@ export default function RideAlerts() {
   const [adding,  setAdding]  = useState(false);
 
   const load = () => api.get('/ride-alerts').then(({ data }) => setAlerts(data.alerts)).finally(() => setLoading(false));
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();

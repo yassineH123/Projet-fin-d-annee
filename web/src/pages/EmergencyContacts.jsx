@@ -11,7 +11,7 @@ export default function EmergencyContacts() {
   const [saving, setSaving] = useState(false);
 
   const load = () => api.get('/emergency').then(({ data }) => setContacts(data.contacts)).finally(() => setLoading(false));
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();

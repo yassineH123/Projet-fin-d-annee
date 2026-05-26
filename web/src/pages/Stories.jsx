@@ -64,7 +64,7 @@ export default function StoriesPage() {
   const fileRef = useRef(null);
 
   const load = () => api.get('/stories').then(({ data }) => setGroups(data.groups)).finally(() => setLoading(false));
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];

@@ -28,7 +28,7 @@ export default function Events() {
     setLoading(true);
     api.get(`/events?${params}`).then(({ data }) => setEvents(data.events)).finally(() => setLoading(false));
   };
-  useEffect(load, [filter]);
+  useEffect(() => { load(); }, [filter]);
 
   const handleCreate = async (e) => {
     e.preventDefault();

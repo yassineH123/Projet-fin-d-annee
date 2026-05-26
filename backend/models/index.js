@@ -9,6 +9,20 @@ const Message = require('./Message');
 const VerificationCode = require('./VerificationCode');
 const Notification = require('./Notification');
 const Friendship = require('./Friendship');
+const FavoriteRide = require('./FavoriteRide');
+const RideAlert = require('./RideAlert');
+const PromoCode = require('./PromoCode');
+const SupportTicket = require('./SupportTicket');
+const EmergencyContact = require('./EmergencyContact');
+const Story = require('./Story');
+const Group = require('./Group');
+const GroupMember = require('./GroupMember');
+const Event = require('./Event');
+const Premium = require('./Premium');
+const WaitlistEntry = require('./WaitlistEntry');
+const Transaction = require('./Transaction');
+const LoginHistory = require('./LoginHistory');
+const AuditLog = require('./AuditLog');
 
 // User → Rides (conducteur)
 User.hasMany(Ride, { foreignKey: 'driverId', as: 'rides' });
@@ -62,4 +76,10 @@ ConversationMember.belongsTo(Conversation, { foreignKey: 'conversationId', as: '
 ConversationMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.hasMany(ConversationMember, { foreignKey: 'userId', as: 'conversationMemberships' });
 
-module.exports = { User, Ride, Booking, Review, Report, Conversation, ConversationMember, Message, VerificationCode, Notification, Friendship };
+module.exports = {
+  User, Ride, Booking, Review, Report,
+  Conversation, ConversationMember, Message, VerificationCode, Notification, Friendship,
+  FavoriteRide, RideAlert, PromoCode, SupportTicket, EmergencyContact,
+  Story, Group, GroupMember, Event, Premium,
+  WaitlistEntry, Transaction, LoginHistory, AuditLog,
+};
