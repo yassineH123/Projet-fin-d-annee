@@ -66,7 +66,7 @@ async function updateProfile(req, res, next) {
       firstName, lastName, phone, bio, preferences, languages,
       carModel, carColor, carYear, licensePlate,
       isHandicapped, handicapAccessible,
-      nationality, country,
+      nationality, country, birthDate,
     } = req.body;
 
     const updates = {};
@@ -82,6 +82,7 @@ async function updateProfile(req, res, next) {
     if (handicapAccessible !== undefined) updates.handicapAccessible = handicapAccessible === 'true' || handicapAccessible === true;
     if (nationality !== undefined)        updates.nationality        = nationality;
     if (country     !== undefined)        updates.country            = country;
+    if (birthDate   !== undefined)        updates.birthDate          = birthDate || null;
 
     if (preferences) {
       updates.preferences = typeof preferences === 'string' ? JSON.parse(preferences) : preferences;

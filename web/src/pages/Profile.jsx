@@ -99,6 +99,7 @@ export default function Profile() {
   const [handicapAccessible, setHandicapAccessible] = useState(false);
   const [nationality, setNationality] = useState('moroccan');
   const [country, setCountry] = useState('');
+  const [birthDate, setBirthDate] = useState('');
 
   const [pwdForm,   setPwdForm]   = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [pwdSaving, setPwdSaving] = useState(false);
@@ -127,6 +128,7 @@ export default function Profile() {
         setHandicapAccessible(u.handicapAccessible || false);
         setNationality(u.nationality || 'moroccan');
         setCountry(u.country || '');
+        setBirthDate(u.birthDate ? u.birthDate.slice(0, 10) : '');
       }
     }).finally(() => setLoading(false));
   }, [id]);
@@ -143,6 +145,7 @@ export default function Profile() {
       fd.append('handicapAccessible', handicapAccessible);
       fd.append('nationality', nationality);
       fd.append('country', country);
+      fd.append('birthDate', birthDate);
       Object.entries(docFiles).forEach(([k, f]) => fd.append(k, f));
       const { data } = await api.put('/users/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       updateUser(data.user);
@@ -319,6 +322,29 @@ export default function Profile() {
                 <div>
                   <label className="text-sm text-slate-400 mb-1.5 block">Téléphone</label>
                   <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+212 6XX XXX XXX" className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1.5 block">Date de naissance</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="date"
+                      value={birthDate}
+                      onChange={e => setBirthDate(e.target.value)}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0, 10)}
+                      min="1924-01-01"
+                      className="input flex-1"
+                    />
+                    {birthDate && (() => {
+                      const age = Math.floor((new Date() - new Date(birthDate)) / (365.25 * 24 * 3600 * 1000));
+                      return (
+                        <span className="text-sm font-semibold px-3 py-1.5 rounded-lg shrink-0"
+                          style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)' }}>
+                          {age} ans
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <p className="text-slate-600 text-xs mt-1">Vous devez avoir au moins 18 ans pour utiliser AtlasWay.</p>
                 </div>
                 <div>
                   <label className="text-sm text-slate-400 mb-1.5 block">Bio</label>
