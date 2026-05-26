@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Ride, User, Booking } = require('../models');
 const sequelize = require('../database');
+const { triggerAlerts } = require('./rideAlertController');
 
 async function create(req, res, next) {
   try {
@@ -13,6 +14,7 @@ async function create(req, res, next) {
       description,
       instantBooking: instantBooking || false,
     });
+    triggerAlerts(ride);
     return res.status(201).json({ ride });
   } catch (err) { return next(err); }
 }

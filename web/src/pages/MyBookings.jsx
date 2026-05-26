@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Check, X, Star, MessageSquare, Flag } from 'lucide-react';
+import { MapPin, Clock, Check, X, Star, MessageSquare, Flag, ScanLine } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import ReportModal from '../components/ReportModal';
+import BookingQR from '../components/BookingQR';
 import { useAuth } from '../context/AuthContext';
 
 export default function MyBookings() {
@@ -13,7 +14,8 @@ export default function MyBookings() {
   const [tab, setTab]          = useState('passenger');
   const [bookings, setBookings] = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [report,   setReport]   = useState(null); // { id, name, rideId }
+  const [report,   setReport]   = useState(null);
+  const [qrBooking, setQrBooking] = useState(null);
 
   const fetchBookings = (t = tab) => {
     setLoading(true);
@@ -116,6 +118,16 @@ export default function MyBookings() {
                       <p className="text-slate-500 text-sm mt-2 italic">"{b.message}"</p>
                     )}
 
+                    {/* QR Code billet */}
+                    {tab === 'passenger' && b.status === 'accepted' && (
+                      <button
+                        onClick={() => setQrBooking(b)}
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 font-semibold mt-3 transition-colors"
+                      >
+                        <ScanLine size={14} /> Voir mon billet QR
+                      </button>
+                    )}
+
                     {/* Laisser un avis */}
                     {canReview(b) && (
                       <Link
@@ -184,6 +196,9 @@ export default function MyBookings() {
           })}
         </div>
       )}
+
+      {/* Modal QR billet */}
+      {qrBooking && <BookingQR booking={qrBooking} onClose={() => setQrBooking(null)} />}
 
       {/* Modal signalement */}
       {report && (

@@ -25,6 +25,16 @@ const WaitlistEntry    = require('./models/WaitlistEntry');
 const Transaction      = require('./models/Transaction');
 const LoginHistory     = require('./models/LoginHistory');
 const AuditLog         = require('./models/AuditLog');
+const FavoriteRide     = require('./models/FavoriteRide');
+const RideAlert        = require('./models/RideAlert');
+const PromoCode        = require('./models/PromoCode');
+const SupportTicket    = require('./models/SupportTicket');
+const EmergencyContact = require('./models/EmergencyContact');
+const Story            = require('./models/Story');
+const Group            = require('./models/Group');
+const GroupMember      = require('./models/GroupMember');
+const Event            = require('./models/Event');
+const Premium          = require('./models/Premium');
 
 /* ── Associations Feed ── */
 Post.belongsTo(User, { foreignKey: 'userId' });
@@ -52,6 +62,34 @@ User.hasMany(LoginHistory,   { foreignKey: 'userId', as: 'loginHistory' });
 
 /* ── Associations Audit ── */
 AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'actor' });
+
+/* ── Associations new models ── */
+FavoriteRide.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+FavoriteRide.belongsTo(Ride, { foreignKey: 'rideId', as: 'ride' });
+User.hasMany(FavoriteRide,   { foreignKey: 'userId', as: 'favorites' });
+
+RideAlert.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(RideAlert,   { foreignKey: 'userId', as: 'rideAlerts' });
+
+SupportTicket.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(SupportTicket,   { foreignKey: 'userId', as: 'tickets' });
+
+EmergencyContact.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(EmergencyContact,   { foreignKey: 'userId', as: 'emergencyContacts' });
+
+Story.belongsTo(User, { foreignKey: 'userId', as: 'author' });
+User.hasMany(Story,   { foreignKey: 'userId', as: 'stories' });
+
+Group.belongsTo(User,     { foreignKey: 'creatorId', as: 'creator' });
+Group.hasMany(GroupMember,{ foreignKey: 'groupId',   as: 'members' });
+GroupMember.belongsTo(User,  { foreignKey: 'userId',  as: 'user' });
+GroupMember.belongsTo(Group, { foreignKey: 'groupId', as: 'group' });
+
+Event.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+User.hasMany(Event,   { foreignKey: 'creatorId', as: 'events' });
+
+Premium.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(Premium,   { foreignKey: 'userId', as: 'premiums' });
 
 const app    = express();
 const server = http.createServer(app);
@@ -97,6 +135,16 @@ app.use('/waitlist',       apiLimiter, require('./routes/waitlistRoutes'));
 app.use('/wallet',         apiLimiter, require('./routes/walletRoutes'));
 app.use('/analytics',      apiLimiter, require('./routes/analyticsRoutes'));
 app.use('/login-history',  apiLimiter, require('./routes/loginHistoryRoutes'));
+app.use('/favorites',      apiLimiter, require('./routes/favoriteRoutes'));
+app.use('/ride-alerts',    apiLimiter, require('./routes/rideAlertRoutes'));
+app.use('/promos',         apiLimiter, require('./routes/promoRoutes'));
+app.use('/support',        apiLimiter, require('./routes/supportRoutes'));
+app.use('/emergency',      apiLimiter, require('./routes/emergencyRoutes'));
+app.use('/stories',        apiLimiter, require('./routes/storyRoutes'));
+app.use('/groups',         apiLimiter, require('./routes/groupRoutes'));
+app.use('/events',         apiLimiter, require('./routes/eventRoutes'));
+app.use('/premium',        apiLimiter, require('./routes/premiumRoutes'));
+app.use('/export',         apiLimiter, require('./routes/exportRoutes'));
 
 const PORT = process.env.PORT || 4000;
 

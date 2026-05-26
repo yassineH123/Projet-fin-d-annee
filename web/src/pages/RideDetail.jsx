@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import { StarDisplay } from '../components/StarRating';
 import Spinner from '../components/Spinner';
 import ReportModal from '../components/ReportModal';
 import GPSTracker from '../components/GPSTracker';
+import RideMap from '../components/RideMap';
 
 export default function RideDetail() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export default function RideDetail() {
   const [showReport,   setShowReport]   = useState(false);
   const [inWaitlist,   setInWaitlist]   = useState(false);
   const [joiningWait,  setJoiningWait]  = useState(false);
+  const [isFav,        setIsFav]        = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -46,6 +48,15 @@ export default function RideDetail() {
     } finally {
       setBooking(false);
     }
+  };
+
+  const handleToggleFav = async () => {
+    if (!user) { navigate('/login'); return; }
+    try {
+      await api.post(`/favorites/${id}/toggle`);
+      setIsFav(f => !f);
+      toast.success(isFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️');
+    } catch { toast.error('Erreur'); }
   };
 
   const handleWaitlist = async () => {
@@ -91,6 +102,16 @@ export default function RideDetail() {
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Route card */}
           <div className="card">
+            <div className="flex items-start justify-between mb-6">
+              {user && !isOwn && (
+                <button onClick={handleToggleFav}
+                  className="ml-auto p-2 rounded-xl transition-all"
+                  style={{ background: isFav ? 'rgba(239,68,68,0.12)' : 'var(--bg-700)', color: isFav ? '#F87171' : 'var(--text-muted)' }}
+                  title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+                  <Heart size={18} fill={isFav ? 'currentColor' : 'none'} />
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="flex flex-col items-center gap-1">
                 <div className="w-4 h-4 rounded-full bg-primary-500 ring-4 ring-primary-500/20" />
@@ -124,6 +145,9 @@ export default function RideDetail() {
               <p className="mt-4 text-slate-400 text-sm leading-relaxed border-t border-dark-500 pt-4">{ride.description}</p>
             )}
           </div>
+
+          {/* Map */}
+          <RideMap from={ride.from} to={ride.to} stops={ride.stops || []} />
 
           {/* Driver */}
           <div className="card">

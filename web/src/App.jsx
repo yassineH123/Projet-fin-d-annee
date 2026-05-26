@@ -29,6 +29,13 @@ import WalletPage       from './pages/Wallet';
 import Leaderboard      from './pages/Leaderboard';
 import DriverAnalytics  from './pages/DriverAnalytics';
 import LoginHistory     from './pages/LoginHistory';
+import Stories          from './pages/Stories';
+import Groups           from './pages/Groups';
+import Events           from './pages/Events';
+import Premium          from './pages/Premium';
+import Support          from './pages/Support';
+import RideAlerts       from './pages/RideAlerts';
+import EmergencyContacts from './pages/EmergencyContacts';
 import SOSButton        from './components/SOSButton';
 
 function PrivateRoute({ children }) {
@@ -76,6 +83,13 @@ function AppRoutes() {
           <Route path="/leaderboard"       element={<Leaderboard />} />
           <Route path="/analytics/driver"  element={<PrivateRoute><DriverAnalytics /></PrivateRoute>} />
           <Route path="/login-history"     element={<PrivateRoute><LoginHistory /></PrivateRoute>} />
+          <Route path="/stories"           element={<Stories />} />
+          <Route path="/groups"            element={<Groups />} />
+          <Route path="/events"            element={<Events />} />
+          <Route path="/premium"           element={<PrivateRoute><Premium /></PrivateRoute>} />
+          <Route path="/support"           element={<PrivateRoute><Support /></PrivateRoute>} />
+          <Route path="/ride-alerts"       element={<PrivateRoute><RideAlerts /></PrivateRoute>} />
+          <Route path="/emergency-contacts" element={<PrivateRoute><EmergencyContacts /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
       </main>

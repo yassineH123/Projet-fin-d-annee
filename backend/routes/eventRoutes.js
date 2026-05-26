@@ -1,0 +1,10 @@
+const express = require('express');
+const ctrl = require('../controllers/eventController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
+const router = express.Router();
+router.get('/',             ctrl.getAll);
+router.post('/',            authenticateToken, upload.media.single('photo'), ctrl.create);
+router.get('/:id',          ctrl.getOne);
+router.post('/:id/attend',  authenticateToken, ctrl.attend);
+module.exports = router;
