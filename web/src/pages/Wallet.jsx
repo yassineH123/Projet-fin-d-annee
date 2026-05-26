@@ -3,6 +3,7 @@ import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, RefreshCw } from 'lucide-rea
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+import PaymentModal from '../components/PaymentModal';
 
 const TYPE_META = {
   credit: { icon: ArrowDownLeft, color: '#10B981', label: 'Crédit', sign: '+' },
@@ -14,8 +15,9 @@ function fmt(n) { return parseFloat(n || 0).toFixed(2); }
 export default function WalletPage() {
   const [data,    setData]    = useState({ balance: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
-  const [amount,  setAmount]  = useState('');
-  const [topping, setTopping] = useState(false);
+  const [amount,      setAmount]      = useState('');
+  const [topping,     setTopping]     = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -24,14 +26,19 @@ export default function WalletPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleTopUp = async (e) => {
+  const handleTopUp = (e) => {
     e.preventDefault();
     const val = parseFloat(amount);
     if (!val || val < 1) { toast.error('Montant invalide'); return; }
+    setShowPayment(true);
+  };
+
+  const confirmTopUp = async () => {
+    const val = parseFloat(amount);
     setTopping(true);
     try {
       const { data: d } = await api.post('/wallet/topup', { amount: val });
-      toast.success(d.message);
+      toast.success(d.message || `+${val} DH ajoutés à votre portefeuille !`);
       setAmount('');
       load();
     } catch (err) {
@@ -120,6 +127,16 @@ export default function WalletPage() {
           </div>
         )}
       </div>
+
+      {showPayment && (
+        <PaymentModal
+          amount={parseFloat(amount)}
+          rideFrom="Recharge"
+          rideTo="Portefeuille AtlasWay"
+          onConfirm={confirmTopUp}
+          onClose={() => setShowPayment(false)}
+        />
+      )}
     </div>
   );
 }
