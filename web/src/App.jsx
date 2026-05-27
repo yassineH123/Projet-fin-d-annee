@@ -84,7 +84,7 @@ function AppRoutes() {
       <Navbar />
       <SOSButton />
       <AccessibilityWidget />
-      <main className="flex-1">
+      <main className="flex-1 page-enter">
         <ErrorBoundary>
         <Routes>
           <Route path="/"               element={<Home />} />

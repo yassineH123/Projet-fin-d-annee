@@ -186,8 +186,13 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      scrolled ? 'shadow-lg shadow-black/10' : ''
-    }`} style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border-color)' }}>
+      scrolled ? 'shadow-lg shadow-black/30' : ''
+    }`} style={{
+      background: scrolled ? 'rgba(15,8,4,0.85)' : 'rgba(15,8,4,0.65)',
+      backdropFilter: 'blur(20px) saturate(1.5)',
+      WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
+      borderBottom: scrolled ? '1px solid rgba(193,39,45,0.15)' : '1px solid rgba(255,255,255,0.04)',
+    }}>
 
       <div className="max-w-7xl mx-auto px-4 h-[60px] flex items-center gap-3">
 
@@ -197,9 +202,9 @@ export default function Navbar() {
           onClick={() => { if (location.pathname === '/' || location.pathname === '/admin/home') window.location.reload(); }}
           className="flex items-center gap-2 flex-shrink-0 group"
         >
-          <img src="/logo.svg" alt="AtlasWay" className="w-9 h-9 rounded-xl transition-all group-hover:scale-105"
-            style={{ boxShadow: '0 4px 12px rgba(193,39,45,0.35)' }} />
-          <span className="font-black text-xl tracking-tight font-heading hidden sm:block">
+          <img src="/logo.svg" alt="AtlasWay" className="w-9 h-9 rounded-xl transition-all duration-300 group-hover:scale-110"
+            style={{ boxShadow: '0 4px 16px rgba(193,39,45,0.45), 0 0 0 1px rgba(193,39,45,0.2)' }} />
+          <span className="font-black text-xl tracking-tight hidden sm:block" style={{ fontFamily: "'Fraunces', serif", letterSpacing: '-0.03em', fontVariationSettings: "'opsz' 72" }}>
             <span style={{ color: 'var(--text-base)' }}>Atlas</span><span className="logo-gradient">Way</span>
           </span>
         </Link>
