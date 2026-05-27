@@ -884,10 +884,55 @@ html.light .press-logo { color: rgba(0,0,0,0.28); border-color: rgba(0,0,0,0.1);
 }
 .route-progress-bar {
   height: 100%;
-  background: linear-gradient(to right, #B8232A 0%, #D4890A 45%, #005A2E 100%);
-  box-shadow: 0 0 10px rgba(212,137,10,0.55), 0 0 3px rgba(184,35,42,0.4);
+  background: linear-gradient(
+    to right,
+    #B8232A 0%,
+    #D4890A 30%,
+    #E8192C 50%,
+    #005A2E 70%,
+    #D4890A 85%,
+    #B8232A 100%
+  );
+  background-size: 200% 100%;
+  animation: progressShimmer 1.8s linear infinite;
+  box-shadow: 0 0 14px rgba(232,25,44,0.6), 0 0 4px rgba(212,137,10,0.45);
   border-radius: 0 2px 2px 0;
   transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes progressShimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ═══════════════════════════════════════
+   HERO — Animated mesh gradient drift
+   ═══════════════════════════════════════ */
+@keyframes meshDrift {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  33% {
+    transform: translate(3%, -4%) scale(1.04);
+    filter: hue-rotate(8deg);
+  }
+  66% {
+    transform: translate(-4%, 3%) scale(1.02);
+    filter: hue-rotate(-6deg);
+  }
+  100% {
+    transform: translate(2%, -2%) scale(1.05);
+    filter: hue-rotate(12deg);
+  }
+}
+
+/* ═══════════════════════════════════════
+   SCROLL REVEAL — état initial
+   (les transitions sont appliquées en JS)
+   ═══════════════════════════════════════ */
+[data-reveal] {
+  will-change: opacity, transform;
 }
 
 /* ═══════════════════════════════════════

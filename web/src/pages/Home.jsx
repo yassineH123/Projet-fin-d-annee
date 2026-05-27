@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import useScrollReveal from '../hooks/useScrollReveal';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Shield, Star, Users, Car,
@@ -1352,6 +1353,13 @@ export default function Home() {
   const [showDarija,  setShowDarija]  = useState(false);
   const [burst,       setBurst]       = useState(false);
 
+  // Scroll reveals — sections principales
+  const revealSteps     = useScrollReveal({ staggerMs: 120 });
+  const revealStats     = useScrollReveal({ staggerMs: 80 });
+  const revealDrivers   = useScrollReveal({ staggerMs: 100 });
+  const revealTrending  = useScrollReveal({ staggerMs: 90 });
+  const revealCta       = useScrollReveal({ threshold: 0.2 });
+
   useEffect(() => {
     api.get('/rides/home').then(({ data }) => {
       if (data.upcoming?.length)   setRealTrips(data.upcoming.map(adaptRide));
@@ -1422,6 +1430,24 @@ export default function Home() {
           position: 'absolute', top: 0, left: 0, right: 0, height: 3,
           background: 'linear-gradient(to right, #E8192C 0%, #E8192C 33%, #F5A623 50%, #00875A 67%, #00875A 100%)',
         }} />
+
+        {/* ── Animated mesh gradient ── */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute',
+            width: '140%', height: '140%',
+            top: '-20%', left: '-20%',
+            background: [
+              'radial-gradient(ellipse 60% 50% at 20% 30%, rgba(232,25,44,0.18) 0%, transparent 60%)',
+              'radial-gradient(ellipse 55% 45% at 80% 70%, rgba(212,137,10,0.12) 0%, transparent 60%)',
+              'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(0,90,46,0.10) 0%, transparent 60%)',
+            ].join(', '),
+            animation: 'meshDrift 10s ease-in-out infinite alternate',
+          }} />
+        </div>
 
         {/* Spotlight rouge — coin supérieur droit */}
         <div style={{
@@ -1858,9 +1884,9 @@ export default function Home() {
             <h2 className="text-3xl font-black font-heading mb-2" style={{ color: 'var(--text-base)' }}>{h.howTitle}</h2>
             <p style={{ color: 'var(--text-muted)' }}>{h.howSub}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div ref={revealSteps} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {STEPS.map(({ num, icon: Icon }, i) => (
-              <div key={num} className={`relative animate-fade-up stagger-${i + 1}`}>
+              <div key={num} data-reveal className={`relative animate-fade-up stagger-${i + 1}`}>
                 <div className="card p-6 h-full" style={{ borderTop: '2px solid rgba(196,136,42,0.4)' }}>
                   <div className="flex items-center gap-3 mb-4">
                     <span className="font-heading font-black leading-none" style={{ fontSize: '3.5rem', color: 'rgba(196,136,42,0.18)' }}>{num}</span>
@@ -1906,9 +1932,9 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div ref={revealStats} className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TESTIMONIALS.map(({ name, city, avatar, color, rating, text, darija, detail }, i) => (
-              <div key={name} className={`card p-5 flex flex-col gap-4 animate-fade-up stagger-${i + 1}`}>
+              <div key={name} data-reveal className={`card p-5 flex flex-col gap-4 animate-fade-up stagger-${i + 1}`}>
                 <Stars n={rating} />
                 <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--text-secondary)', fontFamily: showDarija ? "'Amiri', serif" : 'inherit', direction: showDarija ? 'rtl' : 'ltr', fontSize: showDarija ? '1rem' : undefined, transition: 'all 0.2s' }}>
                   "{showDarija ? darija : text}"
@@ -2001,8 +2027,8 @@ export default function Home() {
       {!user && (
         <section className="py-20 px-4 text-center relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #C1272D 0%, #9e1f24 100%)' }}>
           <div style={{ position: 'absolute', inset: 0, opacity: 0.07, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='%23ffffff' stroke-width='1'/%3E%3C/svg%3E\")" }} />
-          <div className="relative max-w-xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold mb-5" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+          <div ref={revealCta} className="relative max-w-xl mx-auto">
+            <div data-reveal className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold mb-5" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
               <Award size={12} /> {h.joinCommunity}
             </div>
             <h2 className="font-black text-white mb-3 font-heading" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>

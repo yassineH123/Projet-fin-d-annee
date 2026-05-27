@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useScrollReveal from '../hooks/useScrollReveal';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf } from 'lucide-react';
 import api from '../services/api';
@@ -83,6 +84,8 @@ export default function SearchRides() {
   const [showAdv,  setShowAdv]  = useState(false);
   const [transportMode, setTransportMode] = useState('covoiturage');
   const [vehicleMode,   setVehicleMode]   = useState('all');
+
+  const revealResults = useScrollReveal({ staggerMs: 80 });
 
   const [from,       setFrom]       = useState(searchParams.get('from') || '');
   const [to,         setTo]         = useState(searchParams.get('to')   || '');
@@ -293,9 +296,9 @@ export default function SearchRides() {
           ) : (
             <div>
               <p className="text-slate-400 text-sm mb-4">{rides.length} trajet{rides.length > 1 ? 's' : ''} trouvé{rides.length > 1 ? 's' : ''}</p>
-              <div className="flex flex-col gap-4">
+              <div ref={revealResults} className="flex flex-col gap-4">
                 {rides.map(ride => (
-                  <div key={ride.id} className="relative">
+                  <div key={ride.id} data-reveal className="relative">
                     {ride.transportMode && ride.transportMode !== 'voiture' && (
                       <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
                         style={{ background: 'rgba(193,39,45,0.12)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)' }}>

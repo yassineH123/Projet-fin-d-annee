@@ -211,7 +211,13 @@ export default function RideDetail() {
 
         {/* Sidebar */}
         <div className="flex flex-col gap-4">
-          <div className="card sticky top-20">
+          <div className="sticky top-20 rounded-2xl p-5" style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(20px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+            border: '1px solid rgba(255,255,255,0.13)',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+          }}>
             <p className="text-3xl font-black text-white mb-1">{Number(ride.price).toFixed(0)} <span className="text-lg text-slate-400 font-normal">MAD</span></p>
             <p className="text-slate-400 text-sm mb-5">par personne</p>
 
