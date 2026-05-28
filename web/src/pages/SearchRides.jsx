@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useScrollReveal from '../hooks/useScrollReveal';
 import { useSearchParams, Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf } from 'lucide-react';
 import api from '../services/api';
 import RideCard from '../components/RideCard';
@@ -132,8 +133,14 @@ export default function SearchRides() {
 
   const resetFilters = () => { setMaxPrice(''); setMinRating(0); setVerifiedOnly(false); setPmrOnly(false); setSortBy('date_asc'); setSeats(1); };
 
+  const seoTitle = from && to ? `${from} → ${to}` : 'Rechercher un trajet';
+  const seoDesc  = from && to
+    ? `Trajets covoiturage de ${from} à ${to} au Maroc — prix, horaires et conducteurs vérifiés.`
+    : 'Trouvez un covoiturage pas cher entre toutes les villes du Maroc.';
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+      <SEO title={seoTitle} description={seoDesc} path="/rides/search" />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-black text-white">Rechercher un trajet</h1>
         <Link to="/compare" className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all"

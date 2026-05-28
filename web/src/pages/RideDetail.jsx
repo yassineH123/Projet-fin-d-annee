@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import { StarDisplay } from '../components/StarRating';
 import Spinner from '../components/Spinner';
@@ -105,6 +106,11 @@ export default function RideDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <SEO
+        title={`${ride.from} → ${ride.to}`}
+        description={`Covoiturage ${ride.from} → ${ride.to} le ${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — ${Number(ride.price).toFixed(0)} MAD/pers avec ${driver.firstName || 'un conducteur vérifié'}.`}
+        path={`/rides/${id}`}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main */}
         <div className="lg:col-span-2 flex flex-col gap-6">

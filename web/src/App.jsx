@@ -4,17 +4,20 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { Component } from 'react';
+import { Component, lazy, Suspense } from 'react';
 
 class ErrorBoundary extends Component {
   state = { error: null };
   static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary]', error, info);
+  }
   render() {
     if (this.state.error) {
       return (
         <div style={{ padding: 40, color: '#fff', background: '#1a0a0a', minHeight: '100vh', fontFamily: 'monospace' }}>
-          <h2 style={{ color: '#F87171', marginBottom: 16 }}>Erreur React détectée</h2>
-          <pre style={{ background: '#2a0a0a', padding: 16, borderRadius: 8, overflow: 'auto', color: '#fca5a5', fontSize: 13 }}>
+          <h2 style={{ color: '#F87171', marginBottom: 16 }}>Une erreur est survenue</h2>
+          <pre style={{ background: '#2a0a0a', padding: 16, borderRadius: 8, overflow: 'auto', color: '#fca5a5', fontSize: 13, maxHeight: 300 }}>
             {this.state.error.toString()}
             {'\n\n'}
             {this.state.error.stack}
@@ -30,39 +33,57 @@ class ErrorBoundary extends Component {
   }
 }
 
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: '50%',
+        border: '3px solid rgba(193,39,45,0.2)',
+        borderTopColor: '#C1272D',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+    </div>
+  );
+}
+
+// Pages chargées au démarrage (critiques — above the fold)
 import Home          from './pages/Home';
 import Login         from './pages/Login';
 import Register      from './pages/Register';
-import SearchRides   from './pages/SearchRides';
-import RideDetail    from './pages/RideDetail';
-import PublishRide   from './pages/PublishRide';
-import MyRides       from './pages/MyRides';
-import MyBookings    from './pages/MyBookings';
-import Profile       from './pages/Profile';
-import Messages      from './pages/Messages';
-import AdminDashboard from './pages/AdminDashboard';
-import EditRide      from './pages/EditRide';
-import WriteReview   from './pages/WriteReview';
+import NotFound      from './pages/NotFound';
 import Onboarding    from './pages/Onboarding';
-import NotFound        from './pages/NotFound';
-import Feed             from './pages/Feed';
-import ForgotPassword   from './pages/ForgotPassword';
-import DriverDashboard  from './pages/DriverDashboard';
-import Friends          from './pages/Friends';
-import Compare          from './pages/Compare';
-import WalletPage       from './pages/Wallet';
-import Leaderboard      from './pages/Leaderboard';
-import DriverAnalytics  from './pages/DriverAnalytics';
-import LoginHistory     from './pages/LoginHistory';
-import Stories          from './pages/Stories';
-import Groups           from './pages/Groups';
-import Events           from './pages/Events';
-import Premium          from './pages/Premium';
-import Support          from './pages/Support';
-import RideAlerts       from './pages/RideAlerts';
-import EmergencyContacts from './pages/EmergencyContacts';
+
+// Pages lazy-loadées (chargées à la demande)
+const SearchRides      = lazy(() => import('./pages/SearchRides'));
+const RideDetail       = lazy(() => import('./pages/RideDetail'));
+const PublishRide      = lazy(() => import('./pages/PublishRide'));
+const MyRides          = lazy(() => import('./pages/MyRides'));
+const MyBookings       = lazy(() => import('./pages/MyBookings'));
+const Profile          = lazy(() => import('./pages/Profile'));
+const Messages         = lazy(() => import('./pages/Messages'));
+const AdminDashboard   = lazy(() => import('./pages/AdminDashboard'));
+const EditRide         = lazy(() => import('./pages/EditRide'));
+const WriteReview      = lazy(() => import('./pages/WriteReview'));
+const Feed             = lazy(() => import('./pages/Feed'));
+const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'));
+const DriverDashboard  = lazy(() => import('./pages/DriverDashboard'));
+const Friends          = lazy(() => import('./pages/Friends'));
+const Compare          = lazy(() => import('./pages/Compare'));
+const WalletPage       = lazy(() => import('./pages/Wallet'));
+const Leaderboard      = lazy(() => import('./pages/Leaderboard'));
+const DriverAnalytics  = lazy(() => import('./pages/DriverAnalytics'));
+const LoginHistory     = lazy(() => import('./pages/LoginHistory'));
+const Stories          = lazy(() => import('./pages/Stories'));
+const Groups           = lazy(() => import('./pages/Groups'));
+const Events           = lazy(() => import('./pages/Events'));
+const Premium          = lazy(() => import('./pages/Premium'));
+const Support          = lazy(() => import('./pages/Support'));
+const RideAlerts       = lazy(() => import('./pages/RideAlerts'));
+const EmergencyContacts = lazy(() => import('./pages/EmergencyContacts'));
+
 import SOSButton           from './components/SOSButton';
 import AccessibilityWidget from './components/AccessibilityWidget';
+import { HelmetProvider }  from 'react-helmet-async';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -86,6 +107,7 @@ function AppRoutes() {
       <AccessibilityWidget />
       <main className="flex-1 page-enter">
         <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/"               element={<Home />} />
           <Route path="/login"          element={<Login />} />
@@ -120,6 +142,7 @@ function AppRoutes() {
           <Route path="/emergency-contacts" element={<PrivateRoute><EmergencyContacts /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
+        </Suspense>
         </ErrorBoundary>
       </main>
       <Footer />
@@ -129,12 +152,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ThemeProvider>
-    </LanguageProvider>
+    <HelmetProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </HelmetProvider>
   );
 }

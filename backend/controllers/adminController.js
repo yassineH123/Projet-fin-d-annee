@@ -1,5 +1,7 @@
 const { Op } = require('sequelize');
 const { User, Ride, Booking, Review } = require('../models');
+const { createNotification } = require('../services/notificationService');
+const { sendDriverVerificationResult } = require('../services/emailService');
 
 async function getDashboard(req, res, next) {
   try {
@@ -99,4 +101,56 @@ async function cancelRide(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { getDashboard, listUsers, listRides, blockUser, unblockUser, deleteUser, cancelRide };
+// ── Driver verification ──────────────────────────────────────────────────────
+
+async function listPendingDrivers(req, res, next) {
+  try {
+    const drivers = await User.findAll({
+      where: {
+        driverVerified: false,
+        [Op.or]: [
+          { passportDoc: { [Op.ne]: null } },
+          { cinDoc:      { [Op.ne]: null } },
+        ],
+      },
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']],
+    });
+    return res.json({ drivers });
+  } catch (err) { return next(err); }
+}
+
+async function approveDriver(req, res, next) {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    await user.update({ driverVerified: true });
+    createNotification(user.id, {
+      type: 'system',
+      title: 'Profil conducteur vérifié ✅',
+      message: 'Félicitations ! Votre profil conducteur a été vérifié. Vous pouvez maintenant publier des trajets.',
+      link: '/rides/publish',
+    });
+    sendDriverVerificationResult({ to: user.email, firstName: user.firstName, approved: true }).catch(() => {});
+    return res.json({ message: 'Conducteur approuvé.' });
+  } catch (err) { return next(err); }
+}
+
+async function rejectDriver(req, res, next) {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    const { reason } = req.body;
+    await user.update({ driverVerified: false, passportDoc: null, cinDoc: null });
+    createNotification(user.id, {
+      type: 'system',
+      title: 'Document refusé ❌',
+      message: reason || 'Votre document a été refusé. Veuillez soumettre un nouveau document valide.',
+      link: '/profile',
+    });
+    sendDriverVerificationResult({ to: user.email, firstName: user.firstName, approved: false, reason }).catch(() => {});
+    return res.json({ message: 'Conducteur refusé.' });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { getDashboard, listUsers, listRides, blockUser, unblockUser, deleteUser, cancelRide, listPendingDrivers, approveDriver, rejectDriver };

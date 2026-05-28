@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import useScrollReveal from '../hooks/useScrollReveal';
+import SEO from '../components/SEO';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Shield, Star, Users, Car,
@@ -1412,6 +1413,7 @@ export default function Home() {
 
   return (
     <>
+    <SEO path="/" />
     <div className="overflow-x-hidden">
       <SplashScreen />
 

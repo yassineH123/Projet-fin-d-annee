@@ -4,6 +4,7 @@ import { Car, Eye, EyeOff, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import SEO from '../components/SEO';
 
 export default function Register() {
   const { login } = useAuth();
@@ -48,6 +49,7 @@ export default function Register() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12">
+      <SEO title="Créer un compte" description="Rejoignez AtlasWay — la plateforme de covoiturage #1 au Maroc. Inscription gratuite en 2 minutes." path="/register" noIndex />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">

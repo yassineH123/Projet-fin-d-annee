@@ -3,7 +3,6 @@ import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, RefreshCw } from 'lucide-rea
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
-import PaymentModal from '../components/PaymentModal';
 
 const TYPE_META = {
   credit: { icon: ArrowDownLeft, color: '#10B981', label: 'Crédit', sign: '+' },
@@ -15,9 +14,8 @@ function fmt(n) { return parseFloat(n || 0).toFixed(2); }
 export default function WalletPage() {
   const [data,    setData]    = useState({ balance: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
-  const [amount,      setAmount]      = useState('');
-  const [topping,     setTopping]     = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
+  const [amount,  setAmount]  = useState('');
+  const [topping, setTopping] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -26,21 +24,35 @@ export default function WalletPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleTopUp = (e) => {
+  // Vérifie si on revient d'un paiement Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      toast.success('Recharge confirmée ! Votre solde a été mis à jour.');
+      window.history.replaceState({}, '', '/wallet');
+      load();
+    } else if (params.get('payment') === 'cancelled') {
+      toast.error('Paiement annulé.');
+      window.history.replaceState({}, '', '/wallet');
+    }
+  }, []);
+
+  const handleTopUp = async (e) => {
     e.preventDefault();
     const val = parseFloat(amount);
-    if (!val || val < 1) { toast.error('Montant invalide'); return; }
-    setShowPayment(true);
-  };
-
-  const confirmTopUp = async () => {
-    const val = parseFloat(amount);
+    if (!val || val < 10) { toast.error('Montant minimum : 10 DH'); return; }
     setTopping(true);
     try {
-      const { data: d } = await api.post('/wallet/topup', { amount: val });
-      toast.success(d.message || `+${val} DH ajoutés à votre portefeuille !`);
-      setAmount('');
-      load();
+      // Tente Stripe Checkout — si non configuré, le backend bascule en topUp direct
+      const { data: d } = await api.post('/wallet/stripe/checkout', { amount: val });
+      if (d.url) {
+        // Redirection vers Stripe Checkout
+        window.location.href = d.url;
+      } else {
+        toast.success(d.message || `+${val} DH ajoutés !`);
+        setAmount('');
+        load();
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
     } finally { setTopping(false); }
@@ -70,7 +82,7 @@ export default function WalletPage() {
         <form onSubmit={handleTopUp} className="flex gap-3">
           <input
             type="number" value={amount} onChange={e => setAmount(e.target.value)}
-            placeholder="Montant en DH" min="1" max="5000" step="1"
+            placeholder="Montant en DH (min 10)" min="10" max="5000" step="1"
             className="input flex-1" />
           <button type="submit" disabled={topping}
             className="btn-primary px-5 h-11 flex items-center gap-2 shrink-0">
@@ -128,15 +140,6 @@ export default function WalletPage() {
         )}
       </div>
 
-      {showPayment && (
-        <PaymentModal
-          amount={parseFloat(amount)}
-          rideFrom="Recharge"
-          rideTo="Portefeuille AtlasWay"
-          onConfirm={confirmTopUp}
-          onClose={() => setShowPayment(false)}
-        />
-      )}
     </div>
   );
 }

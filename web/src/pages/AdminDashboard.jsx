@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Car, BookOpen, Star, Search, Shield, Ban, Trash2, CheckCircle, Flag, TrendingUp, Wallet, AlertTriangle } from 'lucide-react';
+import { Users, Car, BookOpen, Star, Search, Shield, Ban, Trash2, CheckCircle, Flag, TrendingUp, Wallet, AlertTriangle, FileCheck, X, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -43,12 +43,15 @@ const REASON_LABELS = {
 export default function AdminDashboard() {
   const { user: me } = useAuth();
   const isSuperAdmin = me?.role === 'superadmin';
-  const [tab,     setTab]     = useState('overview');
-  const [stats,   setStats]   = useState(null);
-  const [users,   setUsers]   = useState([]);
-  const [rides,   setRides]   = useState([]);
-  const [reports, setReports] = useState([]);
-  const [search,  setSearch]  = useState('');
+  const [tab,            setTab]            = useState('overview');
+  const [stats,          setStats]          = useState(null);
+  const [users,          setUsers]          = useState([]);
+  const [rides,          setRides]          = useState([]);
+  const [reports,        setReports]        = useState([]);
+  const [pendingDrivers, setPendingDrivers] = useState([]);
+  const [search,         setSearch]         = useState('');
+  const [rejectReason,   setRejectReason]   = useState('');
+  const [rejectingId,    setRejectingId]    = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Mock chart data derived from stats (replace with real endpoint if available)
@@ -74,13 +77,15 @@ export default function AdminDashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const fetchUsers   = () => api.get('/admin/users', { params: { search } }).then(({ data }) => setUsers(data.users));
-  const fetchRides   = () => api.get('/admin/rides').then(({ data }) => setRides(data.rides));
-  const fetchReports = () => api.get('/reports').then(({ data }) => setReports(data.reports)).catch(() => {});
+  const fetchUsers          = () => api.get('/admin/users', { params: { search } }).then(({ data }) => setUsers(data.users));
+  const fetchRides          = () => api.get('/admin/rides').then(({ data }) => setRides(data.rides));
+  const fetchReports        = () => api.get('/reports').then(({ data }) => setReports(data.reports)).catch(() => {});
+  const fetchPendingDrivers = () => api.get('/admin/drivers/pending').then(({ data }) => setPendingDrivers(data.drivers)).catch(() => {});
 
   useEffect(() => {
     if (tab === 'rides')   fetchRides();
     if (tab === 'reports') fetchReports();
+    if (tab === 'drivers') fetchPendingDrivers();
   }, [tab]);
 
   const blockUser   = async (id) => { await api.patch(`/admin/users/${id}/block`);   toast.success('Bloqué');    fetchUsers(); };
@@ -93,6 +98,20 @@ export default function AdminDashboard() {
     fetchReports();
   };
 
+  const approveDriver = async (id) => {
+    await api.patch(`/admin/drivers/${id}/approve`);
+    toast.success('Conducteur approuvé ✅');
+    fetchPendingDrivers();
+  };
+
+  const rejectDriver = async (id) => {
+    await api.patch(`/admin/drivers/${id}/reject`, { reason: rejectReason });
+    toast.success('Document refusé');
+    setRejectingId(null);
+    setRejectReason('');
+    fetchPendingDrivers();
+  };
+
   if (loading) return <Spinner size="lg" />;
 
   const tabs = [
@@ -100,6 +119,7 @@ export default function AdminDashboard() {
     ['users',    'Utilisateurs'],
     ['rides',    'Trajets'],
     ['reports',  'Signalements'],
+    ['drivers',  `Conducteurs${pendingDrivers.length ? ` (${pendingDrivers.length})` : ''}`],
   ];
 
   return (
@@ -294,6 +314,92 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ── Drivers verification tab ── */}
+      {tab === 'drivers' && (
+        <div className="flex flex-col gap-4">
+          {pendingDrivers.length === 0 ? (
+            <div className="card text-center py-12">
+              <FileCheck size={36} className="text-green-500 mx-auto mb-3" />
+              <p className="text-white font-bold mb-1">Aucune vérification en attente</p>
+              <p className="text-slate-400 text-sm">Tous les documents ont été traités.</p>
+            </div>
+          ) : pendingDrivers.map(driver => (
+            <div key={driver.id} className="card flex flex-col gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  {driver.photo
+                    ? <img src={driver.photo} alt="" className="w-11 h-11 rounded-full object-cover" />
+                    : <div className="w-11 h-11 rounded-full bg-dark-600 flex items-center justify-center text-sm font-black text-white"
+                        style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
+                        {driver.firstName?.[0]}
+                      </div>
+                  }
+                  <div>
+                    <p className="font-black text-white">{driver.firstName} {driver.lastName}</p>
+                    <p className="text-xs text-slate-400">{driver.email} · {driver.nationality === 'foreign' ? '🌍 Étranger' : '🇲🇦 Marocain'}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>
+                  En attente de vérification
+                </span>
+              </div>
+
+              {/* Documents */}
+              <div className="flex flex-wrap gap-3">
+                {driver.cinDoc && (
+                  <a href={driver.cinDoc} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: 'rgba(59,130,246,0.1)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <ExternalLink size={12} /> Voir CIN
+                  </a>
+                )}
+                {driver.passportDoc && (
+                  <a href={driver.passportDoc} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: 'rgba(139,92,246,0.1)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.2)' }}>
+                    <ExternalLink size={12} /> Voir Passeport
+                  </a>
+                )}
+              </div>
+
+              {/* Reject reason input (shown only for this driver) */}
+              {rejectingId === driver.id && (
+                <div className="flex gap-2">
+                  <input value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                    placeholder="Motif du refus (optionnel)..."
+                    className="input text-sm flex-1" />
+                  <button onClick={() => rejectDriver(driver.id)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold"
+                    style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                    Confirmer refus
+                  </button>
+                  <button onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                    className="px-3 py-2 rounded-xl text-xs font-bold"
+                    style={{ background: 'rgba(107,114,128,0.15)', color: '#9CA3AF' }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {rejectingId !== driver.id && (
+                <div className="flex gap-3 pt-1">
+                  <button onClick={() => approveDriver(driver.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                    style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.2)' }}>
+                    <CheckCircle size={15} /> Approuver
+                  </button>
+                  <button onClick={() => setRejectingId(driver.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                    style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <X size={15} /> Refuser
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

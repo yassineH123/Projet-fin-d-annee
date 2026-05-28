@@ -15,4 +15,9 @@ router.patch('/users/:id/unblock', adminController.unblockUser);
 router.delete('/users/:id',        adminController.deleteUser);
 router.patch('/rides/:id/cancel',  adminController.cancelRide);
 
+// Driver verification
+router.get('/drivers/pending',         adminController.listPendingDrivers);
+router.patch('/drivers/:id/approve',   adminController.approveDriver);
+router.patch('/drivers/:id/reject',    adminController.rejectDriver);
+
 module.exports = router;

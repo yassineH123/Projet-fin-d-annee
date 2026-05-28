@@ -4,6 +4,7 @@ import { Car, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import SEO from '../components/SEO';
 
 export default function Login() {
   const { login }   = useAuth();
@@ -37,6 +38,7 @@ export default function Login() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-dark-900">
+      <SEO title="Connexion" description="Connectez-vous à votre compte AtlasWay pour réserver ou proposer un covoiturage au Maroc." path="/login" noIndex />
       <div className="w-full max-w-md">
 
         {/* Logo + title */}

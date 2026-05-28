@@ -1,5 +1,6 @@
 const { Booking, Ride, User, Transaction } = require('../models');
 const { createNotification } = require('../services/notificationService');
+const { sendBookingConfirmation, sendBookingCancellation } = require('../services/emailService');
 const { notifyWaitlist } = require('./waitlistController');
 const { assignBadges } = require('./analyticsController');
 const sequelize = require('../database');
@@ -98,6 +99,19 @@ async function accept(req, res, next) {
       message: `Votre réservation pour ${booking.ride.from} → ${booking.ride.to} a été acceptée !`,
       link: '/bookings',
     });
+
+    // Email de confirmation au passager
+    const passenger = await User.findByPk(booking.passengerId, { attributes: ['email', 'firstName'] });
+    if (passenger?.email) {
+      sendBookingConfirmation({
+        to: passenger.email,
+        passenger: passenger.firstName,
+        ride: booking.ride,
+        seats: booking.seats,
+        totalPrice: (parseFloat(booking.ride.price) * booking.seats).toFixed(0),
+      }).catch(() => {});
+    }
+
     return res.json({ booking, message: 'Réservation acceptée.' });
   } catch (err) { return next(err); }
 }
@@ -168,6 +182,18 @@ async function cancel(req, res, next) {
     }
 
     await booking.update({ status: 'cancelled' });
+
+    // Email d'annulation au passager
+    const passengerUser = await User.findByPk(req.user.id, { attributes: ['email', 'firstName'] });
+    if (passengerUser?.email) {
+      sendBookingCancellation({
+        to: passengerUser.email,
+        passenger: passengerUser.firstName,
+        ride: booking.ride,
+        refundAmount,
+        refundRate,
+      }).catch(() => {});
+    }
 
     const msg = refundAmount > 0
       ? `Réservation annulée. ${refundAmount} DH remboursés dans votre portefeuille (${Math.round(refundRate * 100)}%).`
