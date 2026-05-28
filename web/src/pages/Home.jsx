@@ -1354,11 +1354,9 @@ export default function Home() {
   const [burst,       setBurst]       = useState(false);
 
   // Scroll reveals — sections principales
-  const revealSteps     = useScrollReveal({ staggerMs: 120 });
-  const revealStats     = useScrollReveal({ staggerMs: 80 });
-  const revealDrivers   = useScrollReveal({ staggerMs: 100 });
-  const revealTrending  = useScrollReveal({ staggerMs: 90 });
-  const revealCta       = useScrollReveal({ threshold: 0.2 });
+  const revealSteps = useScrollReveal({ staggerMs: 120 });
+  const revealStats = useScrollReveal({ staggerMs: 80 });
+  const revealCta   = useScrollReveal({ threshold: 0.2 });
 
   useEffect(() => {
     api.get('/rides/home').then(({ data }) => {
