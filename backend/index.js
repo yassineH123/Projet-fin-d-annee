@@ -146,6 +146,17 @@ app.use('/events',         apiLimiter, require('./routes/eventRoutes'));
 app.use('/premium',        apiLimiter, require('./routes/premiumRoutes'));
 app.use('/export',         apiLimiter, require('./routes/exportRoutes'));
 
+// Route de test email — À SUPPRIMER après vérification
+app.get('/test-email', async (req, res) => {
+  try {
+    const { sendVerificationEmail } = require('./services/emailService');
+    await sendVerificationEmail({ to: process.env.SMTP_USER, firstName: 'Adam', code: '123456' });
+    res.json({ message: `Email de test envoyé à ${process.env.SMTP_USER}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 
 (async () => {

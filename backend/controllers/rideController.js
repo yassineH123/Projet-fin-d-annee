@@ -102,7 +102,7 @@ async function remove(req, res, next) {
 
 async function homeData(req, res, next) {
   try {
-    const [upcoming, topDrivers, trending] = await Promise.all([
+    const [upcoming, topDrivers, trending, totalUsers, totalRides, avgRatingRow, totalCities] = await Promise.all([
       Ride.findAll({
         where: { status: 'active', seatsAvailable: { [Op.gt]: 0 }, departureDate: { [Op.gt]: new Date() } },
         include: [{ model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating'] }],
@@ -119,8 +119,26 @@ async function homeData(req, res, next) {
         'SELECT `to` AS city, COUNT(*) AS cnt FROM Rides WHERE status IN ("active","completed") GROUP BY `to` ORDER BY cnt DESC LIMIT 6',
         { type: sequelize.QueryTypes.SELECT }
       ),
+      User.count({ where: { role: 'user' } }),
+      Ride.count({ where: { status: { [Op.in]: ['active', 'completed'] } } }),
+      sequelize.query(
+        'SELECT ROUND(AVG(rating), 1) AS avg FROM Reviews',
+        { type: sequelize.QueryTypes.SELECT }
+      ),
+      sequelize.query(
+        'SELECT COUNT(DISTINCT `from`) + COUNT(DISTINCT `to`) AS cnt FROM Rides',
+        { type: sequelize.QueryTypes.SELECT }
+      ),
     ]);
-    return res.json({ upcoming, topDrivers, trending });
+
+    const stats = {
+      totalUsers,
+      totalRides,
+      avgRating: avgRatingRow[0]?.avg || 4.8,
+      totalCities: Math.min(totalCities[0]?.cnt || 45, 99),
+    };
+
+    return res.json({ upcoming, topDrivers, trending, stats });
   } catch (err) { return next(err); }
 }
 

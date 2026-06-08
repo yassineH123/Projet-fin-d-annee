@@ -38,6 +38,9 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    dedupe: ['react', 'react-dom', 'react-router-dom'],
+  },
   server: {
     port: 5173,
     proxy: {

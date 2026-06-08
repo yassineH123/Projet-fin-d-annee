@@ -389,6 +389,7 @@ export default function Onboarding() {
           to   { opacity: 1; transform: translateX(0); }
         }
       `}</style>
+
     </div>
   );
 }
