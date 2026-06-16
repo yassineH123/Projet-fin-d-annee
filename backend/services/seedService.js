@@ -10,6 +10,7 @@ async function seedAuthUsers() {
       lastName: 'Admin',
       role: 'superadmin',
       verified: true,
+      onboardingDone: true,
     },
     {
       email: 'admin@atlasway.com',
@@ -18,12 +19,19 @@ async function seedAuthUsers() {
       lastName: 'AtlasWay',
       role: 'admin',
       verified: true,
+      onboardingDone: true,
     },
   ];
 
   for (const seed of seeds) {
     const existing = await User.findOne({ where: { email: seed.email } });
-    if (existing) continue;
+    if (existing) {
+      if (!existing.onboardingDone) {
+        await existing.update({ onboardingDone: true });
+        console.log(`✅ Seed mis à jour: ${seed.email}`);
+      }
+      continue;
+    }
     const password = await bcrypt.hash(seed.password, 12);
     await User.create({ ...seed, password });
     console.log(`✅ Seed créé: ${seed.email}`);
