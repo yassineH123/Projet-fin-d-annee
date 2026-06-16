@@ -278,30 +278,30 @@ html.light button[class*="text-slate-"]:hover { color: #111111; }
    Deep grain · Asymmetric · Orchestrated
    ═══════════════════════════════════════ */
 
-/* ── Palette Neo-Marocaine — Midnight Navy ── */
+/* ── Palette marocaine impériale ── */
 :root {
-  --bg-900: #07090F;
-  --bg-800: #0D1120;
-  --bg-700: #131828;
-  --bg-600: #1A2238;
-  --bg-500: #242D4A;
-  --bg-400: #303D60;
-  --text-base:      #EEF2FF;
-  --text-secondary: rgba(238,242,255,0.65);
-  --text-muted:     rgba(238,242,255,0.35);
-  --border-color:   #1A2238;
-  --border-muted:   #242D4A;
-  --card-bg:   #0D1120;
-  --input-bg:  #0A0D18;
-  --input-placeholder: #303D60;
-  /* Couleurs Marocaines vives & modernes */
-  --rouge-drapeau: #E8192C;
-  --vert-etoile:   #00875A;
-  --or-safran:     #F5A623;
-  --terracotta:    #E8502A;
-  --chefchaouen:   #2563EB;
-  --cedre-atlas:   #0D1120;
-  --creme-lanterne:#EEF2FF;
+  --bg-900: #0A0604;
+  --bg-800: #130A06;
+  --bg-700: #1E0F08;
+  --bg-600: #2C160A;
+  --bg-500: #40200D;
+  --bg-400: #5E3015;
+  --text-base:      #F5EDD8;
+  --text-secondary: rgba(245,237,216,0.65);
+  --text-muted:     rgba(245,237,216,0.38);
+  --border-color:   #251208;
+  --border-muted:   #3D1E0C;
+  --card-bg:   #130A06;
+  --input-bg:  #170C07;
+  --input-placeholder: #5E3015;
+  /* Couleurs 100% marocaines */
+  --rouge-drapeau: #B8232A;
+  --vert-etoile:   #005A2E;
+  --or-safran:     #D4890A;
+  --terracotta:    #C84B31;
+  --chefchaouen:   #1B4B82;
+  --cedre-atlas:   #2D1208;
+  --creme-lanterne:#FAF0DC;
 }
 
 /* ── Typographie marocaine — Amiri calligraphique ── */
@@ -426,32 +426,6 @@ h1, h2, h3, h4 {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
-/* ── Hero grid responsive ── */
-.hero-grid {
-  grid-template-columns: minmax(0,1fr) minmax(0,420px) !important;
-}
-@media (max-width: 900px) {
-  .hero-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* ── Destinations grid responsive ── */
-.dest-grid {
-  grid-template-columns: repeat(3, 1fr) !important;
-}
-@media (max-width: 768px) {
-  .dest-grid { grid-template-columns: repeat(2, 1fr) !important; }
-}
-@media (max-width: 500px) {
-  .dest-grid { grid-template-columns: 1fr !important; }
-}
-
-/* ── Destination card hover overlay ── */
-button:hover .dest-hover-overlay {
-  opacity: 1 !important;
-}
-
 /* ── Light mode — hero stays dark intentionally ── */
 html.light .grain-overlay { opacity: 0.02; mix-blend-mode: multiply; }
 html.light .gold-bar { background: linear-gradient(to bottom, transparent, #a86508 30%, #a86508 70%, transparent); }
@@ -472,13 +446,8 @@ html.light .gold-section-rule { background: linear-gradient(to right, transparen
 
 /* ── Corps — zellige élaboré en fond ── */
 html:not(.light) body {
-  background-color: #07090F !important;
-  background-image:
-    linear-gradient(rgba(232,25,44,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,25,44,0.025) 1px, transparent 1px),
-    linear-gradient(rgba(245,166,35,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245,166,35,0.015) 1px, transparent 1px) !important;
-  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M50 0 L100 50 L50 100 L0 50Z' fill='none' stroke='%23B8232A' stroke-width='0.55' opacity='0.12'/%3E%3Cpath d='M70,50 L57.4,46.9 L64.1,35.9 L53.1,42.6 L50,30 L46.9,42.6 L35.9,35.9 L42.6,46.9 L30,50 L42.6,53.1 L35.9,64.1 L46.9,57.4 L50,70 L53.1,57.4 L64.1,64.1 L57.4,53.1Z' fill='none' stroke='%23D4890A' stroke-width='0.5' opacity='0.16'/%3E%3Cpath d='M50 15 L85 50 L50 85 L15 50Z' fill='none' stroke='%23D4890A' stroke-width='0.3' opacity='0.09'/%3E%3Cline x1='50' y1='0' x2='50' y2='100' stroke='%23005A2E' stroke-width='0.25' opacity='0.07'/%3E%3Cline x1='0' y1='50' x2='100' y2='50' stroke='%23005A2E' stroke-width='0.25' opacity='0.07'/%3E%3Ccircle cx='50' cy='50' r='2' fill='%23D4890A' opacity='0.2'/%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3Ccircle cx='100' cy='0' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3Ccircle cx='0' cy='100' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3Ccircle cx='100' cy='100' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3C/svg%3E") !important;
+  background-size: 100px 100px !important;
 }
 
 /* ── Mode clair — zellige discret ── */
@@ -594,62 +563,8 @@ html.light .ticker-terracotta{ background: linear-gradient(135deg, #7f1218, #B82
 html.light .card-moroccan::after { border-color: rgba(168,101,8,0.25); }
 
 /* ── Footer toujours sombre (thème "nuit de cèdre") ── */
-@keyframes spin {
-  to { transform: translateY(-50%) rotate(360deg); }
-}
-
-/* ═══════════════════════════════════════
-   SKELETON SHIMMER
-   ═══════════════════════════════════════ */
-@keyframes shimmer {
-  0%   { background-position: -600px 0; }
-  100% { background-position: 600px 0; }
-}
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-700) 25%,
-    var(--bg-600) 50%,
-    var(--bg-700) 75%
-  );
-  background-size: 1200px 100%;
-  animation: shimmer 1.8s infinite linear;
-  border-radius: 8px;
-}
-
-/* ═══════════════════════════════════════
-   SCROLL ANIMATIONS (useInView)
-   ═══════════════════════════════════════ */
-.section-hidden {
-  opacity: 0;
-  transform: translateY(36px);
-}
-.section-visible {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
-              transform 0.75s cubic-bezier(0.16,1,0.3,1);
-}
-.section-hidden-left {
-  opacity: 0;
-  transform: translateX(-36px);
-}
-.section-visible-left {
-  opacity: 1;
-  transform: translateX(0);
-  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
-              transform 0.75s cubic-bezier(0.16,1,0.3,1);
-}
-
-/* counter up */
-@keyframes countUp {
-  from { opacity: 0; transform: scale(0.7); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.counter-appear { animation: countUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
-
 .footer-moroccan {
-  background: #05070D !important;
+  background: #0C0503 !important;
   color: rgba(255,255,255,0.75) !important;
 }
 .footer-moroccan .press-logo {
@@ -676,7 +591,7 @@ html.light .card-moroccan::after { border-color: rgba(168,101,8,0.25); }
 }
 .splash-overlay {
   position: fixed; inset: 0; z-index: 999998;
-  background: #07090F;
+  background: #0C0503;
   display: flex; align-items: center; justify-content: center;
   flex-direction: column; gap: 18px;
   pointer-events: all;
