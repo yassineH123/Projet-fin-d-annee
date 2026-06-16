@@ -23,8 +23,8 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#020617', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={{ flex: 1, backgroundColor: '#0F0704', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#C1272D" />
       </View>
     );
   }
@@ -35,7 +35,7 @@ export default function AppNavigator() {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
-          contentStyle: { backgroundColor: '#020617' },
+          contentStyle: { backgroundColor: '#0F0704' },
         }}
       >
         {user ? (

@@ -1,30 +1,40 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, Pressable, ActivityIndicator,
-  ScrollView, TouchableOpacity,
+  ScrollView, TouchableOpacity, StyleSheet,
 } from 'react-native';
-// Icons remplacés par Text pour éviter react-native-svg natif
-const CarIcon   = () => <Text style={{ fontSize: 26 }}>🚗</Text>;
-const EyeIcon   = ({ color }: any) => <Text style={{ fontSize: 16, color }}>👁</Text>;
-const EyeOffIcon= ({ color }: any) => <Text style={{ fontSize: 16, color }}>🚫</Text>;
-const AlertIcon = () => <Text style={{ fontSize: 14 }}>⚠️</Text>;
 import { login } from '../../services/auth';
 import { useAuth } from '../../context/AuthContext';
 
+const EyeIcon    = ({ color }: { color: string }) => <Text style={{ fontSize: 16, color }}>👁</Text>;
+const EyeOffIcon = ({ color }: { color: string }) => <Text style={{ fontSize: 16, color }}>🚫</Text>;
+
+/* ── Palette identique au Web ── */
 const C = {
-  bg:        '#020617',
-  card:      '#0f172a',
-  border:    '#334155',
-  primary:   '#3b82f6',
-  primary4:  '#60a5fa',
-  input:     '#111827',
-  slate4:    '#94a3b8',
-  slate3:    '#cbd5e1',
-  white:     '#fff',
-  red:       '#f87171',
-  redBg:     'rgba(239,68,68,0.10)',
-  redBorder: 'rgba(239,68,68,0.30)',
+  bg:          '#0F0704',
+  card:        '#1C0C07',
+  border:      'rgba(212,137,10,0.28)',
+  input:       '#150906',
+  inputBorder: 'rgba(212,137,10,0.22)',
+  red:         '#C1272D',
+  gold:        '#D4890A',
+  text:        '#F5EDD8',
+  textSec:     'rgba(245,237,216,0.65)',
+  textMuted:   'rgba(245,237,216,0.4)',
+  errorTxt:    '#f87171',
+  errorBg:     'rgba(239,68,68,0.10)',
+  errorBorder: 'rgba(239,68,68,0.30)',
 };
+
+function FlagBar() {
+  return (
+    <View style={{ height: 3, flexDirection: 'row' }}>
+      {['#B8232A', '#D4890A', '#005A2E', '#D4890A', '#B8232A'].map((c, i) => (
+        <View key={i} style={{ flex: i === 1 || i === 3 ? 0.4 : 1, backgroundColor: c }} />
+      ))}
+    </View>
+  );
+}
 
 export default function LoginScreen({ navigation }: any) {
   const { saveSession } = useAuth();
@@ -58,118 +68,155 @@ export default function LoginScreen({ navigation }: any) {
       contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Logo + title */}
-      <View style={{ alignItems: 'center', marginBottom: 32 }}>
-        <View style={{
-          width: 56, height: 56, borderRadius: 16,
-          backgroundColor: 'rgba(59,130,246,0.10)',
-          borderWidth: 1, borderColor: 'rgba(59,130,246,0.20)',
-          alignItems: 'center', justifyContent: 'center', marginBottom: 16,
-        }}>
-          <CarIcon />
+      {/* ── Logo ── */}
+      <View style={{ alignItems: 'center', marginBottom: 36 }}>
+        <View style={s.logoCircle}>
+          <Text style={{ color: C.gold, fontSize: 26 }}>✦</Text>
         </View>
-        <Text style={{ color: C.white, fontSize: 28, fontWeight: '900' }}>Connexion</Text>
-        <Text style={{ color: C.slate4, fontSize: 14, marginTop: 6 }}>
-          Accédez à votre compte AtlasWay
+
+        <Text style={s.brand}>
+          Atlas<Text style={{ color: C.gold }}>Way</Text>
         </Text>
+        <Text style={s.arabic}>رفيق الطريق في المغرب</Text>
+
+        <View style={s.dividerSmall}>
+          <View style={s.divLine} />
+          <Text style={{ color: C.gold, fontSize: 10 }}>✦</Text>
+          <View style={s.divLine} />
+        </View>
+
+        <Text style={s.title}>Connexion</Text>
+        <Text style={s.subtitle}>Accédez à votre compte AtlasWay</Text>
       </View>
 
-      {/* Card */}
-      <View style={{
-        backgroundColor: C.card, borderRadius: 20,
-        borderWidth: 1, borderColor: C.border, padding: 20,
-      }}>
-        {/* Error banner */}
-        {!!error && (
-          <View style={{
-            flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-            backgroundColor: C.redBg, borderWidth: 1, borderColor: C.redBorder,
-            borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 20,
-          }}>
-            <AlertIcon />
-            <Text style={{ color: C.red, fontSize: 13, flex: 1 }}>{error}</Text>
-          </View>
-        )}
+      {/* ── Card ── */}
+      <View style={s.card}>
+        <FlagBar />
+        <View style={{ padding: 20 }}>
 
-        {/* Email */}
-        <Text style={{ color: C.slate3, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>
-          Adresse email
-        </Text>
-        <TextInput
-          value={email}
-          onChangeText={(v) => { setEmail(v); if (error) setError(''); }}
-          placeholder="vous@example.com"
-          placeholderTextColor="#64748b"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={{
-            backgroundColor: C.input, color: C.white, borderRadius: 12,
-            paddingHorizontal: 16, height: 50, borderWidth: 1,
-            borderColor: error ? C.redBorder : C.border, marginBottom: 16,
-          }}
-        />
+          {!!error && (
+            <View style={s.errorBox}>
+              <Text style={{ fontSize: 14 }}>⚠️</Text>
+              <Text style={s.errorTxt}>{error}</Text>
+            </View>
+          )}
 
-        {/* Password */}
-        <Text style={{ color: C.slate3, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>
-          Mot de passe
-        </Text>
-        <View style={{
-          flexDirection: 'row', alignItems: 'center',
-          backgroundColor: C.input, borderRadius: 12,
-          borderWidth: 1, borderColor: error ? C.redBorder : C.border,
-          marginBottom: 20,
-        }}>
+          {/* Email */}
+          <Text style={s.label}>Adresse email</Text>
           <TextInput
-            value={password}
-            onChangeText={(v) => { setPassword(v); if (error) setError(''); }}
-            placeholder="••••••••"
-            placeholderTextColor="#64748b"
-            secureTextEntry={!showPwd}
-            style={{ flex: 1, color: C.white, paddingHorizontal: 16, height: 50 }}
+            value={email}
+            onChangeText={v => { setEmail(v); if (error) setError(''); }}
+            placeholder="vous@example.com"
+            placeholderTextColor={C.textMuted}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={[s.input, !!error && s.inputErr]}
           />
-          <TouchableOpacity onPress={() => setShowPwd(!showPwd)} style={{ paddingRight: 14 }}>
-            {showPwd
-              ? <EyeOffIcon color={C.slate4} />
-              : <EyeIcon color={C.slate4} />}
-          </TouchableOpacity>
-        </View>
 
-        {/* Submit */}
-        <Pressable
-          onPress={handleLogin}
-          disabled={loading}
-          style={{
-            height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: loading ? '#1d4ed8' : C.primary, opacity: loading ? 0.8 : 1,
-          }}
-        >
-          {loading
-            ? <ActivityIndicator color={C.white} />
-            : <Text style={{ color: C.white, fontWeight: '700', fontSize: 15 }}>Se connecter</Text>}
-        </Pressable>
+          {/* Mot de passe */}
+          <Text style={s.label}>Mot de passe</Text>
+          <View style={[s.inputRow, !!error && s.inputErr]}>
+            <TextInput
+              value={password}
+              onChangeText={v => { setPassword(v); if (error) setError(''); }}
+              placeholder="••••••••"
+              placeholderTextColor={C.textMuted}
+              secureTextEntry={!showPwd}
+              style={{ flex: 1, color: C.text, paddingHorizontal: 16, height: 50, fontSize: 14 }}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPwd(!showPwd)}
+              style={s.eyeBtn}
+              accessibilityLabel={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            >
+              {showPwd ? <EyeOffIcon color={C.textMuted} /> : <EyeIcon color={C.textMuted} />}
+            </TouchableOpacity>
+          </View>
 
-        {/* Divider */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-          <Text style={{ color: '#64748b', fontSize: 12, marginHorizontal: 12 }}>ou</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
-        </View>
-
-        {/* Register link */}
-        <Text style={{ textAlign: 'center', color: C.slate4, fontSize: 14 }}>
-          Pas encore de compte ?{' '}
-          <Text
-            onPress={() => navigation.navigate('Register')}
-            style={{ color: C.primary4, fontWeight: '700' }}
+          {/* Bouton */}
+          <Pressable
+            onPress={handleLogin}
+            disabled={loading}
+            style={[s.btn, loading && { opacity: 0.75 }]}
           >
-            Créer un compte
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={s.btnTxt}>Se connecter</Text>}
+          </Pressable>
+
+          {/* Séparateur */}
+          <View style={s.divider}>
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(212,137,10,0.15)' }} />
+            <Text style={{ color: C.textMuted, fontSize: 12, marginHorizontal: 12 }}>ou</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(212,137,10,0.15)' }} />
+          </View>
+
+          {/* Inscription */}
+          <Text style={{ textAlign: 'center', color: C.textSec, fontSize: 13 }}>
+            Pas encore de compte ?{' '}
+            <Text
+              onPress={() => navigation.navigate('Register')}
+              style={{ color: C.gold, fontWeight: '700' }}
+            >
+              Créer un compte
+            </Text>
           </Text>
-        </Text>
+        </View>
       </View>
 
-      <Text style={{ textAlign: 'center', color: '#475569', fontSize: 11, marginTop: 20 }}>
+      <Text style={s.terms}>
         En vous connectant, vous acceptez nos conditions d'utilisation.
       </Text>
     </ScrollView>
   );
 }
+
+const s = StyleSheet.create({
+  logoCircle: {
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(184,35,42,0.12)',
+    borderWidth: 1, borderColor: 'rgba(212,137,10,0.5)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    shadowColor: '#B8232A', shadowOpacity: 0.4, shadowRadius: 16, elevation: 6,
+  },
+  brand:       { color: '#F5EDD8', fontSize: 30, fontWeight: '700', letterSpacing: 1 },
+  arabic:      { color: 'rgba(212,137,10,0.7)', fontSize: 13, marginTop: 4, letterSpacing: 1 },
+  dividerSmall:{ flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 14, width: 80 },
+  divLine:     { flex: 1, height: 1, backgroundColor: 'rgba(212,137,10,0.3)' },
+  title:       { color: '#F5EDD8', fontSize: 22, fontWeight: '900', marginBottom: 4 },
+  subtitle:    { color: 'rgba(245,237,216,0.45)', fontSize: 13 },
+
+  card: {
+    backgroundColor: '#1C0C07', borderRadius: 20, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(212,137,10,0.28)',
+    shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 24, elevation: 10,
+  },
+  label: { color: 'rgba(245,237,216,0.65)', fontSize: 12, fontWeight: '600', marginBottom: 6, letterSpacing: 0.3 },
+  input: {
+    backgroundColor: '#150906', color: '#F5EDD8', borderRadius: 12,
+    paddingHorizontal: 16, height: 50, borderWidth: 1,
+    borderColor: 'rgba(212,137,10,0.22)', marginBottom: 16, fontSize: 14,
+  },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#150906', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(212,137,10,0.22)', marginBottom: 20,
+  },
+  inputErr: { borderColor: 'rgba(239,68,68,0.5)' },
+  eyeBtn:  { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  errorBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.30)', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 20,
+  },
+  errorTxt: { color: '#f87171', fontSize: 13, flex: 1 },
+  btn: {
+    height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#C1272D',
+    shadowColor: '#C1272D', shadowOpacity: 0.4, shadowRadius: 12, elevation: 5,
+  },
+  btnTxt:  { color: '#fff', fontWeight: '700', fontSize: 15 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  terms:   { textAlign: 'center', color: 'rgba(245,237,216,0.2)', fontSize: 11, marginTop: 20 },
+});
