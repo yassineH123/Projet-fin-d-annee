@@ -13,7 +13,6 @@ const profileUpload = upload.docs.fields([
   { name: 'carteGriseDoc', maxCount: 1 },
 ]);
 
-router.get('/search',       userController.searchUsers);
 router.get('/me',           authenticateToken, userController.me);
 router.get('/driver-stats', authenticateToken, userController.driverStats);
 router.put('/profile',      authenticateToken, profileUpload, userController.updateProfile);

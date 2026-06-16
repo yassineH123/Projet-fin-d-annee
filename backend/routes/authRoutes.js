@@ -11,7 +11,7 @@ router.post(
     body('lastName').trim().notEmpty().withMessage('Le nom est requis.'),
     body('email').isEmail().withMessage('Email invalide.'),
     body('password').isLength({ min: 8 }).withMessage('Le mot de passe doit contenir au moins 8 caractères.'),
-    body('phone').optional().isMobilePhone().withMessage('Numéro de téléphone invalide.'),
+    body('phone').optional({ values: 'falsy' }).isMobilePhone().withMessage('Numéro de téléphone invalide.'),
   ],
   authController.register
 );
