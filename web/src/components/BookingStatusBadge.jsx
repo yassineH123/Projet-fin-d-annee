@@ -5,6 +5,8 @@ const labels = {
   cancelled: { cls: 'badge-cancelled', text: 'Annulée' },
   active:    { cls: 'badge-active',    text: 'Actif' },
   completed: { cls: 'badge-accepted',  text: 'Terminé' },
+  suspended: { cls: 'badge-pending',   text: 'Suspendu' },
+  blocked:   { cls: 'badge-refused',   text: 'Bloqué' },
 };
 
 export default function BookingStatusBadge({ status }) {

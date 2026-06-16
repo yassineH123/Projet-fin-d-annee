@@ -4,13 +4,6 @@ import { MapPin, Calendar, DollarSign, Users, Zap, RefreshCw } from 'lucide-reac
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
-const TRANSPORT_MODES = [
-  { id: 'voiture',  label: 'Voiture',  emoji: '🚗', desc: 'Berline, SUV, citadine…'   },
-  { id: 'moto',     label: 'Moto',     emoji: '🏍️', desc: 'Moto ou scooter'            },
-  { id: 'minibus',  label: 'Minibus',  emoji: '🚐', desc: 'Van, minibus jusqu\'à 9 places' },
-  { id: 'van',      label: 'Van',      emoji: '🚌', desc: 'Grand van ou bus privé'     },
-];
-
 const DAYS = [
   { val: 1, short: 'Lun' },
   { val: 2, short: 'Mar' },
@@ -28,7 +21,6 @@ export default function PublishRide() {
   const [form, setForm] = useState({
     from: '', to: '', departureDate: '', price: '', seats: 1,
     description: '', instantBooking: false, isRecurring: false, recurringDays: [],
-    transportMode: 'voiture',
   });
   const [loading, setLoading] = useState(false);
 
@@ -71,30 +63,6 @@ export default function PublishRide() {
 
       <div className="card">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
-          {/* Transport Mode */}
-          <div>
-            <label className="text-sm text-slate-400 mb-3 block font-semibold">Moyen de transport</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {TRANSPORT_MODES.map(({ id, label, emoji, desc }) => {
-                const active = form.transportMode === id;
-                return (
-                  <button key={id} type="button" onClick={() => setForm(f => ({ ...f, transportMode: id }))}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all text-center"
-                    style={{
-                      borderColor: active ? '#C1272D' : 'var(--border-color)',
-                      background:  active ? 'rgba(193,39,45,0.08)' : 'var(--bg-700)',
-                      transform:   active ? 'scale(1.04)' : 'scale(1)',
-                      boxShadow:   active ? '0 0 0 3px rgba(193,39,45,0.15)' : 'none',
-                    }}>
-                    <span style={{ fontSize: 28 }}>{emoji}</span>
-                    <span className="font-black text-sm" style={{ color: active ? '#C1272D' : 'var(--text-base)' }}>{label}</span>
-                    <span className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>{desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -185,11 +153,12 @@ export default function PublishRide() {
                   const active = form.recurringDays.includes(val);
                   return (
                     <button key={val} type="button" onClick={() => toggleDay(val)}
-                      className="w-12 h-10 rounded-xl text-sm font-bold transition-all"
+                      className="w-12 h-11 rounded-xl text-sm font-bold transition-all hover:scale-105"
                       style={{
-                        background: active ? 'rgba(59,130,246,0.25)' : 'var(--bg-700)',
-                        color: active ? '#60A5FA' : 'var(--text-muted)',
+                        background: active ? 'rgba(59,130,246,0.3)' : 'var(--bg-700)',
+                        color: active ? '#93C5FD' : 'var(--text-secondary)',
                         border: `1.5px solid ${active ? '#3B82F6' : 'var(--border-color)'}`,
+                        boxShadow: active ? '0 0 0 2px rgba(59,130,246,0.2)' : 'none',
                       }}>
                       {short}
                     </button>
@@ -199,8 +168,10 @@ export default function PublishRide() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="btn-primary h-12">
-            {loading ? 'Publication…' : 'Publier le trajet'}
+          <button type="submit" disabled={loading} className="btn-primary h-12 flex items-center justify-center gap-2">
+            {loading
+              ? <><span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5 inline-block" /> Publication en cours…</>
+              : 'Publier le trajet'}
           </button>
         </form>
       </div>

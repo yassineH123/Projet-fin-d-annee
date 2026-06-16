@@ -292,8 +292,9 @@ export default function Messages() {
                         {/* Emoji picker toggle */}
                         <button
                           onClick={() => setEmojiPicker(showPicker ? null : m.id)}
-                          className="absolute opacity-0 group-hover:opacity-100 transition-opacity top-1 z-10"
-                          style={{ [mine ? 'left' : 'right']: '-28px' }}>
+                          className="absolute opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity top-0 z-10 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10"
+                          style={{ [mine ? 'left' : 'right']: '-32px' }}
+                          aria-label="Réagir avec un emoji">
                           <Smile size={16} className="text-slate-500 hover:text-white" />
                         </button>
 
@@ -303,7 +304,8 @@ export default function Messages() {
                             style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', [mine ? 'right' : 'left']: 0, top: '-48px' }}>
                             {EMOJIS.map(e => (
                               <button key={e} onClick={() => reactToMessage(m.id, e)}
-                                className="text-base hover:scale-125 transition-transform">
+                                className="w-8 h-8 flex items-center justify-center text-base hover:scale-125 transition-transform rounded-lg hover:bg-white/10"
+                                aria-label={`Réagir avec ${e}`}>
                                 {e}
                               </button>
                             ))}

@@ -10,7 +10,6 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 import FriendButton from '../components/FriendButton';
-import ReliabilityScore from '../components/ReliabilityScore';
 
 const LANGUAGES = ['Français', 'Arabe', 'Darija', 'Amazigh', 'Anglais', 'Espagnol'];
 
@@ -97,9 +96,6 @@ export default function Profile() {
   const [langs, setLangs] = useState([]);
   const [isHandicapped, setIsHandicapped]     = useState(false);
   const [handicapAccessible, setHandicapAccessible] = useState(false);
-  const [nationality, setNationality] = useState('moroccan');
-  const [country, setCountry] = useState('');
-  const [birthDate, setBirthDate] = useState('');
 
   const [pwdForm,   setPwdForm]   = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [pwdSaving, setPwdSaving] = useState(false);
@@ -126,9 +122,6 @@ export default function Profile() {
         setLangs(u.languages   || []);
         setIsHandicapped(u.isHandicapped       || false);
         setHandicapAccessible(u.handicapAccessible || false);
-        setNationality(u.nationality || 'moroccan');
-        setCountry(u.country || '');
-        setBirthDate(u.birthDate ? u.birthDate.slice(0, 10) : '');
       }
     }).finally(() => setLoading(false));
   }, [id]);
@@ -143,9 +136,6 @@ export default function Profile() {
       fd.append('languages',         JSON.stringify(langs));
       fd.append('isHandicapped',     isHandicapped);
       fd.append('handicapAccessible', handicapAccessible);
-      fd.append('nationality', nationality);
-      fd.append('country', country);
-      fd.append('birthDate', birthDate);
       Object.entries(docFiles).forEach(([k, f]) => fd.append(k, f));
       const { data } = await api.put('/users/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       updateUser(data.user);
@@ -219,8 +209,8 @@ export default function Profile() {
             }
             {isMe && (
               <>
-                <button onClick={() => photoRef.current.click()} className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center hover:bg-primary-700 transition">
-                  <Camera size={14} className="text-white" />
+                <button onClick={() => photoRef.current.click()} className="absolute -bottom-1 -right-1 w-11 h-11 bg-primary-600 rounded-full flex items-center justify-center hover:bg-primary-700 transition" aria-label="Changer la photo de profil">
+                  <Camera size={16} className="text-white" />
                 </button>
                 <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
               </>
@@ -233,16 +223,6 @@ export default function Profile() {
               {profile.isHandicapped && (
                 <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
                   <Accessibility size={11} /> PMR
-                </span>
-              )}
-              {profile.nationality === 'foreign' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
-                  🌍 {profile.country || 'Étranger'}
-                </span>
-              )}
-              {profile.nationality === 'moroccan' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
-                  🇲🇦 Marocain
                 </span>
               )}
               {verifBadge && (
@@ -293,13 +273,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Score de fiabilité — visible par tous */}
-      {profile.totalTrips > 0 || profile.driverVerified ? (
-        <div className="mt-6">
-          <ReliabilityScore user={profile} />
-        </div>
-      ) : null}
-
       {isMe ? (
         <>
           {/* ── FORMULAIRE EDITION ── */}
@@ -324,60 +297,9 @@ export default function Profile() {
                   <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+212 6XX XXX XXX" className="input" />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Date de naissance</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="date"
-                      value={birthDate}
-                      onChange={e => setBirthDate(e.target.value)}
-                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0, 10)}
-                      min="1924-01-01"
-                      className="input flex-1"
-                    />
-                    {birthDate && (() => {
-                      const age = Math.floor((new Date() - new Date(birthDate)) / (365.25 * 24 * 3600 * 1000));
-                      return (
-                        <span className="text-sm font-semibold px-3 py-1.5 rounded-lg shrink-0"
-                          style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)' }}>
-                          {age} ans
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <p className="text-slate-600 text-xs mt-1">Vous devez avoir au moins 18 ans pour utiliser AtlasWay.</p>
-                </div>
-                <div>
                   <label className="text-sm text-slate-400 mb-1.5 block">Bio</label>
                   <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} placeholder="Parlez de vous en quelques mots..." className="input resize-none" rows={3} maxLength={300} />
                   <p className="text-slate-600 text-xs mt-1 text-right">{form.bio.length}/300</p>
-                </div>
-
-                {/* Nationalité */}
-                <div>
-                  <label className="text-sm text-slate-400 mb-2 block">Nationalité</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'moroccan', emoji: '🇲🇦', label: 'Marocain(e)' },
-                      { value: 'foreign',  emoji: '🌍', label: 'Étranger(ère)' },
-                    ].map(opt => (
-                      <button key={opt.value} type="button" onClick={() => setNationality(opt.value)}
-                        className="flex items-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all"
-                        style={{
-                          background: nationality === opt.value ? 'rgba(193,39,45,0.1)' : 'var(--bg-700)',
-                          border: `1.5px solid ${nationality === opt.value ? '#C1272D' : 'var(--border-color)'}`,
-                          color: nationality === opt.value ? '#C1272D' : 'var(--text-secondary)',
-                        }}>
-                        <span className="text-base">{opt.emoji}</span> {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  {nationality === 'foreign' && (
-                    <div className="mt-3">
-                      <label className="text-sm text-slate-400 mb-1.5 block">Pays d'origine</label>
-                      <input value={country} onChange={e => setCountry(e.target.value)}
-                        placeholder="ex: France, Espagne, Sénégal..." className="input" />
-                    </div>
-                  )}
                 </div>
 
                 {/* Langues */}
@@ -472,15 +394,13 @@ export default function Profile() {
                   <Shield size={18} className={profile.driverVerified ? 'text-green-400' : 'text-slate-400'} />
                   <div className="text-left">
                     <p className="font-bold text-white">Vérification conducteur</p>
-                    <p className="text-xs text-slate-500">
-                      {nationality === 'foreign' ? 'Passeport, Permis de conduire, Carte grise — obligatoires' : 'CIN, Permis de conduire, Carte grise — obligatoires'}
-                    </p>
+                    <p className="text-xs text-slate-500">CIN, Permis de conduire, Carte grise — obligatoires</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {profile.driverVerified
                     ? <span className="text-xs text-green-400 flex items-center gap-1"><ShieldCheck size={13} /> Vérifié</span>
-                    : (nationality === 'foreign' ? (profile.passportDoc && profile.permisDoc && profile.carteGriseDoc) : (profile.cinDoc && profile.permisDoc && profile.carteGriseDoc))
+                    : (profile.cinDoc && profile.permisDoc && profile.carteGriseDoc)
                       ? <span className="text-xs text-yellow-400">En attente</span>
                       : <span className="text-xs text-slate-500">Non soumis</span>
                   }
@@ -495,16 +415,12 @@ export default function Profile() {
                       <ShieldCheck size={16} /> Votre compte conducteur est vérifié par l'administration.
                     </div>
                   )}
-                  {!profile.driverVerified && (nationality === 'foreign' ? (profile.passportDoc || profile.permisDoc || profile.carteGriseDoc) : (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc)) && (
+                  {!profile.driverVerified && (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc) && (
                     <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">
                       <AlertCircle size={16} /> Documents en cours de vérification par l'administration.
                     </div>
                   )}
-                  {nationality === 'foreign' ? (
-                    <DocUploadField label="Passeport" fieldName="passportDoc" currentDoc={profile.passportDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
-                  ) : (
-                    <DocUploadField label="Carte Nationale d'Identité (CIN)" fieldName="cinDoc" currentDoc={profile.cinDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
-                  )}
+                  <DocUploadField label="Carte Nationale d'Identité (CIN)" fieldName="cinDoc" currentDoc={profile.cinDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
                   <DocUploadField label="Permis de conduire" fieldName="permisDoc" currentDoc={profile.permisDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
                   <DocUploadField label="Carte grise du véhicule" fieldName="carteGriseDoc" currentDoc={profile.carteGriseDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
                   <p className="text-slate-500 text-xs">Les documents sont traités de manière confidentielle et servent uniquement à la vérification de votre identité.</p>
@@ -537,7 +453,9 @@ export default function Profile() {
                   </div>
                 ))}
                 <button type="submit" disabled={pwdSaving} className="btn-primary h-11 flex items-center justify-center gap-2">
-                  <Lock size={15} /> {pwdSaving ? 'Modification...' : 'Modifier le mot de passe'}
+                  {pwdSaving
+                    ? <><span className="animate-spin border-2 border-white border-t-transparent rounded-full h-4 w-4 inline-block" /> Modification en cours…</>
+                    : <><Lock size={15} /> Modifier le mot de passe</>}
                 </button>
               </form>
             )}

@@ -1,29 +1,32 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Car, Eye, EyeOff, Gift } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Car, Eye, EyeOff, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import SEO from '../components/SEO';
 
 export default function Register() {
   const { login } = useAuth();
   const navigate  = useNavigate();
-  const [searchParams]        = useSearchParams();
-  const [step, setStep]       = useState(1);
-  const [form, setForm]       = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', referralCode: searchParams.get('ref') || '' });
-  const [otp, setOtp]         = useState('');
-  const [showPwd, setShowPwd] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [step, setStep]                 = useState(1);
+  const [form, setForm]                 = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+  const [verificationMethod, setMethod] = useState('email');
+  const [otp, setOtp]                   = useState('');
+  const [showPwd, setShowPwd]           = useState(false);
+  const [loading, setLoading]           = useState(false);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (verificationMethod === 'sms' && !form.phone) {
+      toast.error('Entrez votre numéro de téléphone pour recevoir le code par SMS');
+      return;
+    }
     setLoading(true);
     try {
-      await api.post('/auth/register', form);
-      toast.success(form.phone ? 'Code envoyé par SMS !' : 'Code envoyé à votre email !');
+      await api.post('/auth/register', { ...form, verificationMethod });
+      toast.success(verificationMethod === 'sms' ? 'Code envoyé par SMS !' : 'Code envoyé à votre email !');
       setStep(2);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur inscription');
@@ -49,7 +52,6 @@ export default function Register() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12">
-      <SEO title="Créer un compte" description="Rejoignez AtlasWay — la plateforme de covoiturage #1 au Maroc. Inscription gratuite en 2 minutes." path="/register" noIndex />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
@@ -57,7 +59,7 @@ export default function Register() {
           </div>
           <h1 className="text-3xl font-black text-white">{step === 1 ? 'Inscription' : 'Vérification'}</h1>
           <p className="text-slate-400 mt-2">
-            {step === 1 ? 'Créez votre compte AtlasWay' : `Code envoyé ${form.phone ? `au ${form.phone}` : `à ${form.email}`}`}
+            {step === 1 ? 'Créez votre compte AtlasWay' : `Code envoyé ${verificationMethod === 'sms' ? `au ${form.phone}` : `à ${form.email}`}`}
           </p>
         </div>
 
@@ -79,38 +81,51 @@ export default function Register() {
                 <input type="email" value={form.email} onChange={set('email')} placeholder="vous@example.com" className="input" required />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">Téléphone <span className="text-slate-500">(optionnel — pour recevoir le code par SMS)</span></label>
-                <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+212600000000" className="input" />
-              </div>
-              <div>
                 <label className="text-sm text-slate-400 mb-1.5 block">Mot de passe</label>
                 <div className="relative">
                   <input type={showPwd ? 'text' : 'password'} value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" className="input pr-11" required minLength={8} />
-                  <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors"
+                    aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
+
               <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">
-                  <Gift size={13} className="inline mr-1 mb-0.5" style={{ color: '#D4890A' }} />
-                  Code de parrainage <span className="text-slate-500">(optionnel)</span>
-                </label>
-                <input
-                  value={form.referralCode}
-                  onChange={set('referralCode')}
-                  placeholder="Ex: ADAM42"
-                  className="input uppercase"
-                  maxLength={10}
-                />
+                <label className="text-sm text-slate-400 mb-2 block">Recevoir le code de vérification par</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMethod('email')}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold text-sm transition-all ${verificationMethod === 'email' ? 'border-primary-500 bg-primary-500/10 text-primary-400' : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
+                  >
+                    <Mail size={16} /> Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMethod('sms')}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-semibold text-sm transition-all ${verificationMethod === 'sms' ? 'border-primary-500 bg-primary-500/10 text-primary-400' : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
+                  >
+                    <Phone size={16} /> SMS
+                  </button>
+                </div>
               </div>
+
+              {verificationMethod === 'sms' && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1.5 block">Téléphone</label>
+                  <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+212600000000" className="input" required />
+                </div>
+              )}
+
               <button type="submit" disabled={loading} className="btn-primary h-12 mt-2">
                 {loading ? <span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5 inline-block" /> : 'Créer mon compte'}
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerify} className="flex flex-col gap-4">
-              <p className="text-slate-400 text-sm text-center">Entrez le code à 6 chiffres reçu par {form.phone ? 'SMS' : 'email'}</p>
+              <p className="text-slate-400 text-sm text-center">Entrez le code à 6 chiffres reçu par {verificationMethod === 'sms' ? 'SMS' : 'email'}</p>
               <input
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}

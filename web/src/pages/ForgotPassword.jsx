@@ -99,7 +99,9 @@ export default function ForgotPassword() {
                     required
                     minLength={8}
                   />
-                  <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors"
+                    aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>

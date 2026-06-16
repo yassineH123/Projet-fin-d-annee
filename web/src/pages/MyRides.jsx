@@ -139,25 +139,28 @@ export default function MyRides() {
                   </div>
 
                   {ride.status === 'active' && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => navigate(`/rides/${ride.id}/edit`)}
-                        className="p-2 text-slate-400 hover:text-primary-400 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-primary-400 hover:bg-primary-400/10 transition-all"
                         title="Modifier"
+                        aria-label="Modifier le trajet"
                       >
                         <Edit size={17} />
                       </button>
                       <button
                         onClick={() => handleComplete(ride.id)}
-                        className="p-2 text-slate-400 hover:text-green-400 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
                         title="Marquer comme terminé"
+                        aria-label="Marquer comme terminé"
                       >
                         <CheckCircle size={17} />
                       </button>
                       <button
                         onClick={() => handleCancel(ride.id)}
-                        className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                        title="Annuler"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                        title="Annuler le trajet"
+                        aria-label="Annuler le trajet"
                       >
                         <Trash2 size={17} />
                       </button>

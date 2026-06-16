@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
-  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff
+  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
@@ -41,12 +41,6 @@ export default function Navbar() {
   const [profileOpen,  setProfileOpen]  = useState(false);
   const [langOpen,     setLangOpen]     = useState(false);
   const [searchQ,      setSearchQ]      = useState('');
-  const [searchResults, setSearchResults] = useState({ users: [], cities: [] });
-  const [searchOpen,   setSearchOpen]   = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [listening,    setListening]    = useState(false);
-  const searchRef = useRef(null);
-  const searchTimer = useRef(null);
   const [notifs,       setNotifs]       = useState([]);
 
   const notifRef   = useRef(null);
@@ -92,65 +86,16 @@ export default function Navbar() {
       if (notifRef.current   && !notifRef.current.contains(e.target))   setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
       if (langRef.current    && !langRef.current.contains(e.target))    setLangOpen(false);
-      if (searchRef.current  && !searchRef.current.contains(e.target))  setSearchOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const handleLogout = () => { logout(); navigate('/'); };
-  const MOROCCAN_CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Chefchaouen','Essaouira','Ifrane','Merzouga','Laâyoune'];
-
-  const handleSearchChange = (e) => {
-    const q = e.target.value;
-    setSearchQ(q);
-    if (!q.trim()) { setSearchResults({ users: [], cities: [] }); setSearchOpen(false); return; }
-    setSearchOpen(true);
-    const matchedCities = MOROCCAN_CITIES.filter(c => c.toLowerCase().includes(q.toLowerCase())).slice(0, 4);
-    setSearchResults(prev => ({ ...prev, cities: matchedCities }));
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      if (q.trim().length < 2) return;
-      setSearchLoading(true);
-      api.get(`/users/search?q=${encodeURIComponent(q.trim())}`)
-        .then(({ data }) => setSearchResults(prev => ({ ...prev, users: data.users || [] })))
-        .catch(() => {})
-        .finally(() => setSearchLoading(false));
-    }, 300);
-  };
-
   const handleSearch = (e) => {
     e.preventDefault();
-    setSearchOpen(false);
     if (searchQ.trim()) navigate(`/rides/search?from=${encodeURIComponent(searchQ.trim())}`);
     else navigate('/rides/search');
-  };
-
-  const handleVoiceSearch = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Votre navigateur ne supporte pas la recherche vocale.'); return; }
-    const rec = new SR();
-    rec.lang = 'fr-FR';
-    rec.interimResults = false;
-    rec.onstart = () => setListening(true);
-    rec.onend   = () => setListening(false);
-    rec.onresult = (e) => {
-      const text = e.results[0][0].transcript;
-      setSearchQ(text);
-      setSearchOpen(true);
-      navigate(`/rides/search?from=${encodeURIComponent(text.trim())}`);
-    };
-    rec.start();
-  };
-
-  const handleSelectCity = (city) => {
-    setSearchQ(city); setSearchOpen(false);
-    navigate(`/rides/search?to=${encodeURIComponent(city)}`);
-  };
-
-  const handleSelectUser = (userId) => {
-    setSearchQ(''); setSearchOpen(false);
-    navigate(`/profile/${userId}`);
   };
 
   const unreadNotifs = notifs.filter(n => !n.read).length;
@@ -164,35 +109,19 @@ export default function Navbar() {
   };
 
   const profileMenuItems = [
-    { to: '/profile',             icon: User,          label: t.profileMenu.profile },
-    { to: '/friends',             icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
-    { to: '/driver-dashboard',    icon: BarChart2,     label: t.profileMenu.dashboard },
-    { to: '/analytics/driver',    icon: BarChart2,     label: 'Mes statistiques' },
-    { to: '/wallet',              icon: Star,          label: 'Portefeuille 💰' },
-    { to: '/leaderboard',         icon: Star,          label: 'Classement 🏆' },
-    { to: '/premium',             icon: Star,          label: 'Premium 👑' },
-    { to: '/stories',             icon: Rss,           label: 'Stories 📸' },
-    { to: '/groups',              icon: Users,         label: 'Groupes 🚗' },
-    { to: '/events',              icon: Globe,         label: 'Événements 🗓️' },
-    { to: '/ride-alerts',         icon: Bell,          label: 'Alertes trajets 🔔' },
-    { to: '/emergency-contacts',  icon: Shield,        label: 'Contacts SOS 🆘' },
-    { to: '/support',             icon: MessageSquare, label: 'Support & Aide' },
-    { to: '/rides/publish',       icon: Plus,          label: t.profileMenu.publish },
-    { to: '/rides/mine',          icon: Car,           label: t.profileMenu.rides },
-    { to: '/bookings',            icon: BookOpen,      label: t.profileMenu.bookings },
-    { to: '/messages',            icon: MessageSquare, label: t.profileMenu.messages },
-    { to: '/login-history',       icon: Globe,         label: 'Historique connexions' },
+    { to: '/profile',          icon: User,          label: t.profileMenu.profile },
+    { to: '/friends',          icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
+    { to: '/driver-dashboard', icon: BarChart2,     label: t.profileMenu.dashboard },
+    { to: '/rides/publish',    icon: Plus,          label: t.profileMenu.publish },
+    { to: '/rides/mine',       icon: Car,           label: t.profileMenu.rides },
+    { to: '/bookings',         icon: BookOpen,      label: t.profileMenu.bookings },
+    { to: '/messages',         icon: MessageSquare, label: t.profileMenu.messages },
   ];
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      scrolled ? 'shadow-lg shadow-black/30' : ''
-    }`} style={{
-      background: scrolled ? 'rgba(15,8,4,0.85)' : 'rgba(15,8,4,0.65)',
-      backdropFilter: 'blur(20px) saturate(1.5)',
-      WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
-      borderBottom: scrolled ? '1px solid rgba(193,39,45,0.15)' : '1px solid rgba(255,255,255,0.04)',
-    }}>
+      scrolled ? 'shadow-lg shadow-black/10' : ''
+    }`} style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border-color)' }}>
 
       <div className="max-w-7xl mx-auto px-4 h-[60px] flex items-center gap-3">
 
@@ -202,107 +131,35 @@ export default function Navbar() {
           onClick={() => { if (location.pathname === '/' || location.pathname === '/admin/home') window.location.reload(); }}
           className="flex items-center gap-2 flex-shrink-0 group"
         >
-          <img src="/logo.svg" alt="AtlasWay" className="w-9 h-9 rounded-xl transition-all duration-300 group-hover:scale-110"
-            style={{ boxShadow: '0 4px 16px rgba(193,39,45,0.45), 0 0 0 1px rgba(193,39,45,0.2)' }} />
-          <span className="font-black text-xl tracking-tight hidden sm:block" style={{ fontFamily: "'Fraunces', serif", letterSpacing: '-0.03em', fontVariationSettings: "'opsz' 72" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+            style={{ background: 'linear-gradient(135deg, #C1272D, #9e1f24)', boxShadow: '0 4px 12px rgba(193,39,45,0.3)' }}>
+            <Car size={18} className="text-white" />
+          </div>
+          <span className="font-black text-xl tracking-tight font-heading hidden sm:block">
             <span style={{ color: 'var(--text-base)' }}>Atlas</span><span className="logo-gradient">Way</span>
           </span>
         </Link>
 
         {/* ── BARRE DE RECHERCHE (centre) ── */}
-        <div ref={searchRef} className="flex-1 max-w-md mx-auto hidden md:flex relative">
-          <form onSubmit={handleSearch} className="w-full">
-            <div className="relative w-full">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input
-                value={searchQ}
-                onChange={handleSearchChange}
-                placeholder={t.nav.searchPlaceholder}
-                className="w-full pl-9 pr-10 py-2 rounded-xl text-sm font-medium transition-all"
-                style={{
-                  background: 'var(--bg-700)',
-                  border: '1.5px solid var(--border-color)',
-                  color: 'var(--text-base)',
-                  outline: 'none',
-                }}
-                onFocus={e => { e.target.style.borderColor = '#C1272D'; e.target.style.boxShadow = '0 0 0 3px rgba(193,39,45,0.1)'; if (searchQ.trim()) setSearchOpen(true); }}
-                onBlur={e  => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
-                autoComplete="off"
-              />
-              <button type="button" onClick={handleVoiceSearch} title="Recherche vocale"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-lg transition-all"
-                style={{ color: listening ? '#C1272D' : 'var(--text-muted)' }}>
-                {listening ? <MicOff size={14} /> : <Mic size={14} />}
-              </button>
-            </div>
-          </form>
-
-          {/* ── Dropdown résultats ── */}
-          {searchOpen && (searchResults.cities.length > 0 || searchResults.users.length > 0 || searchLoading) && (
-            <div className="absolute top-[calc(100%+6px)] left-0 w-full rounded-2xl shadow-2xl overflow-hidden z-50"
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.22)' }}>
-
-              {/* Villes */}
-              {searchResults.cities.length > 0 && (
-                <div>
-                  <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Villes</p>
-                  {searchResults.cities.map(city => (
-                    <button key={city} onMouseDown={() => handleSelectCity(city)}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-left transition-all"
-                      style={{ color: 'var(--text-secondary)' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-base)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                    >
-                      <span style={{ fontSize: 16 }}>📍</span>
-                      <span>{city}</span>
-                      <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D' }}>Trajet</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Conducteurs / Profils */}
-              {(searchResults.users.length > 0 || searchLoading) && (
-                <div style={{ borderTop: searchResults.cities.length > 0 ? '1px solid var(--border-color)' : 'none' }}>
-                  <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Conducteurs</p>
-                  {searchLoading ? (
-                    <div className="flex items-center gap-2 px-4 py-3">
-                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#C1272D', borderTopColor: 'transparent' }} />
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Recherche…</span>
-                    </div>
-                  ) : searchResults.users.map(u => (
-                    <button key={u.id} onMouseDown={() => handleSelectUser(u.id)}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-left transition-all"
-                      style={{ color: 'var(--text-secondary)' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-700)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      {u.photo
-                        ? <img src={u.photo} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                        : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                            style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
-                            {u.firstName?.[0]}
-                          </div>
-                      }
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm leading-tight" style={{ color: 'var(--text-base)' }}>
-                          {u.firstName} {u.lastName}
-                          {u.driverVerified && <span className="ml-1 text-[10px]" style={{ color: '#00875A' }}>✓</span>}
-                        </p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          {u.isDriver ? '🚗 Conducteur' : '👤 Passager'}
-                          {u.avgRating > 0 && ` · ⭐ ${Number(u.avgRating).toFixed(1)}`}
-                          {u.totalTrips > 0 && ` · ${u.totalTrips} trajets`}
-                        </p>
-                      </div>
-                      <ArrowRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <form onSubmit={handleSearch} className="flex-1 max-w-md mx-auto hidden md:flex">
+          <div className="relative w-full">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+            <input
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
+              placeholder={t.nav.searchPlaceholder}
+              className="w-full pl-9 pr-4 py-2 rounded-xl text-sm font-medium transition-all"
+              style={{
+                background: 'var(--bg-700)',
+                border: '1.5px solid var(--border-color)',
+                color: 'var(--text-base)',
+                outline: 'none',
+              }}
+              onFocus={e => { e.target.style.borderColor = '#C1272D'; e.target.style.boxShadow = '0 0 0 3px rgba(193,39,45,0.1)'; }}
+              onBlur={e  => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+            />
+          </div>
+        </form>
 
         {/* ── ACTIONS DROITE ── */}
         <div className="flex items-center gap-1 ml-auto">

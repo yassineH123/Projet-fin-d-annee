@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2 } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import { StarDisplay } from '../components/StarRating';
 import Spinner from '../components/Spinner';
-import ReportModal from '../components/ReportModal';
-import GPSTracker from '../components/GPSTracker';
-import RideMap from '../components/RideMap';
-import PaymentModal from '../components/PaymentModal';
 
 export default function RideDetail() {
   const { id } = useParams();
@@ -19,15 +14,9 @@ export default function RideDetail() {
   const [ride, setRide]       = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [booking,    setBooking]    = useState(false);
-  const [seats,      setSeats]      = useState(1);
-  const [message,    setMessage]    = useState('');
-  const [useCredits, setUseCredits] = useState(false);
-  const [showReport,   setShowReport]   = useState(false);
-  const [inWaitlist,   setInWaitlist]   = useState(false);
-  const [joiningWait,  setJoiningWait]  = useState(false);
-  const [isFav,        setIsFav]        = useState(false);
-  const [showPayment,  setShowPayment]  = useState(false);
+  const [booking, setBooking] = useState(false);
+  const [seats,   setSeats]   = useState(1);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -43,7 +32,7 @@ export default function RideDetail() {
     if (!user) { navigate('/login'); return; }
     setBooking(true);
     try {
-      await api.post('/bookings', { rideId: id, seats, message, useCredits });
+      await api.post('/bookings', { rideId: id, seats, message });
       toast.success('Réservation envoyée !');
       navigate('/bookings');
     } catch (err) {
@@ -51,39 +40,6 @@ export default function RideDetail() {
     } finally {
       setBooking(false);
     }
-  };
-
-  const handleToggleFav = async () => {
-    if (!user) { navigate('/login'); return; }
-    try {
-      await api.post(`/favorites/${id}/toggle`);
-      setIsFav(f => !f);
-      toast.success(isFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️');
-    } catch { toast.error('Erreur'); }
-  };
-
-  const handleWaitlist = async () => {
-    if (!user) { navigate('/login'); return; }
-    setJoiningWait(true);
-    try {
-      if (inWaitlist) {
-        await api.post(`/waitlist/${id}/leave`);
-        toast.success('Retiré de la liste d\'attente.');
-        setInWaitlist(false);
-      } else {
-        await api.post(`/waitlist/${id}/join`, { seats });
-        toast.success('Ajouté à la liste d\'attente ! Vous serez notifié si une place se libère.');
-        setInWaitlist(true);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    } finally { setJoiningWait(false); }
-  };
-
-  const handleWhatsApp = () => {
-    const dateStr = ride ? new Date(ride.departureDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
-    const text = encodeURIComponent(`🚗 Trajet AtlasWay\n${ride.from} → ${ride.to}\n📅 ${dateStr}\n💰 ${Number(ride.price).toFixed(0)} MAD/pers\n🔗 ${window.location.href}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleMessage = async () => {
@@ -106,26 +62,11 @@ export default function RideDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <SEO
-        title={`${ride.from} → ${ride.to}`}
-        description={`Covoiturage ${ride.from} → ${ride.to} le ${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — ${Number(ride.price).toFixed(0)} MAD/pers avec ${driver.firstName || 'un conducteur vérifié'}.`}
-        path={`/rides/${id}`}
-      />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Route card */}
           <div className="card">
-            <div className="flex items-start justify-between mb-6">
-              {user && !isOwn && (
-                <button onClick={handleToggleFav}
-                  className="ml-auto p-2 rounded-xl transition-all"
-                  style={{ background: isFav ? 'rgba(239,68,68,0.12)' : 'var(--bg-700)', color: isFav ? '#F87171' : 'var(--text-muted)' }}
-                  title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
-                  <Heart size={18} fill={isFav ? 'currentColor' : 'none'} />
-                </button>
-              )}
-            </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="flex flex-col items-center gap-1">
                 <div className="w-4 h-4 rounded-full bg-primary-500 ring-4 ring-primary-500/20" />
@@ -160,13 +101,10 @@ export default function RideDetail() {
             )}
           </div>
 
-          {/* Map */}
-          <RideMap from={ride.from} to={ride.to} stops={ride.stops || []} />
-
           {/* Driver */}
           <div className="card">
             <h3 className="font-bold text-white mb-4">Conducteur</h3>
-            <Link to={`/profile/${driver.id}`} className="flex items-center gap-4 hover:opacity-80 transition">
+            <Link to={`/profile/${driver.id}`} className="flex items-center gap-4 rounded-xl p-2 -m-2 hover:bg-white/5 transition-colors">
               {driver.photo
                 ? <img src={driver.photo} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-dark-500" />
                 : <div className="w-14 h-14 rounded-full bg-primary-700 flex items-center justify-center text-xl font-black text-white">{driver.firstName?.[0]}</div>
@@ -217,13 +155,7 @@ export default function RideDetail() {
 
         {/* Sidebar */}
         <div className="flex flex-col gap-4">
-          <div className="sticky top-20 rounded-2xl p-5" style={{
-            background: 'rgba(255,255,255,0.06)',
-            backdropFilter: 'blur(20px) saturate(1.6)',
-            WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
-            border: '1px solid rgba(255,255,255,0.13)',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
-          }}>
+          <div className="card sticky top-20">
             <p className="text-3xl font-black text-white mb-1">{Number(ride.price).toFixed(0)} <span className="text-lg text-slate-400 font-normal">MAD</span></p>
             <p className="text-slate-400 text-sm mb-5">par personne</p>
 
@@ -244,47 +176,14 @@ export default function RideDetail() {
                   className="input text-sm mb-3 resize-none"
                   rows={3}
                 />
-                {user?.referralCredits > 0 && (
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer p-2.5 rounded-xl"
-                    style={{ background: 'rgba(212,137,10,0.08)', border: '1px solid rgba(212,137,10,0.25)' }}>
-                    <input
-                      type="checkbox"
-                      checked={useCredits}
-                      onChange={e => setUseCredits(e.target.checked)}
-                      className="accent-yellow-500 w-4 h-4"
-                    />
-                    <span className="text-sm font-semibold" style={{ color: '#D4890A' }}>
-                      🎁 Utiliser mes crédits parrainage ({user.referralCredits} DH)
-                    </span>
-                  </label>
-                )}
-                {useCredits && user?.referralCredits > 0 && (
-                  <p className="text-xs mb-3 text-center" style={{ color: '#00875A' }}>
-                    ✓ -{Math.min(user.referralCredits, ride.price * seats)} DH appliqué sur ce trajet
-                  </p>
-                )}
-                <button onClick={() => setShowPayment(true)} disabled={booking} className="btn-primary w-full mb-2">
-                  {booking ? 'Réservation...' : ride.instantBooking ? '⚡ Réserver instantanément' : 'Demander à réserver'}
+                <button onClick={handleBook} disabled={booking} className="btn-primary w-full mb-2 flex items-center justify-center gap-2 h-12">
+                  {booking
+                    ? <><span className="animate-spin border-2 border-white border-t-transparent rounded-full h-4 w-4 inline-block" /> Réservation en cours…</>
+                    : ride.instantBooking ? '⚡ Réserver instantanément' : 'Demander à réserver'}
                 </button>
                 {!isOwn && (
                   <button onClick={handleMessage} className="btn-secondary w-full flex items-center justify-center gap-2 text-sm">
                     <MessageSquare size={15} /> Contacter
-                  </button>
-                )}
-                <button onClick={handleWhatsApp}
-                  className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
-                  style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366', border: '1.5px solid rgba(37,211,102,0.3)' }}>
-                  <Share2 size={14} /> Partager sur WhatsApp
-                </button>
-                {!isOwn && user && (
-                  <button
-                    onClick={() => setShowReport(true)}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium transition-colors mt-1"
-                    style={{ color: 'var(--text-muted)' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#F87171'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                  >
-                    <Flag size={12} /> Signaler ce conducteur
                   </button>
                 )}
               </>
@@ -293,55 +192,15 @@ export default function RideDetail() {
             {ride.status !== 'active' && (
               <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Trajet non disponible</div>
             )}
-            {ride.status === 'active' && ride.seatsAvailable === 0 && !isOwn && (
-              <div className="flex flex-col gap-2">
-                <div className="text-center py-2 text-slate-400 text-sm bg-dark-700 rounded-xl">Complet</div>
-                {user && (
-                  <button onClick={handleWaitlist} disabled={joiningWait}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
-                    style={{
-                      background: inWaitlist ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)',
-                      color:      inWaitlist ? '#F87171' : '#60A5FA',
-                      border:     `1.5px solid ${inWaitlist ? '#EF4444' : '#3B82F6'}40`,
-                    }}>
-                    {joiningWait
-                      ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      : inWaitlist ? '✕ Quitter la liste d\'attente' : '🔔 Rejoindre la liste d\'attente'
-                    }
-                  </button>
-                )}
-              </div>
+            {ride.seatsAvailable === 0 && (
+              <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Complet</div>
             )}
             {isOwn && (
-              <div className="flex flex-col gap-3">
-                <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Votre trajet</div>
-                <GPSTracker rideId={ride.id} isDriver={true} />
-              </div>
-            )}
-            {!isOwn && ride.status === 'active' && ride.seatsAvailable > 0 && (
-              <GPSTracker rideId={ride.id} isDriver={false} />
+              <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Votre trajet</div>
             )}
           </div>
         </div>
       </div>
-
-      {showReport && ride?.driver && (
-        <ReportModal
-          reportedId={ride.driver.id}
-          reportedName={`${ride.driver.firstName} ${ride.driver.lastName}`}
-          rideId={ride.id}
-          onClose={() => setShowReport(false)}
-        />
-      )}
-      {showPayment && ride && (
-        <PaymentModal
-          amount={ride.price * seats}
-          rideFrom={ride.from}
-          rideTo={ride.to}
-          onConfirm={handleBook}
-          onClose={() => setShowPayment(false)}
-        />
-      )}
     </div>
   );
 }

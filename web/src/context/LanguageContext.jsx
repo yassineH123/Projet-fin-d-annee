@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 export const LANGS = {
   fr: {
@@ -493,25 +493,10 @@ export const LANGS = {
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [lang, setLang] = useState(() => {
-    const saved = localStorage.getItem('atlas_lang');
-    if (saved && LANGS[saved]) return saved;
-    const browser = navigator.language?.slice(0, 2);
-    if (browser === 'ar') return 'ar';
-    if (browser === 'en') return 'en';
-    return 'fr';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('atlas_lang', lang);
-    const dir = LANGS[lang]?.dir || 'ltr';
-    document.documentElement.setAttribute('lang', lang);
-    document.documentElement.setAttribute('dir', dir);
-  }, [lang]);
-
+  const [lang, setLang] = useState('fr');
   const t = LANGS[lang];
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t, isRTL: LANGS[lang]?.dir === 'rtl' }}>
+    <LanguageContext.Provider value={{ lang, setLang, t }}>
       {children}
     </LanguageContext.Provider>
   );
