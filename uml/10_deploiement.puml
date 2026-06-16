@@ -1,0 +1,81 @@
+@startuml Diagramme de Déploiement
+title Diagramme de Déploiement — Architecture Physique AtlasWay
+
+skinparam nodeBackgroundColor #DBEAFE
+skinparam nodeBorderColor #2563EB
+skinparam nodeFontColor #1E293B
+skinparam componentBackgroundColor #EFF6FF
+skinparam componentBorderColor #2563EB
+skinparam componentFontColor #1E293B
+skinparam arrowColor #475569
+skinparam backgroundColor #FFFFFF
+skinparam packageBorderColor #CBD5E1
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+node "Navigateur Web\n(Chrome / Firefox / Safari)" as Browser {
+  component "Application React\n(Vite SPA)" as ReactApp
+  component "Socket.IO Client" as SIOClient
+}
+
+node "Smartphone\n(Android / iOS)" as Phone {
+  component "Application React Native" as RNApp
+  component "Stockage local\n(AsyncStorage)" as AsyncStorage
+}
+
+node "Serveur de Développement\n(localhost)" as DevServer {
+
+  node "Node.js Process\n(port 4000)" as NodeProcess {
+    component "Express Server" as Express
+    component "Socket.IO Serveur\n(WebSocket)" as SIOServer
+    component "Sequelize ORM" as Sequelize
+    component "Multer\n(upload fichiers)" as Multer
+    artifact "Fichiers uploadés\n(/uploads)" as Uploads
+  }
+
+  node "MySQL Server\n(port 3306)" as MySQLNode {
+    database "Base tlasway" as DB {
+      component "Tables:\nusers, rides, bookings,\nmessages, conversations,\nreviews, notifications,\nfriendships, posts..." as Tables
+    }
+  }
+}
+
+node "Services Cloud Externes" as Cloud {
+  node "Google Mail\n(Gmail SMTP)" as GmailNode {
+    component "atlaswaymaroc@gmail.com" as GmailAddr
+  }
+
+  node "Twilio\n(API SMS)" as TwilioNode {
+    component "Twilio Messaging API" as TwilioAPI
+  }
+}
+
+' Connexions
+Browser --> NodeProcess : HTTPS / REST API\n(port 4000)
+Browser --> SIOServer : WebSocket (ws://)\n(port 4000)
+Phone --> NodeProcess : HTTPS / REST API\n(port 4000)
+
+Express --> Sequelize
+Sequelize --> DB : TCP (port 3306)
+Express --> Multer
+Multer --> Uploads
+
+Express --> GmailNode : SMTP TLS (port 465/587)
+Express --> TwilioNode : HTTPS API
+
+note bottom of DevServer
+  Phase de développement :
+  - Backend : nodemon (hot reload)
+  - Web : Vite dev server (port 5173)
+  - Mobile : Metro Bundler
+end note
+
+note bottom of Cloud
+  Services tiers gérés :
+  - Gmail : envoi emails vérification
+  - Twilio : envoi SMS vérification
+  (optionnel si non configuré)
+end note
+
+@enduml

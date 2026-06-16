@@ -1,0 +1,65 @@
+@startuml Séquence - Messagerie
+title Diagramme de Séquence — Messagerie en Temps Réel (Socket.IO)
+
+skinparam sequenceArrowColor #2563EB
+skinparam sequenceParticipantBackgroundColor #DBEAFE
+skinparam sequenceParticipantBorderColor #2563EB
+skinparam sequenceParticipantFontColor #1E293B
+skinparam sequenceLifeLineBorderColor #94A3B8
+skinparam backgroundColor #FFFFFF
+
+actor "Utilisateur A" as UserA
+actor "Utilisateur B" as UserB
+participant "Frontend A" as FrontA
+participant "Frontend B" as FrontB
+participant "Socket.IO\nServeur" as Socket
+participant "API REST" as API
+participant "Base de données" as DB
+
+== Connexion au Socket ==
+
+FrontA -> Socket : connect({token})
+Socket -> Socket : Vérifier JWT token
+Socket --> FrontA : connected (userId=A)
+Socket -> Socket : Rejoindre room "user_A"
+
+FrontB -> Socket : connect({token})
+Socket --> FrontB : connected (userId=B)
+Socket -> Socket : Rejoindre room "user_B"
+
+== Ouverture d'une Conversation ==
+
+UserA -> FrontA : Ouvrir messagerie avec B
+FrontA -> API : GET /messages/conversation/:conversationId
+API -> DB : SELECT messages WHERE conversationId=?\nORDER BY createdAt ASC
+DB --> API : Historique des messages
+API --> FrontA : [{message1}, {message2}, ...]
+FrontA --> UserA : Afficher conversation
+
+FrontA -> API : PATCH /messages/conversation/:id/read
+API -> DB : UPDATE messages SET read=true\nWHERE conversationId=? AND senderId=B
+DB --> API : OK
+
+== Envoi d'un Message ==
+
+UserA -> FrontA : Saisir et envoyer un message
+FrontA -> API : POST /messages\n{conversationId, content}\nAuthorization: Bearer token
+API -> API : Vérifier token
+API -> DB : INSERT INTO messages\n(conversationId, senderId=A, content, read=false)
+DB --> API : Message créé (id, createdAt)
+API -> DB : UPDATE conversations SET lastMessageAt=now
+API --> FrontA : 201 - {message}
+FrontA --> UserA : Afficher message envoyé
+
+API -> Socket : Émettre "new_message"\nvers room "user_B"
+Socket --> FrontB : Événement "new_message" {message}
+FrontB --> UserB : Afficher nouveau message\n+ notification sonore
+
+== Lecture du Message ==
+
+UserB -> FrontB : Lire le message
+FrontB -> Socket : Émettre "message_read"\n{conversationId, messageId}
+Socket --> FrontA : Événement "message_read"
+FrontA --> UserA : Afficher indicateur "Lu ✓"
+
+@enduml

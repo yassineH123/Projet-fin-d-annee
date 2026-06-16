@@ -1,0 +1,121 @@
+@startuml Diagramme de Cas d'Utilisation - AtlasWay
+title Diagramme de Cas d'Utilisation — AtlasWay
+
+skinparam actorBackgroundColor #DBEAFE
+skinparam actorBorderColor #2563EB
+skinparam actorFontColor #1E293B
+skinparam usecaseBackgroundColor #EFF6FF
+skinparam usecaseBorderColor #2563EB
+skinparam usecaseFontColor #1E293B
+skinparam backgroundColor #FFFFFF
+skinparam arrowColor #475569
+skinparam packageBackgroundColor #F8FAFC
+skinparam packageBorderColor #CBD5E1
+
+left to right direction
+
+actor "Visiteur" as Guest
+actor "Utilisateur" as User
+actor "Conducteur" as Driver
+actor "Administrateur" as Admin
+actor "Super Admin" as SuperAdmin
+
+Driver --|> User
+Admin --|> User
+SuperAdmin --|> Admin
+
+rectangle "AtlasWay" {
+
+  rectangle "Authentification" {
+    usecase "S'inscrire" as UC1
+    usecase "Vérifier son compte (email/SMS)" as UC2
+    usecase "Se connecter" as UC3
+    usecase "Mot de passe oublié" as UC4
+  }
+
+  rectangle "Trajets" {
+    usecase "Rechercher un trajet" as UC5
+    usecase "Voir le détail d'un trajet" as UC6
+    usecase "Réserver un trajet" as UC7
+    usecase "Publier un trajet" as UC8
+    usecase "Gérer ses trajets" as UC9
+    usecase "Annuler un trajet" as UC10
+  }
+
+  rectangle "Réservations" {
+    usecase "Accepter une réservation" as UC11
+    usecase "Refuser une réservation" as UC12
+    usecase "Annuler sa réservation" as UC13
+    usecase "Voir ses réservations" as UC14
+  }
+
+  rectangle "Messagerie" {
+    usecase "Envoyer un message" as UC15
+    usecase "Voir ses conversations" as UC16
+  }
+
+  rectangle "Profil & Social" {
+    usecase "Compléter son profil" as UC17
+    usecase "Laisser un avis" as UC18
+    usecase "Ajouter un ami" as UC19
+    usecase "Voir le fil d'actualité" as UC20
+    usecase "Publier un post" as UC21
+  }
+
+  rectangle "Conducteur" {
+    usecase "S'inscrire comme conducteur" as UC22
+    usecase "Voir le tableau de bord conducteur" as UC23
+  }
+
+  rectangle "Administration" {
+    usecase "Voir le tableau de bord admin" as UC24
+    usecase "Gérer les utilisateurs" as UC25
+    usecase "Bloquer / Suspendre un utilisateur" as UC26
+    usecase "Gérer les trajets" as UC27
+    usecase "Annuler un trajet (admin)" as UC28
+  }
+
+  rectangle "Super Administration" {
+    usecase "Gérer les admins" as UC29
+    usecase "Supprimer n'importe quel compte" as UC30
+  }
+}
+
+Guest --> UC1
+Guest --> UC3
+Guest --> UC4
+Guest --> UC5
+Guest --> UC6
+
+User --> UC2
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC13
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+User --> UC19
+User --> UC20
+User --> UC21
+User --> UC22
+
+Driver --> UC8
+Driver --> UC9
+Driver --> UC10
+Driver --> UC11
+Driver --> UC12
+Driver --> UC23
+
+Admin --> UC24
+Admin --> UC25
+Admin --> UC26
+Admin --> UC27
+Admin --> UC28
+
+SuperAdmin --> UC29
+SuperAdmin --> UC30
+
+@enduml

@@ -1,0 +1,139 @@
+@startuml Diagramme de Composants
+title Diagramme de Composants — Architecture AtlasWay
+
+skinparam componentBackgroundColor #EFF6FF
+skinparam componentBorderColor #2563EB
+skinparam componentFontColor #1E293B
+skinparam interfaceBackgroundColor #FFFFFF
+skinparam interfaceBorderColor #475569
+skinparam packageBackgroundColor #F8FAFC
+skinparam packageBorderColor #CBD5E1
+skinparam packageFontColor #1D4ED8
+skinparam arrowColor #475569
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+package "Client Web\n(React + Vite)" {
+  [Pages\n(Home, Rides, Profile...)] as Pages
+  [Context\n(AuthContext, ThemeContext)] as Context
+  [Services\n(api.js - Axios)] as WebServices
+  [Socket Client\n(socket.io-client)] as SocketClient
+  [Components\n(Navbar, Cards, Forms...)] as Components
+}
+
+package "Client Mobile\n(React Native)" {
+  [Screens] as Screens
+  [Navigation\n(React Navigation)] as Nav
+  [Store\n(Zustand)] as Store
+  [API Client\n(Axios)] as MobileAPI
+}
+
+package "Backend\n(Node.js + Express)" {
+
+  package "Routes" {
+    [authRoutes] as AuthR
+    [userRoutes] as UserR
+    [rideRoutes] as RideR
+    [bookingRoutes] as BookR
+    [messageRoutes] as MsgR
+    [adminRoutes] as AdminR
+    [postRoutes] as PostR
+    [notificationRoutes] as NotifR
+    [friendRoutes] as FriendR
+    [reviewRoutes] as RevR
+  }
+
+  package "Controllers" {
+    [authController] as AuthC
+    [userController] as UserC
+    [rideController] as RideC
+    [bookingController] as BookC
+    [messageController] as MsgC
+    [adminController] as AdminC
+  }
+
+  package "Middleware" {
+    [authenticateToken\n(JWT)] as AuthMW
+    [authorizeRoles] as RoleMW
+    [uploadMiddleware\n(Multer)] as UploadMW
+    [errorMiddleware] as ErrorMW
+  }
+
+  package "Services" {
+    [emailService\n(Nodemailer)] as EmailSvc
+    [smsService\n(Twilio)] as SmsSvc
+    [notificationService] as NotifSvc
+    [seedService] as SeedSvc
+  }
+
+  [Socket.IO\nServeur] as SocketServer
+
+  package "Models (Sequelize)" {
+    [User] as UserM
+    [Ride] as RideM
+    [Booking] as BookM
+    [Message] as MsgM
+    [Conversation] as ConvM
+    [Notification] as NotifM
+    [Review] as RevM
+    [Friendship] as FriendM
+    [Post / PostLike / PostComment] as PostM
+    [VerificationCode] as VCodeM
+  }
+}
+
+package "Base de Données" {
+  database "MySQL\n(Sequelize ORM)" as MySQL
+}
+
+package "Services Externes" {
+  [Gmail SMTP\n(Nodemailer)] as Gmail
+  [Twilio SMS API] as Twilio
+}
+
+' Connexions Web → Backend
+WebServices --> AuthR : HTTP REST\n(JWT Bearer)
+WebServices --> RideR
+WebServices --> BookR
+WebServices --> MsgR
+SocketClient --> SocketServer : WebSocket
+
+' Connexions Mobile → Backend
+MobileAPI --> AuthR : HTTP REST
+MobileAPI --> RideR
+MobileAPI --> BookR
+
+' Routes → Controllers → Middleware
+AuthR --> AuthMW
+AuthR --> AuthC
+RideR --> AuthMW
+RideR --> RideC
+BookR --> AuthMW
+BookR --> BookC
+AdminR --> AuthMW
+AdminR --> RoleMW
+AdminR --> AdminC
+MsgR --> AuthMW
+MsgR --> MsgC
+
+' Controllers → Services
+AuthC --> EmailSvc
+AuthC --> SmsSvc
+BookC --> NotifSvc
+MsgC --> SocketServer
+
+' Services → External
+EmailSvc --> Gmail
+SmsSvc --> Twilio
+
+' Models → DB
+UserM --> MySQL
+RideM --> MySQL
+BookM --> MySQL
+MsgM --> MySQL
+ConvM --> MySQL
+NotifM --> MySQL
+
+@enduml

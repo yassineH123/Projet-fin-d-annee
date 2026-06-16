@@ -1,0 +1,85 @@
+@startuml Séquence - Inscription
+title Diagramme de Séquence — Inscription et Vérification
+
+skinparam sequenceArrowColor #2563EB
+skinparam sequenceParticipantBackgroundColor #DBEAFE
+skinparam sequenceParticipantBorderColor #2563EB
+skinparam sequenceParticipantFontColor #1E293B
+skinparam sequenceLifeLineBorderColor #94A3B8
+skinparam backgroundColor #FFFFFF
+skinparam noteFontColor #1E293B
+skinparam noteBackgroundColor #FEF9C3
+skinparam noteBorderColor #EAB308
+
+actor "Utilisateur" as User
+participant "Web / Mobile\n(Frontend)" as Front
+participant "API\n(authController)" as API
+participant "Base de données\n(MySQL)" as DB
+participant "Service Email\n(Nodemailer)" as Email
+participant "Service SMS\n(Twilio)" as SMS
+
+User -> Front : Remplir le formulaire\n(prénom, nom, email, mdp)
+User -> Front : Choisir Email ou SMS
+Front -> API : POST /auth/register\n{firstName, lastName, email,\npassword, phone?, verificationMethod}
+
+API -> API : Valider les champs
+API -> DB : SELECT * FROM users WHERE email = ?
+
+alt Email déjà vérifié
+  DB --> API : User trouvé (verified=true)
+  API --> Front : 409 - Email déjà utilisé
+  Front --> User : Afficher erreur
+else Nouveau compte
+  DB --> API : Pas de résultat
+  API -> API : bcrypt.hash(password)
+  API -> API : Générer referralCode
+  API -> DB : INSERT INTO users (...)
+  DB --> API : User créé
+
+  API -> API : Générer code OTP (6 chiffres)
+  API -> API : expiresAt = now + 10 min
+  API -> DB : DELETE verification_codes WHERE email
+  API -> DB : INSERT INTO verification_codes (email, code, expiresAt)
+
+  API --> Front : 201 - {email, verificationRequired: true}
+  Front --> User : Afficher écran de vérification
+
+  alt verificationMethod = "email"
+    API -> Email : sendVerificationEmail({to, firstName, code})
+    Email --> User : Email avec code OTP
+  else verificationMethod = "sms"
+    API -> SMS : sendVerificationSMS({to: phone, code})
+    SMS --> User : SMS avec code OTP
+  end
+end
+
+== Vérification du code ==
+
+User -> Front : Saisir le code OTP
+Front -> API : POST /auth/verify-email\n{email, code}
+
+API -> DB : SELECT * FROM verification_codes\nWHERE email=? AND code=?
+
+alt Code introuvable
+  DB --> API : Pas de résultat
+  API --> Front : 400 - Code incorrect
+  Front --> User : Afficher erreur
+else Code trouvé
+  DB --> API : Entry trouvée
+  API -> API : Vérifier expiresAt > now
+
+  alt Code expiré
+    API -> DB : DELETE verification_codes WHERE email
+    API --> Front : 400 - Code expiré
+    Front --> User : Afficher erreur
+  else Code valide
+    API -> DB : UPDATE users SET verified=true
+    API -> DB : DELETE verification_codes WHERE email
+    API -> API : signToken(user)
+    API --> Front : 200 - {token, user}
+    Front -> Front : Stocker token (localStorage)
+    Front --> User : Rediriger vers Onboarding
+  end
+end
+
+@enduml
