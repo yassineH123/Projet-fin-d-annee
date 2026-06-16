@@ -40,7 +40,7 @@ Ces comptes sont créés automatiquement au démarrage du backend.
 | Rôle           | Email                        | Mot de passe    |
 |----------------|------------------------------|-----------------|
 | Super Admin    | superadmin@atlasway.com      | superadmin123   |
-| Admin          | admin@atlasway.com           | admin123        |
+| Admin          |admin@atlasway.com            | admin123        |
 
 > Les comptes admin et superadmin ont accès au dashboard d'administration sur `/admin`.
 
