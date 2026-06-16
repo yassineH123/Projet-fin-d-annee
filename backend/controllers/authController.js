@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
 const { User, VerificationCode } = require('../models');
-const { record: recordLogin } = require('./loginHistoryController');
 const { sendVerificationEmail } = require('../services/emailService');
 const { sendVerificationSMS }   = require('../services/smsService');
 
@@ -34,7 +33,7 @@ async function register(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { firstName, lastName, email, password, phone, referralCode: refCode } = req.body;
+    const { firstName, lastName, email, password, phone, referralCode: refCode, verificationMethod } = req.body;
     const existing = await User.findOne({ where: { email } });
 
     if (existing && existing.verified) {
@@ -65,19 +64,21 @@ async function register(req, res, next) {
     await VerificationCode.destroy({ where: { email } });
     await VerificationCode.create({ email, code, expiresAt });
 
+    const useSMS = verificationMethod === 'sms' && phone;
+
     res.status(201).json({
-      message: phone ? 'Code envoyé par SMS.' : 'Code envoyé par email.',
+      message: useSMS ? 'Code envoyé par SMS.' : 'Code envoyé par email.',
       email,
       verificationRequired: true,
     });
 
-    if (phone) {
+    if (useSMS) {
       sendVerificationSMS({ to: phone, code }).catch(err =>
         console.error('SMS send failed:', err.message)
       );
     } else {
       sendVerificationEmail({ to: email, firstName, code }).catch(err =>
-        console.error('Email send failed:', err.message)
+        console.error('[EMAIL ERROR]', err.message)
       );
     }
   } catch (error) {
@@ -111,11 +112,6 @@ async function verifyEmail(req, res, next) {
 
     await user.update({ verified: true, onboardingDone: false });
     await entry.destroy();
-
-    // Créditer le parrain de 10 DH
-    if (user.referredBy) {
-      await User.increment({ referralCredits: 10 }, { where: { id: user.referredBy } });
-    }
 
     return res.json({
       message: 'Email vérifié avec succès.',
@@ -198,12 +194,6 @@ async function login(req, res, next) {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
     }
 
-    if (!user.referralCode) {
-      await user.update({ referralCode: generateReferralCode() });
-    }
-
-    recordLogin(user.id, req, true);
-
     return res.json({
       message: 'Connexion réussie.',
       token: signToken(user),
@@ -213,13 +203,9 @@ async function login(req, res, next) {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        walletBalance: user.walletBalance,
-        level: user.level,
-        badges: user.badges,
       },
     });
   } catch (error) {
-    recordLogin(null, req, false);
     return next(error);
   }
 }

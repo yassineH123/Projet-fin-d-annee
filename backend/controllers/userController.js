@@ -1,28 +1,6 @@
 const { Op } = require('sequelize');
 const { User, Ride, Booking, Review } = require('../models');
 
-async function searchUsers(req, res, next) {
-  try {
-    const q = (req.query.q || '').trim();
-    if (!q || q.length < 2) return res.json({ users: [] });
-
-    const users = await User.findAll({
-      where: {
-        status: 'active',
-        [Op.or]: [
-          { firstName: { [Op.like]: `%${q}%` } },
-          { lastName:  { [Op.like]: `%${q}%` } },
-        ],
-      },
-      attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating', 'totalTrips', 'isDriver', 'driverVerified'],
-      limit: 6,
-      order: [['avgRating', 'DESC']],
-    });
-
-    return res.json({ users });
-  } catch (err) { return next(err); }
-}
-
 async function me(req, res, next) {
   try {
     const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
@@ -66,7 +44,6 @@ async function updateProfile(req, res, next) {
       firstName, lastName, phone, bio, preferences, languages,
       carModel, carColor, carYear, licensePlate,
       isHandicapped, handicapAccessible,
-      nationality, country, birthDate,
     } = req.body;
 
     const updates = {};
@@ -80,9 +57,6 @@ async function updateProfile(req, res, next) {
     if (licensePlate !== undefined)      updates.licensePlate      = licensePlate;
     if (isHandicapped !== undefined)     updates.isHandicapped     = isHandicapped === 'true' || isHandicapped === true;
     if (handicapAccessible !== undefined) updates.handicapAccessible = handicapAccessible === 'true' || handicapAccessible === true;
-    if (nationality !== undefined)        updates.nationality        = nationality;
-    if (country     !== undefined)        updates.country            = country;
-    if (birthDate   !== undefined)        updates.birthDate          = birthDate || null;
 
     if (preferences) {
       updates.preferences = typeof preferences === 'string' ? JSON.parse(preferences) : preferences;
@@ -93,12 +67,11 @@ async function updateProfile(req, res, next) {
 
     if (req.files?.photo?.[0])        updates.photo        = `/uploads/${req.files.photo[0].filename}`;
     if (req.files?.carPhoto?.[0])     updates.carPhoto     = `/uploads/${req.files.carPhoto[0].filename}`;
-    if (req.files?.cinDoc?.[0])        updates.cinDoc        = `/uploads/${req.files.cinDoc[0].filename}`;
-    if (req.files?.permisDoc?.[0])     updates.permisDoc     = `/uploads/${req.files.permisDoc[0].filename}`;
+    if (req.files?.cinDoc?.[0])       updates.cinDoc       = `/uploads/${req.files.cinDoc[0].filename}`;
+    if (req.files?.permisDoc?.[0])    updates.permisDoc    = `/uploads/${req.files.permisDoc[0].filename}`;
     if (req.files?.carteGriseDoc?.[0]) updates.carteGriseDoc = `/uploads/${req.files.carteGriseDoc[0].filename}`;
-    if (req.files?.passportDoc?.[0])   updates.passportDoc   = `/uploads/${req.files.passportDoc[0].filename}`;
 
-    if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0] || req.files?.passportDoc?.[0]) {
+    if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0]) {
       updates.driverVerified = false; // reset, admin doit re-valider
     }
 
@@ -196,4 +169,4 @@ function computeBadges(user, totalRides, referredCount) {
   return badges;
 }
 
-module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats, searchUsers };
+module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats };
