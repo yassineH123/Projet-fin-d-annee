@@ -27,10 +27,6 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  birthDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: true,
-  },
   avatar: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -99,19 +95,6 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  passportDoc: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  nationality: {
-    type: DataTypes.ENUM('moroccan', 'foreign'),
-    defaultValue: 'moroccan',
-    allowNull: false,
-  },
-  country: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-  },
   driverVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
@@ -130,7 +113,7 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM('active', 'suspended'),
+    type: DataTypes.ENUM('active', 'suspended', 'blocked'),
     defaultValue: 'active',
     allowNull: false,
   },
@@ -156,34 +139,9 @@ const User = sequelize.define('User', {
     type: DataTypes.UUID,
     allowNull: true,
   },
-  referralCredits: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: false,
-  },
   badges: {
     type: DataTypes.JSON,
     defaultValue: [],
-  },
-  walletBalance: {
-    type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0,
-    allowNull: false,
-  },
-  totalKm: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: false,
-  },
-  level: {
-    type: DataTypes.ENUM('bronze', 'argent', 'or', 'platine', 'diamant'),
-    defaultValue: 'bronze',
-    allowNull: false,
-  },
-  kycStatus: {
-    type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'),
-    defaultValue: 'none',
-    allowNull: false,
   },
 }, {
   timestamps: true,

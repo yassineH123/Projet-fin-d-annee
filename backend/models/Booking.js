@@ -28,11 +28,6 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  creditsUsed: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: false,
-  },
 }, {
   tableName: 'bookings',
   timestamps: true,
