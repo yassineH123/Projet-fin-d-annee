@@ -9,6 +9,15 @@ async function sendRequest(req, res, next) {
     if (!receiverId) return res.status(400).json({ message: 'receiverId requis.' });
     if (requesterId === receiverId) return res.status(400).json({ message: 'Vous ne pouvez pas vous ajouter vous-même.' });
 
+    if (['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Les administrateurs ne peuvent pas avoir d\'amis.' });
+    }
+    const receiver = await User.findByPk(receiverId, { attributes: ['id', 'role'] });
+    if (!receiver) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    if (['admin', 'superadmin'].includes(receiver.role)) {
+      return res.status(403).json({ message: 'Impossible d\'envoyer une demande d\'ami à un administrateur.' });
+    }
+
     const existing = await Friendship.findOne({
       where: {
         [Op.or]: [

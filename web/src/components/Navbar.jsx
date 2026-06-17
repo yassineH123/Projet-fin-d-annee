@@ -69,11 +69,14 @@ export default function Navbar() {
   /* Poll counts + notifications */
   useEffect(() => {
     if (!user) return;
+    const isAdmin = ['admin', 'superadmin'].includes(user.role);
     const poll = () => {
       api.get('/messages/unread-count').then(({ data }) => setUnreadMsg(data.count)).catch(() => {});
-      api.get('/bookings/pending-count').then(({ data }) => setPendingBooks(data.count)).catch(() => {});
       api.get('/notifications').then(({ data }) => setNotifs(data.notifications || [])).catch(() => {});
-      api.get('/friends/pending-count').then(({ data }) => setFriendReqs(data.count)).catch(() => {});
+      if (!isAdmin) {
+        api.get('/bookings/pending-count').then(({ data }) => setPendingBooks(data.count)).catch(() => {});
+        api.get('/friends/pending-count').then(({ data }) => setFriendReqs(data.count)).catch(() => {});
+      }
     };
     poll();
     intervalRef.current = setInterval(poll, 30_000);
@@ -90,6 +93,8 @@ export default function Navbar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const isAdminRole = ['admin', 'superadmin'].includes(user?.role);
 
   const handleLogout = () => { logout(); navigate('/'); };
   const handleSearch = (e) => {
@@ -108,15 +113,20 @@ export default function Navbar() {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
-  const profileMenuItems = [
-    { to: '/profile',          icon: User,          label: t.profileMenu.profile },
-    { to: '/friends',          icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
-    { to: '/driver-dashboard', icon: BarChart2,     label: t.profileMenu.dashboard },
-    { to: '/rides/publish',    icon: Plus,          label: t.profileMenu.publish },
-    { to: '/rides/mine',       icon: Car,           label: t.profileMenu.rides },
-    { to: '/bookings',         icon: BookOpen,      label: t.profileMenu.bookings },
-    { to: '/messages',         icon: MessageSquare, label: t.profileMenu.messages },
-  ];
+  const profileMenuItems = isAdminRole
+    ? [
+        { to: '/profile',  icon: User,          label: t.profileMenu.profile },
+        { to: '/messages', icon: MessageSquare, label: t.profileMenu.messages },
+      ]
+    : [
+        { to: '/profile',          icon: User,          label: t.profileMenu.profile },
+        { to: '/friends',          icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
+        { to: '/driver-dashboard', icon: BarChart2,     label: t.profileMenu.dashboard },
+        { to: '/rides/publish',    icon: Plus,          label: t.profileMenu.publish },
+        { to: '/rides/mine',       icon: Car,           label: t.profileMenu.rides },
+        { to: '/bookings',         icon: BookOpen,      label: t.profileMenu.bookings },
+        { to: '/messages',         icon: MessageSquare, label: t.profileMenu.messages },
+      ];
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
@@ -194,38 +204,42 @@ export default function Navbar() {
                 )}
               </NavLink>
 
-              {/* Mes Trajets */}
-              <NavLink to="/rides/mine"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.rides}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Car size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.rides}</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* Réservations */}
-              <NavLink to="/bookings"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.bookings}
-              >
-                {({ isActive }) => (
-                  <>
-                    <BookOpen size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.bookings}</span>
-                    {pendingBooks > 0 && (
-                      <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#D4890A' }}>
-                        {pendingBooks > 9 ? '9+' : pendingBooks}
-                      </span>
+              {!isAdminRole && (
+                <>
+                  {/* Mes Trajets */}
+                  <NavLink to="/rides/mine"
+                    className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group"
+                    style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
+                    title={t.nav.rides}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Car size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
+                        <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.rides}</span>
+                      </>
                     )}
-                  </>
-                )}
-              </NavLink>
+                  </NavLink>
+
+                  {/* Réservations */}
+                  <NavLink to="/bookings"
+                    className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
+                    style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
+                    title={t.nav.bookings}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <BookOpen size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
+                        <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.bookings}</span>
+                        {pendingBooks > 0 && (
+                          <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#D4890A' }}>
+                            {pendingBooks > 9 ? '9+' : pendingBooks}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                </>
+              )}
 
               {/* Messages */}
               <NavLink to="/messages"
@@ -247,23 +261,25 @@ export default function Navbar() {
               </NavLink>
 
               {/* Amis */}
-              <NavLink to="/friends"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.friends}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Users size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.friends}</span>
-                    {friendReqs > 0 && (
-                      <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
-                        {friendReqs > 9 ? '9+' : friendReqs}
-                      </span>
-                    )}
-                  </>
-                )}
-              </NavLink>
+              {!isAdminRole && (
+                <NavLink to="/friends"
+                  className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
+                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
+                  title={t.nav.friends}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Users size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
+                      <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.friends}</span>
+                      {friendReqs > 0 && (
+                        <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                          {friendReqs > 9 ? '9+' : friendReqs}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )}
 
               {/* ── Notifications ── */}
               <div ref={notifRef} className="relative hidden md:block">
@@ -500,13 +516,19 @@ export default function Navbar() {
           <MobileLink to="/feed"          icon={<Rss size={16} />}           label={t.mobile.feed} />
           {user ? (
             <>
-              <MobileLink to="/rides/publish" icon={<Plus size={16} />}         label={t.mobile.publish} />
-              <MobileLink to="/rides/mine"    icon={<Car size={16} />}           label={t.mobile.rides} />
-              <MobileLink to="/bookings"      icon={<BookOpen size={16} />}      label={t.mobile.bookings}  badge={pendingBooks} badgeColor="bg-yellow-500 text-black" />
+              {!isAdminRole && (
+                <>
+                  <MobileLink to="/rides/publish" icon={<Plus size={16} />}         label={t.mobile.publish} />
+                  <MobileLink to="/rides/mine"    icon={<Car size={16} />}           label={t.mobile.rides} />
+                  <MobileLink to="/bookings"      icon={<BookOpen size={16} />}      label={t.mobile.bookings}  badge={pendingBooks} badgeColor="bg-yellow-500 text-black" />
+                </>
+              )}
               <MobileLink to="/messages"      icon={<MessageSquare size={16} />} label={t.mobile.messages}  badge={unreadMsg}    badgeColor="bg-red-500 text-white" />
-              <MobileLink to="/friends"       icon={<Users size={16} />}         label={t.mobile.friends}   badge={friendReqs}   badgeColor="bg-red-500 text-white" />
+              {!isAdminRole && (
+                <MobileLink to="/friends" icon={<Users size={16} />} label={t.mobile.friends} badge={friendReqs} badgeColor="bg-red-500 text-white" />
+              )}
               <MobileLink to="/profile"       icon={<User size={16} />}          label={t.mobile.profile} />
-              {['admin','superadmin'].includes(user?.role) && (
+              {isAdminRole && (
                 <MobileLink to="/admin" icon={<Shield size={16} />} label={t.mobile.admin} />
               )}
               {/* Mobile language selector */}

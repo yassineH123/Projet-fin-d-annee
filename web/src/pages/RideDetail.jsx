@@ -1,11 +1,60 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Check, X } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Check, X, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { StarDisplay } from '../components/StarRating';
 import Spinner from '../components/Spinner';
+
+const REPORT_REASONS = [
+  { value: 'trajet_suspect',       label: 'Trajet suspect' },
+  { value: 'fraude',               label: 'Fraude' },
+  { value: 'securite',             label: 'Problème de sécurité' },
+  { value: 'comportement',         label: 'Comportement du conducteur' },
+  { value: 'contenu_inapproprie',  label: 'Contenu inapproprié' },
+  { value: 'autre',                label: 'Autre' },
+];
+
+function ReportRideModal({ rideId, onClose }) {
+  const [reason, setReason]           = useState('trajet_suspect');
+  const [description, setDescription] = useState('');
+  const [sending, setSending]         = useState(false);
+
+  const submit = async () => {
+    setSending(true);
+    try {
+      await api.post('/reports', { rideId, reason, description: description.trim() || undefined });
+      toast.success('Trajet signalé. Notre équipe va l\'examiner.');
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur lors du signalement.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Flag size={18} className="text-red-400" /> Signaler ce trajet</h3>
+        <label className="text-sm text-slate-400 mb-1.5 block">Motif</label>
+        <select value={reason} onChange={(e) => setReason(e.target.value)} className="input text-sm mb-3">
+          {REPORT_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+        <label className="text-sm text-slate-400 mb-1.5 block">Description (optionnel)</label>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
+          placeholder="Détaillez le problème..." className="input text-sm mb-4 resize-none" />
+        <div className="flex gap-2">
+          <button onClick={onClose} className="btn-secondary flex-1 text-sm">Annuler</button>
+          <button onClick={submit} disabled={sending} className="btn-primary flex-1 text-sm">
+            {sending ? 'Envoi...' : 'Signaler'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RideDetail() {
   const { id } = useParams();
@@ -17,6 +66,7 @@ export default function RideDetail() {
   const [booking, setBooking] = useState(false);
   const [seats,   setSeats]   = useState(1);
   const [message, setMessage] = useState('');
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -198,9 +248,18 @@ export default function RideDetail() {
             {isOwn && (
               <div className="text-center py-3 text-slate-400 text-sm bg-dark-700 rounded-xl">Votre trajet</div>
             )}
+
+            {user && !isOwn && (
+              <button onClick={() => setShowReport(true)}
+                className="w-full mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-red-400 transition-colors">
+                <Flag size={12} /> Signaler ce trajet
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {showReport && <ReportRideModal rideId={id} onClose={() => setShowReport(false)} />}
     </div>
   );
 }

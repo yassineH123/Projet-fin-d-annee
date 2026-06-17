@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Car, BookOpen, Star, Shield, Settings, BarChart2, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Users, Car, BookOpen, Star, Shield, Settings, BarChart2, TrendingUp, AlertTriangle, Flag, Ban } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +28,14 @@ export default function AdminHome() {
       description: 'Voir et annuler les trajets publiés',
       color: '#10B981',
       bg: 'rgba(16,185,129,0.1)',
+    },
+    {
+      to: '/admin',
+      icon: Flag,
+      label: 'Signalements',
+      description: 'Traiter les signalements et changer leur statut',
+      color: '#F97316',
+      bg: 'rgba(249,115,22,0.1)',
     },
     {
       to: '/admin',
@@ -61,10 +69,13 @@ export default function AdminHome() {
       {/* Statistiques rapides */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {[
-          { icon: Users,    label: 'Utilisateurs', value: stats?.totalUsers,    color: 'bg-blue-600' },
-          { icon: Car,      label: 'Trajets',       value: stats?.totalRides,    color: 'bg-green-600' },
-          { icon: BookOpen, label: 'Réservations',  value: stats?.totalBookings, color: 'bg-yellow-600' },
-          { icon: Star,     label: 'Avis',          value: stats?.totalReviews,  color: 'bg-purple-600' },
+          { icon: Users,    label: 'Utilisateurs',   value: stats?.totalUsers,    color: 'bg-blue-600' },
+          { icon: Car,      label: 'Conducteurs',    value: stats?.totalDrivers,  color: 'bg-teal-600' },
+          { icon: Car,      label: 'Trajets',        value: stats?.totalRides,    color: 'bg-green-600' },
+          { icon: BookOpen, label: 'Réservations',   value: stats?.totalBookings, color: 'bg-yellow-600' },
+          { icon: Flag,     label: 'Signalements',   value: stats?.totalReports,  color: 'bg-orange-600' },
+          { icon: Ban,      label: 'Comptes bannis', value: stats?.totalBanned,   color: 'bg-red-600' },
+          { icon: Star,     label: 'Avis',           value: stats?.totalReviews,  color: 'bg-purple-600' },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="card flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>

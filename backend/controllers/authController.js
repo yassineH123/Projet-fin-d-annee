@@ -182,7 +182,11 @@ async function login(req, res, next) {
     }
 
     if (user.status === 'blocked') {
-      return res.status(403).json({ message: 'Compte bloqué.' });
+      return res.status(403).json({ message: 'Ce compte a été banni.' });
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'Ce compte a été désactivé.' });
     }
 
     if (!user.verified) {

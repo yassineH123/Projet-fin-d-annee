@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf, Bell, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../services/api';
 import RideCard from '../components/RideCard';
 import Spinner from '../components/Spinner';
+import { useAuth } from '../context/AuthContext';
 import { ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS, findRoutes, formatDuration, co2Color } from '../data/transportData';
 
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Laâyoune'];
@@ -68,11 +70,13 @@ function StaticTransportCard({ item, mode }) {
 }
 
 export default function SearchRides() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [rides,    setRides]    = useState([]);
   const [loading,  setLoading]  = useState(false);
   const [showAdv,  setShowAdv]  = useState(false);
   const [transportMode, setTransportMode] = useState('covoiturage');
+  const [savedSearches, setSavedSearches] = useState([]);
 
   const [from,       setFrom]       = useState(searchParams.get('from') || '');
   const [to,         setTo]         = useState(searchParams.get('to')   || '');
@@ -106,6 +110,12 @@ export default function SearchRides() {
 
   useEffect(() => { fetchRides(); }, []);
 
+  const fetchSavedSearches = () => {
+    if (!user) return;
+    api.get('/saved-searches').then(({ data }) => setSavedSearches(data.searches)).catch(() => {});
+  };
+  useEffect(() => { fetchSavedSearches(); }, [user]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     const p = {};
@@ -117,6 +127,29 @@ export default function SearchRides() {
   };
 
   const resetFilters = () => { setMaxPrice(''); setMinRating(0); setVerifiedOnly(false); setPmrOnly(false); setSortBy('date_asc'); setSeats(1); };
+
+  const saveCurrentSearch = async () => {
+    if (!from.trim() || !to.trim()) {
+      toast.error('Indiquez une ville de départ et d\'arrivée pour sauvegarder la recherche.');
+      return;
+    }
+    try {
+      await api.post('/saved-searches', { fromCity: from.trim(), toCity: to.trim() });
+      toast.success('Recherche sauvegardée ! Vous serez alerté des nouveaux trajets.');
+      fetchSavedSearches();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur');
+    }
+  };
+
+  const removeSavedSearch = async (id) => {
+    try {
+      await api.delete(`/saved-searches/${id}`);
+      setSavedSearches((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      toast.error('Erreur');
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -226,7 +259,29 @@ export default function SearchRides() {
             </button>
           </div>
         )}
+
+        {user && (
+          <button type="button" onClick={saveCurrentSearch}
+            className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-primary-400 transition-colors">
+            <Bell size={13} /> Sauvegarder cette recherche et être alerté des nouveaux trajets
+          </button>
+        )}
       </form>
+
+      {savedSearches.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs text-slate-500 mr-1">Recherches sauvegardées :</span>
+          {savedSearches.map((s) => (
+            <span key={s.id} className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full"
+              style={{ background: 'rgba(193,39,45,0.08)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)' }}>
+              {s.fromCity} → {s.toCity}
+              <button onClick={() => removeSavedSearch(s.id)} className="hover:text-red-300">
+                <Trash2 size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* ── Transport mode tabs ── */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5" style={{ scrollbarWidth: 'none' }} role="tablist" aria-label="Mode de transport">

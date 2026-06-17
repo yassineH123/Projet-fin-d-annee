@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Check, X, Star, MessageSquare } from 'lucide-react';
+import { MapPin, Clock, Check, X, Star, MessageSquare, Leaf } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 import { useAuth } from '../context/AuthContext';
 
+const CO2_KG_PER_SEAT_TRIP = 2 * 120 / 1000;
+
 export default function MyBookings() {
   const navigate               = useNavigate();
   const { user: me }           = useAuth();
   const [tab, setTab]          = useState('passenger');
+  const [period, setPeriod]    = useState('upcoming');
   const [bookings, setBookings] = useState([]);
   const [loading,  setLoading]  = useState(true);
 
@@ -21,6 +24,21 @@ export default function MyBookings() {
   };
 
   useEffect(() => { fetchBookings(); }, [tab]);
+
+  const isPast = (b) => {
+    const ride = b.ride || {};
+    return ride.status === 'completed' || (ride.departureDate && new Date(ride.departureDate) < new Date());
+  };
+
+  const visibleBookings = tab === 'passenger'
+    ? bookings.filter((b) => (period === 'past' ? isPast(b) : !isPast(b)))
+    : bookings;
+
+  const co2Saved = useMemo(() => {
+    const pastAccepted = bookings.filter((b) => b.status === 'accepted' && isPast(b));
+    const totalSeats = pastAccepted.reduce((sum, b) => sum + (b.seats || 1), 0);
+    return Math.round(totalSeats * CO2_KG_PER_SEAT_TRIP * 10) / 10;
+  }, [bookings]);
 
   const handleAction = async (id, action) => {
     try {
@@ -51,7 +69,7 @@ export default function MyBookings() {
       <h1 className="text-2xl font-black text-white mb-6">Réservations</h1>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-dark-800 border border-dark-500 rounded-xl p-1 w-fit">
+      <div className="flex gap-2 mb-4 bg-dark-800 border border-dark-500 rounded-xl p-1 w-fit">
         {[['passenger','Mes voyages'],['driver','Demandes reçues']].map(([v, label]) => (
           <button
             key={v}
@@ -64,14 +82,40 @@ export default function MyBookings() {
         ))}
       </div>
 
-      {loading ? <Spinner /> : bookings.length === 0 ? (
+      {tab === 'passenger' && (
+        <>
+          <div className="card flex items-center gap-3 mb-4" style={{ borderColor: 'rgba(16,185,129,0.25)' }}>
+            <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center flex-shrink-0">
+              <Leaf size={18} className="text-green-400" />
+            </div>
+            <p className="text-sm text-slate-300">
+              <span className="font-bold text-white">{co2Saved} kg</span> de CO₂ économisés en covoiturant au lieu de rouler seul
+            </p>
+          </div>
+
+          <div className="flex gap-2 mb-6">
+            {[['upcoming','À venir'],['past','Historique']].map(([v, label]) => (
+              <button
+                key={v}
+                onClick={() => setPeriod(v)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                  ${period === v ? 'bg-dark-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {loading ? <Spinner /> : visibleBookings.length === 0 ? (
         <div className="text-center py-16 card">
           <MapPin size={40} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">Aucune réservation</p>
+          <p className="text-slate-400">{tab === 'passenger' && period === 'past' ? 'Aucun trajet passé' : 'Aucune réservation'}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {bookings.map((b) => {
+          {visibleBookings.map((b) => {
             const ride  = b.ride || {};
             const other = tab === 'passenger' ? ride.driver : b.passenger;
             const date  = ride.departureDate ? new Date(ride.departureDate) : null;

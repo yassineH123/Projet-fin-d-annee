@@ -1,13 +1,24 @@
 const jwt = require('jsonwebtoken');
+const { User } = require('../models');
 
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
   if (!token) return res.status(401).json({ message: 'Token manquant.' });
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Vérifié en base (et non dans le JWT) pour révoquer immédiatement l'accès
+    // d'un compte suspendu/banni après coup, sans attendre l'expiration du token.
+    const user = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'status'] });
+    if (!user) return res.status(401).json({ message: 'Utilisateur introuvable.' });
+    if (user.status !== 'active') {
+      return res.status(403).json({ message: 'Compte suspendu ou banni.' });
+    }
+
+    req.user = { id: user.id, role: user.role };
     return next();
   } catch {
     return res.status(401).json({ message: 'Token invalide.' });

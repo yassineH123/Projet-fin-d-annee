@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { User } = require('../models');
+const { logAdminAction } = require('../services/auditLogService');
 
 async function listAdmins(req, res, next) {
   try {
@@ -35,6 +36,14 @@ async function createAdmin(req, res, next) {
       status: 'active',
     });
 
+    await logAdminAction({
+      adminId: req.user.id,
+      action: 'CREATE_ADMIN',
+      targetType: 'User',
+      targetId: admin.id,
+      details: { email: admin.email, role: admin.role },
+    });
+
     return res.status(201).json({
       message: 'Admin créé avec succès.',
       admin: {
@@ -58,8 +67,18 @@ async function deleteAdmin(req, res, next) {
     if (!admin || !['admin', 'superadmin'].includes(admin.role)) {
       return res.status(404).json({ message: 'Admin introuvable.' });
     }
+    if (admin.id === req.user.id) {
+      return res.status(403).json({ message: 'Vous ne pouvez pas supprimer votre propre compte.' });
+    }
 
     await admin.destroy();
+    await logAdminAction({
+      adminId: req.user.id,
+      action: 'DELETE_ADMIN',
+      targetType: 'User',
+      targetId: admin.id,
+      details: { email: admin.email, role: admin.role },
+    });
     return res.json({ message: 'Admin supprimé.' });
   } catch (error) {
     return next(error);

@@ -8,6 +8,10 @@ const includeDetails = [
 
 async function create(req, res, next) {
   try {
+    if (['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Un administrateur ne peut pas réserver de trajet.' });
+    }
+
     const { rideId, seats = 1, message } = req.body;
     const ride = await Ride.findByPk(rideId);
     if (!ride || ride.status !== 'active') return res.status(404).json({ message: 'Trajet introuvable.' });
