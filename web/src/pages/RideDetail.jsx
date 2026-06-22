@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2, Gift, Bell, ChevronRight, ArrowRight } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2, Gift, Bell, ChevronRight, ArrowRight, Package, Banknote, CreditCard, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import SEO from '../components/SEO';
@@ -60,6 +60,8 @@ export default function RideDetail() {
   const [joiningWait,setJoiningWait]= useState(false);
   const [isFav,      setIsFav]      = useState(false);
   const [showPayment,setShowPayment]= useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('online'); // 'cash' | 'online'
+  const [cashConfirmed, setCashConfirmed] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -187,44 +189,90 @@ export default function RideDetail() {
                 )}
               </div>
 
-              {/* Route timeline */}
-              <div style={{ display: 'flex', alignItems: 'stretch', gap: 16, marginBottom: 20 }}>
-                {/* Timeline dots + line */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4 }}>
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#C1272D', boxShadow: '0 0 0 4px rgba(193,39,45,0.18)', flexShrink: 0 }} />
-                  <div style={{ width: 2, flex: 1, background: 'var(--border-color)', margin: '6px 0', minHeight: 40 }} />
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#006233', boxShadow: '0 0 0 4px rgba(0,98,51,0.18)', flexShrink: 0 }} />
-                </div>
+              {/* Route timeline — supports multi-stops */}
+              {(() => {
+                const stops = ride.stops || [];
+                const allCities = [ride.from, ...stops, ride.to];
+                return (
+                  <div style={{ display: 'flex', alignItems: 'stretch', gap: 16, marginBottom: 20 }}>
+                    {/* Timeline dots + lines */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, flexShrink: 0 }}>
+                      {allCities.map((_, i) => (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <div style={{
+                            width: 14, height: 14, borderRadius: '50%', flexShrink: 0,
+                            background: i === 0 ? '#C1272D' : i === allCities.length - 1 ? '#006233' : '#D4890A',
+                            boxShadow: `0 0 0 4px ${i === 0 ? 'rgba(193,39,45,0.18)' : i === allCities.length - 1 ? 'rgba(0,98,51,0.18)' : 'rgba(212,137,10,0.18)'}`,
+                          }} />
+                          {i < allCities.length - 1 && (
+                            <div style={{ width: 2, background: 'var(--border-color)', margin: '6px 0', minHeight: stops.length > 0 ? 28 : 40 }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
-                {/* City names */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 8 }}>
-                  <div>
-                    <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1 }}>{ride.from}</p>
-                    {ARABIC_NAMES[ride.from] && (
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'Amiri, serif', marginTop: 1 }}>{ARABIC_NAMES[ride.from]}</p>
-                    )}
-                    <p style={{ fontSize: 13, fontWeight: 700, color: '#C1272D', marginTop: 4 }}>{timeStr}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1 }}>{ride.to}</p>
-                    {ARABIC_NAMES[ride.to] && (
-                      <p style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'Amiri, serif', marginTop: 1 }}>{ARABIC_NAMES[ride.to]}</p>
-                    )}
-                  </div>
-                </div>
+                    {/* City names */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      {allCities.map((city, i) => (
+                        <div key={i} style={{ marginBottom: i < allCities.length - 1 ? (stops.length > 0 ? 22 : 16) : 0 }}>
+                          <p style={{
+                            fontSize: (i === 0 || i === allCities.length - 1) ? 22 : 16,
+                            fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1,
+                          }}>{city}</p>
+                          {ARABIC_NAMES[city] && (
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Amiri, serif', marginTop: 1 }}>{ARABIC_NAMES[city]}</p>
+                          )}
+                          {i === 0 && <p style={{ fontSize: 13, fontWeight: 700, color: '#C1272D', marginTop: 3 }}>{timeStr}</p>}
+                          {i > 0 && i < allCities.length - 1 && (
+                            <p style={{ fontSize: 11, fontWeight: 600, color: '#D4890A', marginTop: 2 }}>Escale</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
-                {/* Price (visible on mobile) */}
-                <div style={{ textAlign: 'right', flexShrink: 0 }} className="ride-price-mobile">
-                  <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{Number(ride.price).toFixed(0)}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>DH/pers</p>
-                </div>
-              </div>
+                    {/* Price mobile */}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }} className="ride-price-mobile">
+                      <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{Number(ride.price).toFixed(0)}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>DH/pers</p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Date + meta */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
                   <Clock size={14} style={{ color: '#C1272D' }} /> {dateStr}
                 </span>
+              </div>
+
+              {/* Bagages, colis, récurrent, paiement */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
+                {ride.isRecurring && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(59,130,246,0.10)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.25)' }}>
+                    <RefreshCw size={10} /> Récurrent
+                  </span>
+                )}
+                {ride.baggageAllowed !== false && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(0,98,51,0.10)', color: '#22C55E', border: '1px solid rgba(0,98,51,0.2)' }}>
+                    🧳 Bagages OK {ride.maxBaggageKg ? `≤${ride.maxBaggageKg}kg` : ''}
+                  </span>
+                )}
+                {ride.acceptsPackages && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(212,137,10,0.10)', color: '#D4890A', border: '1px solid rgba(212,137,10,0.25)' }}>
+                    <Package size={10} /> Colis acceptés {ride.packagePricePerKg ? `· ${ride.packagePricePerKg} DH/kg` : '· Gratuit'}
+                  </span>
+                )}
+                {ride.acceptCash && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(0,98,51,0.08)', color: '#006233', border: '1px solid rgba(0,98,51,0.2)' }}>
+                    <Banknote size={10} /> Espèces OK
+                  </span>
+                )}
+                {ride.acceptOnline && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(59,130,246,0.08)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <CreditCard size={10} /> Paiement en ligne
+                  </span>
+                )}
               </div>
 
               {ride.description && (
@@ -346,6 +394,44 @@ export default function RideDetail() {
                       className="input" style={{ fontSize: 13, resize: 'none' }} rows={3} />
                   </div>
 
+                  {/* Payment method selector */}
+                  {(ride.acceptCash || ride.acceptOnline) && (
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Mode de paiement</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {ride.acceptCash && (
+                          <button type="button" onClick={() => setPaymentMethod('cash')}
+                            style={{
+                              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                              padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                              background: paymentMethod === 'cash' ? 'rgba(0,98,51,0.12)' : 'var(--bg-700)',
+                              color: paymentMethod === 'cash' ? '#006233' : 'var(--text-muted)',
+                              border: `1.5px solid ${paymentMethod === 'cash' ? '#006233' : 'var(--border-color)'}`,
+                            }}>
+                            <Banknote size={13} /> Espèces
+                          </button>
+                        )}
+                        {ride.acceptOnline && (
+                          <button type="button" onClick={() => setPaymentMethod('online')}
+                            style={{
+                              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                              padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                              background: paymentMethod === 'online' ? 'rgba(59,130,246,0.12)' : 'var(--bg-700)',
+                              color: paymentMethod === 'online' ? '#3B82F6' : 'var(--text-muted)',
+                              border: `1.5px solid ${paymentMethod === 'online' ? '#3B82F6' : 'var(--border-color)'}`,
+                            }}>
+                            <CreditCard size={13} /> En ligne
+                          </button>
+                        )}
+                      </div>
+                      {paymentMethod === 'cash' && (
+                        <p style={{ fontSize: 11, color: '#D4890A', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          💡 Paiement en espèces à remettre au conducteur au départ
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {user?.referralCredits > 0 && (
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', background: 'rgba(212,137,10,0.07)', border: '1px solid rgba(212,137,10,0.22)' }}>
                       <input type="checkbox" checked={useCredits} onChange={e => setUseCredits(e.target.checked)} style={{ accentColor: '#D4890A', width: 15, height: 15 }} />
@@ -361,11 +447,15 @@ export default function RideDetail() {
                     </p>
                   )}
 
-                  <button onClick={() => setShowPayment(true)} disabled={booking} className="btn-primary"
+                  <button
+                    onClick={() => paymentMethod === 'online' ? setShowPayment(true) : handleBook()}
+                    disabled={booking} className="btn-primary"
                     style={{ width: '100%', height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 800 }}>
-                    {booking ? 'Réservation...' : ride.instantBooking
-                      ? <><Zap size={15} fill="currentColor" /> Réserver instantanément</>
-                      : 'Demander à réserver'}
+                    {booking ? 'Réservation...' : paymentMethod === 'cash'
+                      ? <><Banknote size={15} /> Réserver (payer en espèces)</>
+                      : ride.instantBooking
+                        ? <><Zap size={15} fill="currentColor" /> Réserver instantanément</>
+                        : 'Demander à réserver'}
                   </button>
 
                   <button onClick={handleMessage} style={{

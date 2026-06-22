@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useScrollReveal from '../hooks/useScrollReveal';
 import { useSearchParams, Link } from 'react-router-dom';
 import SEO from '../components/SEO';
-import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf, Map, Car, Train, Bus, Plane, Bike, Truck, Users, ArrowRight } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf, Map, Car, Train, Bus, Plane, Bike, Truck, Users, ArrowRight, Package, Banknote, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import RideCard from '../components/RideCard';
 import { SkeletonList } from '../components/SkeletonCard';
@@ -143,11 +143,14 @@ export default function SearchRides() {
   const [minRating,  setMinRating]  = useState(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [pmrOnly,    setPmrOnly]    = useState(false);
-  const [womenOnly,  setWomenOnly]  = useState(false);
+  const [womenOnly,       setWomenOnly]       = useState(false);
+  const [acceptsCash,     setAcceptsCash]     = useState(false);
+  const [acceptsPackages, setAcceptsPackages] = useState(false);
+  const [recurringOnly,   setRecurringOnly]   = useState(false);
   const [sortBy,     setSortBy]     = useState('date_asc');
   const [seats,      setSeats]      = useState(1);
 
-  const activeFilters = [verifiedOnly, pmrOnly, womenOnly, minRating > 0, maxPrice].filter(Boolean).length;
+  const activeFilters = [verifiedOnly, pmrOnly, womenOnly, acceptsCash, acceptsPackages, recurringOnly, minRating > 0, maxPrice].filter(Boolean).length;
 
   const staticResults = {
     train:      findRoutes(ONCF,       from, to),
@@ -159,7 +162,8 @@ export default function SearchRides() {
   const fetchRides = async (overrides = {}) => {
     setLoading(true);
     try {
-      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, womenOnly, sortBy, seats,
+      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, womenOnly,
+        acceptsCash, acceptsPackages, recurringOnly, sortBy, seats,
         transportMode: vehicleMode !== 'all' ? vehicleMode : undefined, ...overrides };
       Object.keys(params).forEach(k => !params[k] && params[k] !== 0 && delete params[k]);
       const { data } = await api.get('/rides/search', { params });
@@ -182,7 +186,8 @@ export default function SearchRides() {
 
   const resetFilters = () => {
     setMaxPrice(''); setMinRating(0); setVerifiedOnly(false);
-    setPmrOnly(false); setWomenOnly(false); setSortBy('date_asc'); setSeats(1);
+    setPmrOnly(false); setWomenOnly(false); setAcceptsCash(false);
+    setAcceptsPackages(false); setRecurringOnly(false); setSortBy('date_asc'); setSeats(1);
   };
 
   const seoTitle = from && to ? `${from} → ${to}` : 'Rechercher un trajet';
@@ -231,6 +236,28 @@ export default function SearchRides() {
             <Map size={13} /> Comparer
           </Link>
         </div>
+      </div>
+
+      {/* ── Quick filters (prominent) ── */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 14, scrollbarWidth: 'none' }}>
+        {[
+          { label: '♀ Femmes uniquement', val: womenOnly,       set: setWomenOnly,       color: '#EC4899', bg: 'rgba(236,72,153,0.10)', border: 'rgba(236,72,153,0.35)' },
+          { label: '📦 Colis acceptés',   val: acceptsPackages, set: setAcceptsPackages, color: '#D4890A', bg: 'rgba(212,137,10,0.10)', border: 'rgba(212,137,10,0.35)' },
+          { label: '💵 Espèces OK',       val: acceptsCash,     set: setAcceptsCash,     color: '#006233', bg: 'rgba(0,98,51,0.10)',    border: 'rgba(0,98,51,0.35)'    },
+          { label: '🔁 Récurrents',       val: recurringOnly,   set: setRecurringOnly,   color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.35)' },
+        ].map(({ label, val, set, color, bg, border }) => (
+          <button key={label} type="button"
+            onClick={() => { set(!val); fetchRides(); }}
+            style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800,
+              cursor: 'pointer', border: `1.5px solid ${val ? border : 'var(--border-color)'}`,
+              background: val ? bg : 'var(--card-bg)', color: val ? color : 'var(--text-muted)',
+              transition: 'all .15s',
+              boxShadow: val ? `0 2px 12px ${color}20` : 'none',
+            }}>
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* ── Search form ── */}

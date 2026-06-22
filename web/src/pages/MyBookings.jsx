@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight } from 'lucide-react';
+import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { SkeletonList } from '../components/SkeletonCard';
@@ -28,7 +28,7 @@ function ZelligeStripe() {
   );
 }
 
-function BookingCard({ b, tab, me, onAction, onQR, onReport }) {
+function BookingCard({ b, tab, me, onAction, onQR, onReport, onCashConfirm }) {
   const ride   = b.ride || {};
   const other  = tab === 'passenger' ? ride.driver : b.passenger;
   const date   = ride.departureDate ? new Date(ride.departureDate) : null;
@@ -119,6 +119,32 @@ function BookingCard({ b, tab, me, onAction, onQR, onReport }) {
           </p>
         )}
 
+        {/* Cash payment status */}
+        {b.paymentMethod === 'cash' && b.status === 'accepted' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            padding: '10px 12px', borderRadius: 10, marginBottom: 10,
+            background: b.cashConfirmed ? 'rgba(16,185,129,0.08)' : 'rgba(212,137,10,0.08)',
+            border: `1px solid ${b.cashConfirmed ? 'rgba(16,185,129,0.25)' : 'rgba(212,137,10,0.25)'}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Banknote size={14} style={{ color: b.cashConfirmed ? '#10B981' : '#D4890A' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: b.cashConfirmed ? '#10B981' : '#D4890A' }}>
+                {b.cashConfirmed ? '✓ Paiement espèces confirmé' : 'Paiement en espèces en attente'}
+              </span>
+            </div>
+            {!b.cashConfirmed && (
+              <button onClick={() => onCashConfirm(b.id)}
+                style={{
+                  padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 800, background: '#D4890A', color: '#fff',
+                }}>
+                {tab === 'driver' ? 'Confirmer reçu' : 'Confirmer payé'}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Actions row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border-color)' }}>
           {/* Left: links */}
@@ -204,6 +230,16 @@ export default function MyBookings() {
   };
 
   useEffect(() => { fetchBookings(); }, [tab]);
+
+  const handleCashConfirm = async (id) => {
+    try {
+      await api.put(`/bookings/${id}/confirm-cash`);
+      toast.success('Paiement espèces confirmé !');
+      setBookings(bs => bs.map(b => b.id === id ? { ...b, cashConfirmed: true } : b));
+    } catch {
+      toast.error('Erreur lors de la confirmation');
+    }
+  };
 
   const handleAction = async (id, action) => {
     if (action === 'cancel' && !window.confirm('Annuler cette réservation ?')) return;
@@ -294,6 +330,7 @@ export default function MyBookings() {
               onAction={handleAction}
               onQR={setQrBooking}
               onReport={setReport}
+              onCashConfirm={handleCashConfirm}
             />
           ))}
         </div>
