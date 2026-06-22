@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MapPin, Navigation, Car, Zap, Clock, Star, Phone, MessageSquare,
-  X, CheckCircle, ArrowRight, ChevronDown, Shield, Users,
+  MapPin, Navigation, Car, Star, Phone, MessageSquare,
+  X, CheckCircle, ChevronDown, Shield, Users, LocateFixed, Loader,
 } from 'lucide-react';
 
 /* ─── Data ─── */
@@ -93,6 +93,37 @@ const MOCK_DRIVERS = [
   { name: 'Amine K.',   rating: 4.8, trips:  530, car: 'Renault Clio · Gris', plate: 'MAR 33-509', phone: '06••••••44', avatar: 'AK', color: '#006233', eta: 4 },
   { name: 'Omar S.',    rating: 4.6, trips: 2100, car: 'Peugeot 301 · Noir',  plate: 'FES 07-888', phone: '07••••••63', avatar: 'OS', color: '#9C27B0', eta: 6 },
 ];
+
+/* ─── Nominatim city name → our CITIES array ─── */
+const CITY_MAP = {
+  casablanca: 'Casablanca', 'dar-el-beida': 'Casablanca',
+  rabat: 'Rabat', sale: 'Rabat', salé: 'Rabat',
+  marrakech: 'Marrakech', marrakesh: 'Marrakech',
+  fes: 'Fès', fès: 'Fès', fez: 'Fès',
+  tanger: 'Tanger', tangier: 'Tanger', tanja: 'Tanger',
+  agadir: 'Agadir',
+  meknes: 'Meknès', meknès: 'Meknès',
+  oujda: 'Oujda',
+  tetouan: 'Tétouan', tétouan: 'Tétouan',
+  kenitra: 'Kénitra', kénitra: 'Kénitra',
+};
+
+function nominatimCityToOurs(addr) {
+  const keys = ['city', 'town', 'village', 'county', 'state_district'];
+  for (const k of keys) {
+    const val = (addr[k] || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    if (CITY_MAP[val]) return CITY_MAP[val];
+  }
+  return null;
+}
+
+function buildAddressLabel(addr) {
+  const parts = [
+    addr.road || addr.pedestrian || addr.footway,
+    addr.suburb || addr.neighbourhood || addr.quarter,
+  ].filter(Boolean);
+  return parts.length ? parts.join(', ') : addr.display_name?.split(',')[0] || 'Position actuelle';
+}
 
 /* ─── Helpers ─── */
 function ZelligeStripe() {
@@ -498,13 +529,50 @@ export default function CityRide() {
   const [pickup,      setPickup]      = useState('');
   const [dropoff,     setDropoff]     = useState('');
   const [vehicleType, setVehicleType] = useState('eco');
-  const [screen,      setScreen]      = useState('form'); // form → matching → found → active → rating → done
+  const [screen,      setScreen]      = useState('form');
   const [driver,      setDriver]      = useState(null);
   const [cityOpen,    setCityOpen]    = useState(false);
+  const [geoState,    setGeoState]    = useState('idle'); // idle | loading | success | error | denied
+  const [geoCoords,   setGeoCoords]   = useState(null);  // { lat, lon }
 
   const dist  = mockDistance(pickup, dropoff);
   const price = estimatePrice(vehicleType, dist);
   const v     = VEHICLE_TYPES.find(v => v.id === vehicleType);
+
+  async function handleGeoLocate() {
+    if (!navigator.geolocation) {
+      setGeoState('error');
+      return;
+    }
+    setGeoState('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        setGeoCoords({ lat, lon });
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=fr`,
+            { headers: { 'Accept-Language': 'fr' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+          const label = buildAddressLabel({ ...addr, display_name: data.display_name });
+          const detectedCity = nominatimCityToOurs(addr);
+          setPickup(label);
+          if (detectedCity) setCity(detectedCity);
+          setGeoState('success');
+        } catch {
+          // Geocoding failed — use coordinates as fallback label
+          setPickup(`${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+          setGeoState('success');
+        }
+      },
+      (err) => {
+        setGeoState(err.code === 1 ? 'denied' : 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   function handleSearch() {
     if (!pickup.trim() || !dropoff.trim()) return;
@@ -569,6 +637,49 @@ export default function CityRide() {
                 </div>
               )}
             </div>
+
+            {/* GPS button */}
+            <button
+              onClick={handleGeoLocate}
+              disabled={geoState === 'loading'}
+              style={{
+                width: '100%', marginBottom: 12, padding: '10px 14px', borderRadius: 10, cursor: geoState === 'loading' ? 'wait' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center',
+                border: `1.5px solid ${geoState === 'success' ? 'rgba(34,197,94,0.4)' : geoState === 'denied' || geoState === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(33,150,243,0.35)'}`,
+                background: geoState === 'success' ? 'rgba(34,197,94,0.07)' : geoState === 'denied' || geoState === 'error' ? 'rgba(239,68,68,0.07)' : 'rgba(33,150,243,0.07)',
+                transition: 'all .2s',
+              }}>
+              {geoState === 'loading'
+                ? <Loader size={14} style={{ color: '#2196F3', animation: 'spin 1s linear infinite' }} />
+                : geoState === 'success'
+                ? <LocateFixed size={14} style={{ color: '#22C55E' }} />
+                : geoState === 'denied'
+                ? <LocateFixed size={14} style={{ color: '#EF4444' }} />
+                : <LocateFixed size={14} style={{ color: '#2196F3' }} />
+              }
+              <span style={{
+                fontSize: 13, fontWeight: 800,
+                color: geoState === 'success' ? '#22C55E' : geoState === 'denied' || geoState === 'error' ? '#EF4444' : '#2196F3',
+              }}>
+                {geoState === 'loading' ? 'Localisation en cours...'
+                  : geoState === 'success' ? 'Position détectée ✓'
+                  : geoState === 'denied' ? 'Accès refusé — vérifiez vos permissions'
+                  : geoState === 'error'  ? 'Erreur GPS — réessayer'
+                  : '📍 Utiliser ma position actuelle'}
+              </span>
+              {geoCoords && geoState === 'success' && (
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto', fontFamily: 'monospace' }}>
+                  {geoCoords.lat.toFixed(4)}, {geoCoords.lon.toFixed(4)}
+                </span>
+              )}
+            </button>
+
+            {/* Denied hint */}
+            {geoState === 'denied' && (
+              <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', marginBottom: 10, fontSize: 11, color: '#EF4444', fontWeight: 600 }}>
+                Activez la géolocalisation dans les paramètres de votre navigateur pour utiliser cette fonctionnalité.
+              </div>
+            )}
 
             {/* Pickup + Dropoff */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
