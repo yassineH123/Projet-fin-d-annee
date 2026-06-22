@@ -118,6 +118,46 @@ const ARABIC_CITIES = {
   'Agadir': 'أكادير', 'Meknès': 'مكناس', 'Oujda': 'وجدة', 'Tétouan': 'تطوان',
 };
 
+const ROUTE_DISTANCES = {
+  'Casablanca|Rabat':      { km: 87,  min: 75  },
+  'Casablanca|Marrakech':  { km: 240, min: 195 },
+  'Casablanca|Fès':        { km: 300, min: 225 },
+  'Casablanca|Tanger':     { km: 339, min: 255 },
+  'Casablanca|Agadir':     { km: 461, min: 345 },
+  'Casablanca|Meknès':     { km: 264, min: 210 },
+  'Casablanca|Oujda':      { km: 615, min: 450 },
+  'Casablanca|Tétouan':    { km: 381, min: 285 },
+  'Rabat|Fès':             { km: 190, min: 150 },
+  'Rabat|Marrakech':       { km: 328, min: 255 },
+  'Rabat|Tanger':          { km: 254, min: 195 },
+  'Rabat|Meknès':          { km: 140, min: 105 },
+  'Rabat|Agadir':          { km: 550, min: 420 },
+  'Rabat|Oujda':           { km: 530, min: 390 },
+  'Marrakech|Agadir':      { km: 249, min: 195 },
+  'Marrakech|Fès':         { km: 481, min: 375 },
+  'Marrakech|Tanger':      { km: 564, min: 435 },
+  'Marrakech|Oujda':       { km: 755, min: 570 },
+  'Fès|Meknès':            { km: 58,  min: 45  },
+  'Fès|Oujda':             { km: 367, min: 285 },
+  'Fès|Tanger':            { km: 320, min: 240 },
+  'Tanger|Tétouan':        { km: 58,  min: 45  },
+  'Tanger|Meknès':         { km: 271, min: 210 },
+  'Meknès|Oujda':          { km: 434, min: 330 },
+  'Agadir|Oujda':          { km: 1059,min: 780 },
+};
+
+function getRoute(from, to) {
+  return ROUTE_DISTANCES[`${from}|${to}`] || ROUTE_DISTANCES[`${to}|${from}`] || null;
+}
+
+function addMinutes(timeStr, minutes) {
+  if (!timeStr || !minutes) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 const CONFETTI_COLS = ['#C1272D','#D4890A','#006233','#F5EDD8','#C1272D','#D4890A','#006233','#F5EDD8','#C1272D','#D4890A','#006233','#F5EDD8'];
 const CONFETTI_X    = [-26,-16,-6,4,14,24,-21,-11,1,11,21,28];
 
@@ -158,6 +198,12 @@ function adaptRide(ride) {
     avatar: `${ride.driver?.firstName?.[0] || '?'}${ride.driver?.lastName?.[0] || ''}`,
     ago: diffH < 1 ? 'à l\'instant' : diffH < 24 ? `il y a ${diffH}h` : `il y a ${Math.floor(diffH/24)}j`,
     rawDate: ride.departureDate,
+    driverVerified: ride.driver?.driverVerified || false,
+    totalTrips: ride.driver?.totalTrips || 0,
+    driverGender: ride.driver?.gender || null,
+    driverPhoto: ride.driver?.photo || null,
+    vehicle: ride.vehicleModel || ride.vehicle || null,
+    isQuick: ride.isQuick || false,
   };
 }
 
@@ -664,12 +710,23 @@ function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, ha
 function RideFeedCard({ trip, initialFav = false, index = 0 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [liked, setLiked]   = useState(initialFav);
-  const [saved, setSaved]   = useState(false);
-  const [liking, setLiking] = useState(false);
+  const [liked,   setLiked]   = useState(initialFav);
+  const [saved,   setSaved]   = useState(false);
+  const [liking,  setLiking]  = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   const arabicFrom = ARABIC_CITIES[trip.from] || '';
   const arabicTo   = ARABIC_CITIES[trip.to]   || '';
+  const route      = getRoute(trip.from, trip.to);
+  const arrival    = route ? addMinutes(trip.depTime, route.min) : null;
+
+  /* Economy vs grand taxi (≈ 3.5 DH/km) */
+  const taxiEst  = route?.km ? Math.round(route.km * 3.5) : null;
+  const saving   = taxiEst && trip.price < taxiEst ? Math.round(((taxiEst - trip.price) / taxiEst) * 100) : null;
+  const bestPrice = saving && saving >= 60;
+
+  const isPremium = trip.totalTrips > 50;
+  const isNew     = trip.totalTrips > 0 && trip.totalTrips < 5;
 
   const handleLike = async () => {
     if (!user) { toast.error('Connectez-vous pour sauvegarder un trajet'); return; }
@@ -679,144 +736,192 @@ function RideFeedCard({ trip, initialFav = false, index = 0 }) {
       const { data } = await api.post(`/favorites/${trip.id}`);
       setLiked(data.favorited);
       toast.success(data.favorited ? '❤️ Ajouté aux favoris' : 'Retiré des favoris');
-    } catch {
-      toast.error('Erreur');
-    } finally { setLiking(false); }
+    } catch { toast.error('Erreur'); }
+    finally { setLiking(false); }
   };
 
   return (
-    <article className="feed-card-appear" style={{
-      background: 'var(--card-bg)',
-      borderRadius: 14, overflow: 'hidden', marginBottom: 10,
-      transition: 'box-shadow 0.2s, transform 0.2s, border-color 0.2s',
-      animationDelay: `${index * 0.07}s`,
-      border: '1px solid var(--border-color)',
-      borderLeft: '3px solid #C1272D',
-    }}
-      onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = '0 8px 32px rgba(193,39,45,0.12)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.borderColor = 'rgba(193,39,45,0.35)';
-        e.currentTarget.style.borderLeft = '3px solid #D4890A';
+    <article
+      className="feed-card-appear"
+      style={{
+        background: 'var(--card-bg)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginBottom: 12,
+        border: `1px solid ${hovered ? 'rgba(193,39,45,0.3)' : 'var(--border-color)'}`,
+        boxShadow: hovered ? '0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(193,39,45,0.08)' : '0 2px 8px rgba(0,0,0,0.1)',
+        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
+        transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+        animationDelay: `${index * 0.06}s`,
       }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.borderColor = 'var(--border-color)';
-        e.currentTarget.style.borderLeft = '3px solid #C1272D';
-      }}>
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Tricolor top strip — Moroccan identity */}
+      <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 33%, #D4890A 50%, #006233 67%)' }} />
 
-      {/* Header */}
-      <div style={{ padding: '13px 14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, boxShadow: '0 4px 12px rgba(193,39,45,0.3)' }}>
-          {trip.avatar}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-base)', lineHeight: 1.2 }}>{trip.driver}</p>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 7px', borderRadius: 99, background: 'rgba(0,98,51,0.12)', color: '#00875A', border: '1px solid rgba(0,135,90,0.25)' }}>✓ VÉRIFIÉ</span>
+      {/* ── HEADER: driver + price ── */}
+      <div style={{ padding: '12px 16px 8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+
+        {/* Driver block */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {trip.driverPhoto
+              ? <img src={trip.driverPhoto} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(193,39,45,0.35)' }} />
+              : <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#C1272D,#D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14, border: '2px solid rgba(193,39,45,0.35)' }}>
+                  {trip.avatar}
+                </div>
+            }
+            <div style={{ position: 'absolute', bottom: 0, right: -1, width: 10, height: 10, borderRadius: '50%', background: '#00C851', border: '2px solid var(--card-bg)', boxShadow: '0 0 4px rgba(0,200,81,0.5)' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-            <Stars n={Math.round(trip.rating)} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{trip.rating}</span>
-            <span style={{ fontSize: 10, color: 'var(--border-muted)' }}>·</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)' }}>
-              <Clock size={10} /> {trip.ago || trip.date}
+
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-base)', lineHeight: 1.2 }}>{trip.driver}</span>
+              {trip.driverVerified && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '1px 6px', borderRadius: 99, background: 'rgba(0,98,51,0.12)', color: '#00875A', border: '1px solid rgba(0,135,90,0.2)', flexShrink: 0 }}>
+                  <CheckCircle size={8} /> VÉRIFIÉ
+                </span>
+              )}
+              {isPremium && (
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'rgba(212,137,10,0.12)', color: '#D4890A', border: '1px solid rgba(212,137,10,0.2)', flexShrink: 0 }}>⭐ PREMIUM</span>
+              )}
+              {trip.driverGender === 'female' && (
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'rgba(233,30,150,0.1)', color: '#E91E96', border: '1px solid rgba(233,30,150,0.2)', flexShrink: 0 }}>♀ FEMME</span>
+              )}
+              {isNew && (
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'rgba(139,92,246,0.12)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.2)', flexShrink: 0 }}>NOUVEAU</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              <Stars n={Math.round(trip.rating || 5)} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{trip.rating ? Number(trip.rating).toFixed(1) : '5.0'}</span>
+              {trip.totalTrips > 0 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· {trip.totalTrips} trajet{trip.totalTrips > 1 ? 's' : ''}</span>}
+              <span style={{ fontSize: 10, color: 'var(--border-muted)', marginLeft: 2 }}>· {trip.ago}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Price block — clean, no colored box */}
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: 'flex-end' }}>
+            <span style={{ fontWeight: 900, fontSize: 26, color: 'var(--text-base)', letterSpacing: '-0.03em', lineHeight: 1 }}>{trip.price}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#C1272D', lineHeight: 1 }}>DH</span>
+          </div>
+          {saving && saving > 0 && (
+            <div style={{ fontSize: 10, color: '#00875A', fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+              -{saving}% vs taxi
+            </div>
+          )}
+          {bestPrice && (
+            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'rgba(0,135,90,0.12)', color: '#00875A', border: '1px solid rgba(0,135,90,0.2)', display: 'inline-block', marginTop: 3 }}>
+              🏷️ MEILLEUR PRIX
             </span>
-          </div>
-        </div>
-        {/* Price badge — bigger and bolder */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          padding: '8px 14px', borderRadius: 12,
-          background: 'linear-gradient(135deg, #C1272D 0%, #9e1f24 100%)',
-          boxShadow: '0 4px 16px rgba(193,39,45,0.35)',
-        }}>
-          <span style={{ fontWeight: 900, fontSize: 20, color: '#fff', lineHeight: 1 }}>{trip.price}</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '0.05em' }}>DH</span>
+          )}
         </div>
       </div>
 
-      {/* Route */}
-      <div style={{ padding: '12px 14px' }}>
-        <div style={{ background: 'var(--bg-800)', borderRadius: 10, padding: '13px 16px', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontFamily: "'Amiri', serif", fontSize: 32, color: 'rgba(212,137,10,0.06)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700 }}>رحلة</div>
-          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+      {/* ── ROUTE HERO — boarding pass style ── */}
+      <div style={{ padding: '4px 14px 10px' }}>
+        <div style={{
+          background: 'var(--bg-800)',
+          borderRadius: 12,
+          padding: '14px 16px',
+          border: '1px solid var(--border-color)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Arabic watermark رحلة */}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Amiri', serif", fontSize: 60, color: 'rgba(212,137,10,0.04)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700 }}>رحلة</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1, gap: 8 }}>
             {/* Departure */}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#006233', boxShadow: '0 0 6px rgba(0,135,90,0.6)', flexShrink: 0 }} />
-                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-base)' }}>{trip.from}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4, letterSpacing: '0.04em' }}>{trip.depTime}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-base)', letterSpacing: '-0.03em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{trip.from}</div>
+              {arabicFrom && <div style={{ fontSize: 11, color: 'rgba(212,137,10,0.65)', fontWeight: 500, marginTop: 4, fontFamily: "'Amiri', serif" }}>{arabicFrom}</div>}
+            </div>
+
+            {/* Route line */}
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 90 }}>
+              <div style={{ width: '100%', display: 'flex', alignItems: 'center', position: 'relative' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#006233', flexShrink: 0, boxShadow: '0 0 6px rgba(0,98,51,0.6)' }} />
+                <div style={{ flex: 1, height: 1.5, background: 'linear-gradient(to right, #006233, #D4890A 50%, #C1272D)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: '50%', left: '45%', transform: 'translate(-50%,-50%)', width: 5, height: 5, borderRadius: '50%', background: '#D4890A', boxShadow: '0 0 6px rgba(212,137,10,0.7)', animation: 'pulse 2s ease infinite' }} />
+                </div>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#C1272D', flexShrink: 0, boxShadow: '0 0 6px rgba(193,39,45,0.6)' }} />
               </div>
-              {arabicFrom && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(212,137,10,0.7)', fontFamily: "'Amiri', serif", marginLeft: 17 }}>{arabicFrom}</p>}
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginLeft: 17 }}>{trip.depTime}</p>
+              {route && (
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 700, textAlign: 'center', letterSpacing: '0.02em' }}>
+                  {route.km} km · {Math.floor(route.min / 60)}h{route.min % 60 ? `${String(route.min % 60).padStart(2,'0')}` : ''}
+                </div>
+              )}
             </div>
-            {/* Arrow */}
-            <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-              <div style={{ width: 40, height: 2, borderRadius: 2, background: 'linear-gradient(to right, #006233, #D4890A, #C1272D)' }} />
-              <ArrowRight size={14} style={{ color: '#D4890A' }} />
-            </div>
+
             {/* Arrival */}
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 7 }}>
-                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-base)' }}>{trip.to}</span>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#C1272D', boxShadow: '0 0 6px rgba(193,39,45,0.6)', flexShrink: 0 }} />
-              </div>
-              {arabicTo && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(212,137,10,0.7)', fontFamily: "'Amiri', serif", marginRight: 17 }}>{arabicTo}</p>}
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginRight: 17 }}>{trip.date}</p>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4, letterSpacing: '0.04em' }}>{arrival || trip.date}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-base)', letterSpacing: '-0.03em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{trip.to}</div>
+              {arabicTo && <div style={{ fontSize: 11, color: 'rgba(212,137,10,0.65)', fontWeight: 500, marginTop: 4, fontFamily: "'Amiri', serif", direction: 'rtl' }}>{arabicTo}</div>}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Seats + quick badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-          <Users size={11} style={{ color: 'var(--text-muted)' }} />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{trip.seats} place{trip.seats > 1 ? 's' : ''} disponible{trip.seats > 1 ? 's' : ''}</span>
+      {/* ── INFO STRIP ── */}
+      <div style={{ padding: '0 16px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+          <Users size={11} /> {trip.seats} place{trip.seats !== 1 ? 's' : ''}
+        </span>
+        <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--border-muted)', flexShrink: 0 }} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+          <Calendar size={11} /> {trip.date}
+        </span>
+        {trip.vehicle && (
+          <>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--border-muted)', flexShrink: 0 }} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+              <Car size={11} /> {trip.vehicle}
+            </span>
+          </>
+        )}
+        {trip.isQuick && (
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#D4890A', padding: '2px 8px', borderRadius: 99, background: 'rgba(212,137,10,0.08)', border: '1px solid rgba(212,137,10,0.18)' }}>
-            <Zap size={10} /> Rapide
+            <Zap size={9} /> Rapide
           </span>
-        </div>
+        )}
       </div>
 
       {/* Divider */}
       <div style={{ height: 1, background: 'var(--border-color)', margin: '0 14px' }} />
 
-      {/* Actions */}
-      <div style={{ display: 'flex', padding: '4px 8px', gap: 2 }}>
-        <button onClick={handleLike} disabled={liking} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-          padding: '8px 0', borderRadius: 8, border: 'none', cursor: liking ? 'default' : 'pointer',
-          fontSize: 12, fontWeight: 600, background: 'transparent',
-          color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.15s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.06)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-          <Heart size={14} style={{ fill: liked ? '#C1272D' : 'none', color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.2s' }} />
-          {liked ? 'Aimé' : "J'aime"}
+      {/* ── ACTIONS ── */}
+      <div style={{ display: 'flex', padding: '8px 10px 11px', gap: 6, alignItems: 'center' }}>
+        {/* Like */}
+        <button
+          onClick={handleLike} disabled={liking}
+          title={liked ? 'Retiré des favoris' : 'Ajouter aux favoris'}
+          style={{ width: 36, height: 36, borderRadius: 9, border: `1px solid ${liked ? 'rgba(193,39,45,0.3)' : 'var(--border-color)'}`, background: liked ? 'rgba(193,39,45,0.08)' : 'transparent', color: liked ? '#C1272D' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
+          onMouseEnter={e => { if (!liked) { e.currentTarget.style.background = 'rgba(193,39,45,0.06)'; e.currentTarget.style.borderColor = 'rgba(193,39,45,0.2)'; } }}
+          onMouseLeave={e => { if (!liked) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-color)'; } }}>
+          <Heart size={15} style={{ fill: liked ? '#C1272D' : 'none', transition: 'fill 0.15s' }} />
         </button>
-        <button onClick={() => { setSaved(s => !s); if (!saved) toast.success('🔖 Sauvegardé'); }} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-          padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-          fontSize: 12, fontWeight: 600, background: 'transparent',
-          color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.15s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,137,10,0.06)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-          <Bookmark size={14} style={{ fill: saved ? '#D4890A' : 'none', color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.2s' }} />
-          {saved ? 'Sauvegardé' : 'Sauvegarder'}
+
+        {/* Save */}
+        <button
+          onClick={() => { setSaved(s => !s); if (!saved) toast.success('🔖 Sauvegardé'); }}
+          title={saved ? 'Retirer' : 'Sauvegarder'}
+          style={{ width: 36, height: 36, borderRadius: 9, border: `1px solid ${saved ? 'rgba(212,137,10,0.3)' : 'var(--border-color)'}`, background: saved ? 'rgba(212,137,10,0.08)' : 'transparent', color: saved ? '#D4890A' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
+          onMouseEnter={e => { if (!saved) { e.currentTarget.style.background = 'rgba(212,137,10,0.06)'; e.currentTarget.style.borderColor = 'rgba(212,137,10,0.2)'; } }}
+          onMouseLeave={e => { if (!saved) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-color)'; } }}>
+          <Bookmark size={15} style={{ fill: saved ? '#D4890A' : 'none', transition: 'fill 0.15s' }} />
         </button>
-        {/* Réserver — rouge prominent */}
-        <button onClick={() => navigate(trip.id ? `/rides/${trip.id}` : `/rides/search?from=${trip.from}&to=${trip.to}`)} style={{
-          flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-          padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-          fontSize: 12, fontWeight: 700,
-          background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
-          color: '#fff', transition: 'all 0.15s',
-          boxShadow: '0 2px 8px rgba(193,39,45,0.2)',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(193,39,45,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(193,39,45,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-          <Car size={14} /> Réserver
+
+        {/* Réserver */}
+        <button
+          onClick={() => navigate(trip.id ? `/rides/${trip.id}` : `/rides/search?from=${trip.from}&to=${trip.to}`)}
+          style={{ flex: 1, height: 36, borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#C1272D,#9e1f24)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: hovered ? '0 6px 20px rgba(193,39,45,0.4)' : '0 3px 10px rgba(193,39,45,0.2)', transition: 'box-shadow 0.2s' }}>
+          Réserver <ArrowRight size={14} />
         </button>
       </div>
     </article>
