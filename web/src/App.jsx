@@ -81,6 +81,7 @@ const Support          = lazy(() => import('./pages/Support'));
 const RideAlerts       = lazy(() => import('./pages/RideAlerts'));
 const EmergencyContacts = lazy(() => import('./pages/EmergencyContacts'));
 const Favorites         = lazy(() => import('./pages/Favorites'));
+const Notifications     = lazy(() => import('./pages/Notifications'));
 
 import SOSButton           from './components/SOSButton';
 import AccessibilityWidget from './components/AccessibilityWidget';
@@ -142,6 +143,7 @@ function AppRoutes() {
           <Route path="/ride-alerts"       element={<PrivateRoute><RideAlerts /></PrivateRoute>} />
           <Route path="/favorites"         element={<PrivateRoute><Favorites /></PrivateRoute>} />
           <Route path="/emergency-contacts" element={<PrivateRoute><EmergencyContacts /></PrivateRoute>} />
+          <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
         </Suspense>
