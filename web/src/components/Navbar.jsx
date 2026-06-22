@@ -4,7 +4,7 @@ import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
   Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff,
   Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones, Navigation,
-  Heart, Building2
+  Heart, Building2, LayoutGrid
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -44,6 +44,7 @@ export default function Navbar() {
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [profileOpen,  setProfileOpen]  = useState(false);
   const [langOpen,     setLangOpen]     = useState(false);
+  const [explorerOpen, setExplorerOpen] = useState(false);
   const [searchQ,      setSearchQ]      = useState('');
   const [searchResults, setSearchResults] = useState({ users: [], cities: [] });
   const [searchOpen,   setSearchOpen]   = useState(false);
@@ -56,6 +57,7 @@ export default function Navbar() {
   const notifRef   = useRef(null);
   const profileRef = useRef(null);
   const langRef    = useRef(null);
+  const explorerRef = useRef(null);
   const intervalRef = useRef(null);
 
   /* Scroll effect */
@@ -93,10 +95,11 @@ export default function Navbar() {
   /* Close dropdowns on outside click */
   useEffect(() => {
     const handler = (e) => {
-      if (notifRef.current   && !notifRef.current.contains(e.target))   setNotifOpen(false);
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-      if (langRef.current    && !langRef.current.contains(e.target))    setLangOpen(false);
-      if (searchRef.current  && !searchRef.current.contains(e.target))  setSearchOpen(false);
+      if (notifRef.current    && !notifRef.current.contains(e.target))    setNotifOpen(false);
+      if (profileRef.current  && !profileRef.current.contains(e.target))  setProfileOpen(false);
+      if (langRef.current     && !langRef.current.contains(e.target))     setLangOpen(false);
+      if (searchRef.current   && !searchRef.current.contains(e.target))   setSearchOpen(false);
+      if (explorerRef.current && !explorerRef.current.contains(e.target)) setExplorerOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -327,92 +330,33 @@ export default function Navbar() {
         </div>
 
         {/* ── ACTIONS DROITE ── */}
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="flex items-center gap-0.5 ml-auto">
 
           {user ? (
             <>
               {/* Feed */}
-              <NavLink to="/feed"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.feed}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Rss size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.feed}</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* Comparer */}
-              <NavLink to="/compare"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(0,188,212,0.08)' : 'transparent' })}
-                title={t.nav.compare}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Map size={20} style={{ color: isActive ? '#00BCD4' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#00BCD4' : 'var(--text-muted)' }}>{t.nav.compare}</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* Mobilité */}
-              <NavLink to="/mobility"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(0,98,51,0.08)' : 'transparent' })}
-                title="Planificateur"
-              >
-                {({ isActive }) => (
-                  <>
-                    <Globe size={20} style={{ color: isActive ? '#006233' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#006233' : 'var(--text-muted)' }}>Mobilité</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* City Ride */}
-              <NavLink to="/city-ride"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(212,137,10,0.08)' : 'transparent' })}
-                title="Course en ville"
-              >
-                {({ isActive }) => (
-                  <>
-                    <Navigation size={20} style={{ color: isActive ? '#D4890A' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#D4890A' : 'var(--text-muted)' }}>City</span>
-                  </>
-                )}
+              <NavLink to="/feed" title="Feed"
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
+                {({ isActive }) => <Rss size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />}
               </NavLink>
 
               {/* Mes Trajets */}
-              <NavLink to="/rides/mine"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.rides}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Car size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.rides}</span>
-                  </>
-                )}
+              <NavLink to="/rides/mine" title="Mes trajets"
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
+                {({ isActive }) => <Car size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />}
               </NavLink>
 
               {/* Réservations */}
-              <NavLink to="/bookings"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.bookings}
-              >
+              <NavLink to="/bookings" title="Réservations"
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
                 {({ isActive }) => (
                   <>
                     <BookOpen size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.bookings}</span>
                     {pendingBooks > 0 && (
-                      <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#D4890A' }}>
+                      <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#D4890A' }}>
                         {pendingBooks > 9 ? '9+' : pendingBooks}
                       </span>
                     )}
@@ -421,17 +365,14 @@ export default function Navbar() {
               </NavLink>
 
               {/* Messages */}
-              <NavLink to="/messages"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.messages}
-              >
+              <NavLink to="/messages" title="Messages"
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
                 {({ isActive }) => (
                   <>
                     <MessageSquare size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.messages}</span>
                     {unreadMsg > 0 && (
-                      <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                      <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
                         {unreadMsg > 9 ? '9+' : unreadMsg}
                       </span>
                     )}
@@ -440,17 +381,14 @@ export default function Navbar() {
               </NavLink>
 
               {/* Amis */}
-              <NavLink to="/friends"
-                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
-                title={t.nav.friends}
-              >
+              <NavLink to="/friends" title="Amis"
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
                 {({ isActive }) => (
                   <>
                     <Users size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.friends}</span>
                     {friendReqs > 0 && (
-                      <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                      <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
                         {friendReqs > 9 ? '9+' : friendReqs}
                       </span>
                     )}
@@ -458,18 +396,55 @@ export default function Navbar() {
                 )}
               </NavLink>
 
+              {/* ── Explorer dropdown ── */}
+              <div ref={explorerRef} className="relative hidden md:block">
+                <button
+                  onClick={() => { setExplorerOpen(o => !o); setNotifOpen(false); setProfileOpen(false); setLangOpen(false); }}
+                  title="Explorer"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                  style={{ background: explorerOpen ? 'rgba(212,137,10,0.1)' : 'transparent', color: explorerOpen ? '#D4890A' : 'var(--text-secondary)' }}>
+                  <LayoutGrid size={20} />
+                </button>
+                {explorerOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl overflow-hidden shadow-2xl z-50 p-3"
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.2)' }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest px-1 mb-2.5" style={{ color: 'var(--text-muted)' }}>Explorer</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { to: '/compare',    icon: Map,          label: 'Comparer',   color: '#00BCD4' },
+                        { to: '/mobility',   icon: Globe,        label: 'Mobilité',   color: '#006233' },
+                        { to: '/city-ride',  icon: Navigation,   label: 'City',       color: '#D4890A' },
+                        { to: '/leaderboard',icon: Trophy,       label: 'Classement', color: '#D4890A' },
+                        { to: '/events',     icon: CalendarDays, label: 'Événements', color: '#8B5CF6' },
+                        { to: '/groups',     icon: Users,        label: 'Groupes',    color: '#3B82F6' },
+                      ].map(({ to, icon: Icon, label, color }) => (
+                        <Link key={to} to={to} onClick={() => setExplorerOpen(false)}
+                          className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
+                          style={{ textDecoration: 'none' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-700)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+                            <Icon size={17} style={{ color }} />
+                          </div>
+                          <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* ── Notifications ── */}
               <div ref={notifRef} className="relative hidden md:block">
                 <button
-                  onClick={() => { setNotifOpen(o => !o); setProfileOpen(false); setLangOpen(false); }}
-                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative"
-                  style={{ background: notifOpen ? 'rgba(193,39,45,0.08)' : 'transparent' }}
+                  onClick={() => { setNotifOpen(o => !o); setProfileOpen(false); setLangOpen(false); setExplorerOpen(false); }}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
+                  style={{ background: notifOpen ? 'rgba(193,39,45,0.1)' : 'transparent' }}
                   title={t.nav.notifications}
                 >
                   <Bell size={20} style={{ color: notifOpen ? '#C1272D' : 'var(--text-secondary)' }} />
-                  <span className="text-[10px] font-semibold" style={{ color: notifOpen ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.notifs}</span>
                   {unreadNotifs > 0 && (
-                    <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                    <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
                       {unreadNotifs}
                     </span>
                   )}
@@ -537,14 +512,13 @@ export default function Navbar() {
 
               {/* Admin */}
               {['admin', 'superadmin'].includes(user?.role) && (
-                <NavLink to="/admin"
-                  className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.08)' : 'transparent' })}
+                <NavLink to="/admin" title="Admin"
+                  className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}
                 >
                   {({ isActive }) => (
                     <>
                       <Shield size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                      <span className="text-[10px] font-semibold" style={{ color: isActive ? '#C1272D' : 'var(--text-muted)' }}>{t.nav.admin}</span>
                     </>
                   )}
                 </NavLink>
@@ -553,18 +527,18 @@ export default function Navbar() {
               {/* ── Profil dropdown ── */}
               <div ref={profileRef} className="relative hidden md:block">
                 <button
-                  onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); setLangOpen(false); }}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all"
+                  onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); setLangOpen(false); setExplorerOpen(false); }}
+                  className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-xl transition-all"
                   style={{ background: profileOpen ? 'rgba(193,39,45,0.08)' : 'transparent' }}
                 >
                   {user.photo
-                    ? <img src={user.photo} alt="" className="w-8 h-8 rounded-full object-cover" style={{ ring: '2px solid #C1272D' }} />
+                    ? <img src={user.photo} alt="" className="w-8 h-8 rounded-full object-cover" style={{ outline: '2px solid #C1272D', outlineOffset: 1 }} />
                     : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-black"
                         style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
                         {user.firstName?.[0]}
                       </div>
                   }
-                  <span className="text-sm font-bold" style={{ color: 'var(--text-base)' }}>{user.firstName}</span>
+                  <span className="text-sm font-bold hidden lg:block" style={{ color: 'var(--text-base)' }}>{user.firstName}</span>
                 </button>
 
                 {profileOpen && (
@@ -641,15 +615,12 @@ export default function Navbar() {
           {/* ── Language selector ── */}
           <div ref={langRef} style={{ position: 'relative' }}>
             <button
-              onClick={() => { setLangOpen(o => !o); setNotifOpen(false); setProfileOpen(false); }}
-              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
-              style={{ background: langOpen ? 'rgba(212,137,10,0.08)' : 'transparent', color: 'var(--text-secondary)' }}
-              title="Language / Langue"
+              onClick={() => { setLangOpen(o => !o); setNotifOpen(false); setProfileOpen(false); setExplorerOpen(false); }}
+              className="flex items-center justify-center w-9 h-9 rounded-xl transition-all"
+              style={{ background: langOpen ? 'rgba(212,137,10,0.08)' : 'transparent' }}
+              title="Langue"
             >
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{t.flag}</span>
-              <span className="text-[10px] font-semibold" style={{ color: langOpen ? '#D4890A' : 'var(--text-muted)' }}>
-                {t.name.slice(0, 2).toUpperCase()}
-              </span>
+              <span style={{ fontSize: 20, lineHeight: 1 }}>{t.flag}</span>
             </button>
             {langOpen && (
               <div className="absolute right-0 top-[calc(100%+8px)] rounded-2xl overflow-hidden shadow-2xl z-50"
@@ -676,13 +647,12 @@ export default function Navbar() {
 
           {/* Theme toggle */}
           <button onClick={toggle} title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+            className="flex items-center justify-center w-9 h-9 rounded-xl transition-all"
             style={{ color: 'var(--text-secondary)' }}>
             {theme === 'dark'
               ? <Sun size={20} style={{ color: '#D4890A' }} />
               : <Moon size={20} style={{ color: '#C1272D' }} />
             }
-            <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>{t.nav.theme}</span>
           </button>
 
           {/* Mobile burger */}
