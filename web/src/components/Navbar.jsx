@@ -355,6 +355,20 @@ export default function Navbar() {
                 )}
               </NavLink>
 
+              {/* Mobilité */}
+              <NavLink to="/mobility"
+                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(0,98,51,0.08)' : 'transparent' })}
+                title="Planificateur"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Globe size={20} style={{ color: isActive ? '#006233' : 'var(--text-secondary)' }} />
+                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#006233' : 'var(--text-muted)' }}>Mobilité</span>
+                  </>
+                )}
+              </NavLink>
+
               {/* Mes Trajets */}
               <NavLink to="/rides/mine"
                 className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group"
@@ -665,6 +679,7 @@ export default function Navbar() {
         <div className="md:hidden px-4 py-4 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
           <MobileLink to="/rides/search"  icon={<Search size={16} />}       label={t.mobile.search} />
           <MobileLink to="/compare"       icon={<Map size={16} />}           label={t.mobile.compare} />
+          <MobileLink to="/mobility"      icon={<Globe size={16} />}         label="Mobilité" />
           <MobileLink to="/feed"          icon={<Rss size={16} />}           label={t.mobile.feed} />
           {user ? (
             <>
