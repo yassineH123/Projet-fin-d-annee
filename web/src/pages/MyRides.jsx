@@ -1,42 +1,71 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MapPin, Clock, Users, Trash2, Edit, CheckCircle, History } from 'lucide-react';
+import { Plus, MapPin, Clock, Users, Trash2, Edit, CheckCircle, History, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 
+function ConfirmModal({ title, message, confirmLabel, confirmColor = '#EF4444', onConfirm, onClose }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 380, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${confirmColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <AlertTriangle size={18} style={{ color: confirmColor }} />
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 900, color: 'var(--text-primary)' }}>{title}</p>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>{message}</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-700)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+            Annuler
+          </button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: 11, borderRadius: 10, border: 'none', background: confirmColor, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900 }}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyRides() {
   const navigate          = useNavigate();
   const [rides,   setRides]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab,     setTab]     = useState('active'); // active | completed | cancelled
+  const [tab,     setTab]     = useState('active');
+  const [modal,   setModal]   = useState(null); // { type: 'cancel'|'complete', id }
 
   const fetchRides = () => {
     setLoading(true);
     api.get('/rides/mine')
-      .then(({ data }) => setRides(data.rides))
+      .then(({ data }) => setRides(data.rides || []))
+      .catch(() => setRides([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchRides(); }, []);
 
   const handleCancel = async (id) => {
-    if (!window.confirm('Annuler ce trajet ? Les passagers seront notifiés et remboursés.')) return;
-    try {
-      const { data } = await api.delete(`/rides/${id}`);
-      toast.success(data.message || 'Trajet annulé');
-      fetchRides();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    }
+    setModal({ type: 'cancel', id });
   };
 
   const handleComplete = async (id) => {
-    if (!window.confirm('Marquer ce trajet comme terminé ? Cette action est irréversible.')) return;
+    setModal({ type: 'complete', id });
+  };
+
+  const confirmAction = async () => {
+    const { type, id } = modal;
+    setModal(null);
     try {
-      await api.put(`/rides/${id}/complete`);
-      toast.success('Trajet marqué comme terminé !');
+      if (type === 'cancel') {
+        const { data } = await api.delete(`/rides/${id}`);
+        toast.success(data.message || 'Trajet annulé');
+      } else {
+        await api.put(`/rides/${id}/complete`);
+        toast.success('Trajet marqué comme terminé !');
+      }
       fetchRides();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
@@ -64,6 +93,18 @@ export default function MyRides() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {modal && (
+        <ConfirmModal
+          title={modal.type === 'cancel' ? 'Annuler le trajet ?' : 'Marquer comme terminé ?'}
+          message={modal.type === 'cancel'
+            ? 'Les passagers seront notifiés et remboursés automatiquement. Cette action est irréversible.'
+            : 'Le trajet sera marqué comme terminé. Les passagers pourront laisser un avis.'}
+          confirmLabel={modal.type === 'cancel' ? 'Annuler le trajet' : 'Marquer terminé'}
+          confirmColor={modal.type === 'cancel' ? '#EF4444' : '#10B981'}
+          onConfirm={confirmAction}
+          onClose={() => setModal(null)}
+        />
+      )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-black text-white">Mes trajets</h1>
         <Link to="/rides/publish" className="btn-primary flex items-center gap-2 text-sm">

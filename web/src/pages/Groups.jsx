@@ -14,13 +14,15 @@ export default function Groups() {
   const [form, setForm] = useState({ name: '', description: '', from: '', to: '', isPrivate: false });
 
   const load = async () => {
-    const [all, mine] = await Promise.all([
-      api.get('/groups').then(r => r.data.groups),
-      user ? api.get('/groups/me').then(r => r.data.groups) : Promise.resolve([]),
-    ]);
-    setGroups(all);
-    setMyIds(new Set(mine.map(g => g.id)));
-    setLoading(false);
+    try {
+      const [all, mine] = await Promise.all([
+        api.get('/groups').then(r => r.data.groups || []),
+        user ? api.get('/groups/me').then(r => r.data.groups || []) : Promise.resolve([]),
+      ]);
+      setGroups(all);
+      setMyIds(new Set(mine.map(g => g.id)));
+    } catch { setGroups([]); }
+    finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
 
@@ -85,7 +87,13 @@ export default function Groups() {
       )}
 
       {/* Groups list */}
-      {loading ? <Spinner /> : (
+      {loading ? <Spinner /> : groups.length === 0 ? (
+        <div className="card text-center py-12">
+          <Users size={40} className="text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-400 font-medium">Aucun groupe pour l'instant</p>
+          <p className="text-slate-500 text-sm mt-1">Créez le premier groupe de votre trajet !</p>
+        </div>
+      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {groups.map(g => (
             <div key={g.id} className="card flex flex-col gap-3">

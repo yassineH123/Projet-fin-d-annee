@@ -28,7 +28,8 @@ export default function Leaderboard() {
   useEffect(() => {
     setLoading(true);
     api.get(`/analytics/leaderboard?type=${tab}`)
-      .then(({ data }) => setDrivers(data.drivers))
+      .then(({ data }) => setDrivers(data.drivers || []))
+      .catch(() => setDrivers([]))
       .finally(() => setLoading(false));
   }, [tab]);
 
@@ -53,7 +54,13 @@ export default function Leaderboard() {
         ))}
       </div>
 
-      {loading ? <Spinner /> : (
+      {loading ? <Spinner /> : drivers.length === 0 ? (
+        <div className="card text-center py-12">
+          <Trophy size={40} className="text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-400 font-medium">Aucun conducteur dans le classement</p>
+          <p className="text-slate-500 text-sm mt-1">Effectuez des trajets pour apparaître ici</p>
+        </div>
+      ) : (
         <div className="flex flex-col gap-3">
           {drivers.map((d, i) => {
             const lm = LEVEL_META[d.level] || LEVEL_META.bronze;

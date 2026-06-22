@@ -10,7 +10,7 @@ export default function EmergencyContacts() {
   const [form, setForm] = useState({ name: '', phone: '', relation: '' });
   const [saving, setSaving] = useState(false);
 
-  const load = () => api.get('/emergency').then(({ data }) => setContacts(data.contacts)).finally(() => setLoading(false));
+  const load = () => api.get('/emergency').then(({ data }) => setContacts(data.contacts || [])).catch(() => setContacts([])).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const handleAdd = async (e) => {

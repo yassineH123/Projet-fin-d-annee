@@ -26,7 +26,7 @@ export default function Support() {
   const [saving,  setSaving]   = useState(false);
   const [open,    setOpen]     = useState(null);
 
-  const load = () => api.get('/support/me').then(({ data }) => setTickets(data.tickets)).finally(() => setLoading(false));
+  const load = () => api.get('/support/me').then(({ data }) => setTickets(data.tickets || [])).catch(() => setTickets([])).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e) => {

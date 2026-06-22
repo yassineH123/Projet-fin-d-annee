@@ -57,29 +57,39 @@ function StoryViewer({ group, onClose, onNext, onPrev, hasNext, hasPrev }) {
 
 export default function StoriesPage() {
   const { user } = useAuth();
-  const [groups,  setGroups]  = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [viewing, setViewing] = useState(null);
+  const [groups,   setGroups]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [viewing,  setViewing]  = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [pending,  setPending]  = useState(null); // { file, preview } waiting for caption
+  const [caption,  setCaption]  = useState('');
   const fileRef = useRef(null);
 
-  const load = () => api.get('/stories').then(({ data }) => setGroups(data.groups)).finally(() => setLoading(false));
+  const load = () => api.get('/stories').then(({ data }) => setGroups(data.groups || [])).catch(() => setGroups([])).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
-  const handleUpload = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const caption = prompt('Légende (optionnel)') || '';
+    const preview = URL.createObjectURL(file);
+    setPending({ file, preview });
+    setCaption('');
+    e.target.value = '';
+  };
+
+  const handleUpload = async () => {
+    if (!pending) return;
     setUploading(true);
+    setPending(null);
     try {
       const fd = new FormData();
-      fd.append('media', file);
+      fd.append('media', pending.file);
       fd.append('caption', caption);
       await api.post('/stories', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Story publiée ! Elle expirera dans 24h.');
       load();
-    } catch (err) { toast.error('Erreur lors de la publication'); }
-    finally { setUploading(false); }
+    } catch { toast.error('Erreur lors de la publication'); }
+    finally { setUploading(false); setCaption(''); }
   };
 
   if (loading) return <Spinner size="lg" />;
@@ -98,7 +108,7 @@ export default function StoriesPage() {
               {uploading ? <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /> : <Plus size={22} className="text-primary-400" />}
             </div>
             <span className="text-xs text-slate-400">Ajouter</span>
-            <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleUpload} />
+            <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
           </button>
         )}
 
@@ -120,6 +130,36 @@ export default function StoriesPage() {
       {groups.length === 0 && (
         <div className="card text-center py-12 mt-4">
           <p className="text-slate-500">Aucune story pour l'instant. Soyez le premier !</p>
+        </div>
+      )}
+
+      {/* Caption modal before upload */}
+      {pending && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 360, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: 15 }}>Publier une story</p>
+            {pending.file.type.startsWith('image')
+              ? <img src={pending.preview} alt="" style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'cover' }} />
+              : <video src={pending.preview} style={{ width: '100%', borderRadius: 12, maxHeight: 200 }} muted />
+            }
+            <input
+              value={caption}
+              onChange={e => setCaption(e.target.value)}
+              placeholder="Ajouter une légende (optionnel)"
+              maxLength={150}
+              style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setPending(null); setCaption(''); }}
+                style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+                Annuler
+              </button>
+              <button onClick={handleUpload}
+                style={{ flex: 1, padding: 11, borderRadius: 10, border: 'none', background: 'var(--primary-600, #C1272D)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900 }}>
+                Publier
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

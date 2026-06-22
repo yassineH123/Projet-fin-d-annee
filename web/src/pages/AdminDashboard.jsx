@@ -77,10 +77,10 @@ export default function AdminDashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const fetchUsers          = () => api.get('/admin/users', { params: { search } }).then(({ data }) => setUsers(data.users));
-  const fetchRides          = () => api.get('/admin/rides').then(({ data }) => setRides(data.rides));
-  const fetchReports        = () => api.get('/reports').then(({ data }) => setReports(data.reports)).catch(() => {});
-  const fetchPendingDrivers = () => api.get('/admin/drivers/pending').then(({ data }) => setPendingDrivers(data.drivers)).catch(() => {});
+  const fetchUsers          = () => api.get('/admin/users', { params: { search } }).then(({ data }) => setUsers(data.users || [])).catch(() => setUsers([]));
+  const fetchRides          = () => api.get('/admin/rides').then(({ data }) => setRides(data.rides || [])).catch(() => setRides([]));
+  const fetchReports        = () => api.get('/reports').then(({ data }) => setReports(data.reports || [])).catch(() => setReports([]));
+  const fetchPendingDrivers = () => api.get('/admin/drivers/pending').then(({ data }) => setPendingDrivers(data.drivers || [])).catch(() => setPendingDrivers([]));
 
   useEffect(() => {
     if (tab === 'rides')   fetchRides();
@@ -91,7 +91,19 @@ export default function AdminDashboard() {
 
   const blockUser   = async (id) => { await api.patch(`/admin/users/${id}/block`);   toast.success('Bloqué');    fetchUsers(); };
   const unblockUser = async (id) => { await api.patch(`/admin/users/${id}/unblock`); toast.success('Débloqué'); fetchUsers(); };
-  const deleteUser  = async (id) => { if (!window.confirm('Supprimer ?')) return; await api.delete(`/admin/users/${id}`); toast.success('Supprimé'); fetchUsers(); };
+  const deleteUser  = async (id) => {
+    toast((t) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p style={{ fontWeight: 700, fontSize: 14 }}>Supprimer cet utilisateur ?</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF' }}>Cette action est irréversible.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => toast.dismiss(t.id)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid #374151', background: 'transparent', color: '#9CA3AF', cursor: 'pointer', fontSize: 13 }}>Annuler</button>
+          <button onClick={async () => { toast.dismiss(t.id); await api.delete(`/admin/users/${id}`); toast.success('Supprimé'); fetchUsers(); }}
+            style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>Supprimer</button>
+        </div>
+      </div>
+    ), { duration: 8000 });
+  };
   const cancelRide  = async (id) => { await api.patch(`/admin/rides/${id}/cancel`);  toast.success('Annulé');   fetchRides(); };
   const updateReport = async (id, status) => {
     await api.patch(`/reports/${id}/status`, { status });
@@ -115,7 +127,7 @@ export default function AdminDashboard() {
 
   // ── KYC (vérification d'identité) ──
   const [pendingKyc, setPendingKyc] = useState([]);
-  const fetchPendingKyc = () => api.get('/admin/kyc/pending').then(({ data }) => setPendingKyc(data.users)).catch(() => {});
+  const fetchPendingKyc = () => api.get('/admin/kyc/pending').then(({ data }) => setPendingKyc(data.users || [])).catch(() => setPendingKyc([]));
   const approveKyc = async (id) => {
     await api.patch(`/admin/kyc/${id}/approve`);
     toast.success('Identité approuvée');

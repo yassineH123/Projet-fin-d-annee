@@ -319,7 +319,7 @@ export default function MyBookings() {
   const fetchBookings = (t = tab) => {
     setLoading(true);
     const url = t === 'passenger' ? '/bookings/me' : '/bookings/driver';
-    api.get(url).then(({ data }) => setBookings(data.bookings)).finally(() => setLoading(false));
+    api.get(url).then(({ data }) => setBookings(data.bookings || [])).catch(() => setBookings([])).finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchBookings(); }, [tab]);

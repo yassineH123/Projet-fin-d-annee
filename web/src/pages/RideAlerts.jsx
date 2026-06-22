@@ -12,7 +12,7 @@ export default function RideAlerts() {
   const [form,    setForm]    = useState({ from: '', to: '', maxPrice: '', date: '' });
   const [adding,  setAdding]  = useState(false);
 
-  const load = () => api.get('/ride-alerts').then(({ data }) => setAlerts(data.alerts)).finally(() => setLoading(false));
+  const load = () => api.get('/ride-alerts').then(({ data }) => setAlerts(data.alerts || [])).catch(() => setAlerts([])).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const handleAdd = async (e) => {

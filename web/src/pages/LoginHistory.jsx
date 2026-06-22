@@ -10,7 +10,7 @@ export default function LoginHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/login-history').then(({ data }) => setHistory(data.history)).finally(() => setLoading(false));
+    api.get('/login-history').then(({ data }) => setHistory(data.history || [])).catch(() => setHistory([])).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spinner size="lg" />;
@@ -45,7 +45,7 @@ export default function LoginHistory() {
                       )}
                     </div>
                     <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      IP: {h.ip || 'Inconnue'} · {new Date(h.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                      IP: {h.ip === '::1' || h.ip === '127.0.0.1' ? 'Localhost' : (h.ip || 'Inconnue')} · {new Date(h.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
                   <div className="shrink-0">
