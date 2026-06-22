@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2, Gift, Bell, ChevronRight, ArrowRight, Package, Banknote, CreditCard, RefreshCw } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2, Gift, Bell, ChevronRight, ArrowRight, Package, Banknote, CreditCard, RefreshCw, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import SEO from '../components/SEO';
@@ -11,6 +11,13 @@ import ReportModal from '../components/ReportModal';
 import GPSTracker from '../components/GPSTracker';
 import RideMap from '../components/RideMap';
 import PaymentModal from '../components/PaymentModal';
+
+function getCancellationPolicy(departureDate) {
+  const hoursLeft = (new Date(departureDate) - new Date()) / (1000 * 60 * 60);
+  if (hoursLeft >= 48) return { pct: 100, tier: 'flex',   color: '#22C55E', bg: 'rgba(34,197,94,0.07)',   border: 'rgba(34,197,94,0.25)',   label: 'Annulation gratuite',      sub: 'Remboursement intégral si annulé 48h avant' };
+  if (hoursLeft >= 24) return { pct: 50,  tier: 'modere', color: '#D4890A', bg: 'rgba(212,137,10,0.07)', border: 'rgba(212,137,10,0.25)',  label: 'Remboursement partiel',    sub: 'Remboursement à 50% (entre 24h et 48h avant)' };
+  return                        { pct: 0,   tier: 'strict', color: '#EF4444', bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.25)',   label: 'Non remboursable',         sub: 'Départ dans moins de 24h' };
+}
 
 const ARABIC_NAMES = {
   'Casablanca': 'الدار البيضاء', 'Rabat': 'الرباط', 'Marrakech': 'مراكش',
@@ -461,6 +468,27 @@ export default function RideDetail() {
                       <Check size={12} /> -{discount} DH appliqué · Total : {ride.price * seats - discount} DH
                     </p>
                   )}
+
+                  {/* Politique d'annulation */}
+                  {ride.departureDate && (() => {
+                    const pol = getCancellationPolicy(ride.departureDate);
+                    return (
+                      <div style={{ padding: '10px 12px', borderRadius: 10, background: pol.bg, border: `1px solid ${pol.border}`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <ShieldCheck size={15} style={{ color: pol.color, flexShrink: 0, marginTop: 1 }} />
+                        <div>
+                          <p style={{ fontSize: 12, fontWeight: 800, color: pol.color }}>{pol.label}</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{pol.sub}</p>
+                          <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                            {[{ label: '+48h', pct: 100, active: pol.pct === 100 }, { label: '24-48h', pct: 50, active: pol.pct === 50 }, { label: '<24h', pct: 0, active: pol.pct === 0 }].map(t => (
+                              <span key={t.label} style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: t.active ? pol.color : 'var(--bg-700)', color: t.active ? '#fff' : 'var(--text-muted)', border: `1px solid ${t.active ? pol.color : 'var(--border-color)'}` }}>
+                                {t.label} → {t.pct}%
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <button
                     onClick={() => paymentMethod === 'online' ? setShowPayment(true) : handleBook()}

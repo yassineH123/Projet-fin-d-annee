@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight, Banknote, MapPin } from 'lucide-react';
+import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight, Banknote, MapPin, ShieldCheck, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { SkeletonList } from '../components/SkeletonCard';
@@ -9,6 +9,87 @@ import BookingStatusBadge from '../components/BookingStatusBadge';
 import ReportModal from '../components/ReportModal';
 import BookingQR from '../components/BookingQR';
 import { useAuth } from '../context/AuthContext';
+
+function getCancellationRefund(departureDate, price) {
+  const hoursLeft = (new Date(departureDate) - new Date()) / (1000 * 60 * 60);
+  if (hoursLeft >= 48) return { pct: 100, refund: price,         color: '#22C55E', label: 'Remboursement intégral' };
+  if (hoursLeft >= 24) return { pct: 50,  refund: Math.round(price / 2), color: '#D4890A', label: 'Remboursement à 50%' };
+  return                       { pct: 0,   refund: 0,             color: '#EF4444', label: 'Non remboursable' };
+}
+
+function CancelModal({ booking, onConfirm, onClose }) {
+  const ride     = booking?.ride || {};
+  const price    = ride.price || 0;
+  const pol      = getCancellationRefund(ride.departureDate, price);
+  const hoursLeft = Math.max(0, Math.round((new Date(ride.departureDate) - new Date()) / (1000 * 60 * 60)));
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 400, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(239,68,68,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle size={18} style={{ color: '#EF4444' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 900, color: 'var(--text-primary)' }}>Annuler la réservation</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ride.from} → {ride.to}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '16px 20px' }}>
+          {/* Time remaining */}
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg-700)', border: '1px solid var(--border-color)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Départ dans <strong style={{ color: 'var(--text-primary)' }}>{hoursLeft}h</strong>
+              {ride.departureDate && <span> · {new Date(ride.departureDate).toLocaleString('fr-MA', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}
+            </p>
+          </div>
+
+          {/* Refund policy tiers */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+            {[
+              { label: '+48h avant', pct: 100, active: pol.pct === 100, color: '#22C55E' },
+              { label: '24h – 48h', pct: 50,  active: pol.pct === 50,  color: '#D4890A' },
+              { label: 'Moins 24h',  pct: 0,   active: pol.pct === 0,   color: '#EF4444' },
+            ].map(t => (
+              <div key={t.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, background: t.active ? `${t.color}12` : 'var(--bg-700)', border: `1.5px solid ${t.active ? t.color : 'var(--border-color)'}`, transition: 'all .15s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  {t.active ? <ShieldCheck size={13} style={{ color: t.color }} /> : <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid var(--border-color)' }} />}
+                  <span style={{ fontSize: 12, fontWeight: t.active ? 800 : 500, color: t.active ? t.color : 'var(--text-muted)' }}>{t.label}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 900, color: t.active ? t.color : 'var(--text-muted)' }}>{t.pct}% remboursé</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Refund amount */}
+          <div style={{ padding: '14px', borderRadius: 12, background: `${pol.color}0f`, border: `1.5px solid ${pol.color}40`, textAlign: 'center', marginBottom: 18 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>Vous recevrez</p>
+            <p style={{ fontSize: 28, fontWeight: 900, color: pol.color, lineHeight: 1 }}>{pol.refund} DH</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{pol.label} · {price} DH payé</p>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-700)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+              Garder ma place
+            </button>
+            <button onClick={() => onConfirm(booking.id)}
+              style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #EF4444, #DC2626)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900 }}>
+              Confirmer l'annulation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_COLORS = {
   pending:   { border: '#F59E0B', bg: 'rgba(245,158,11,0.06)',  label: 'En attente' },
@@ -230,9 +311,10 @@ export default function MyBookings() {
   const [tab,      setTab]       = useState('passenger');
   const [bookings, setBookings]  = useState([]);
   const [loading,  setLoading]   = useState(true);
-  const [report,   setReport]    = useState(null);
-  const [qrBooking,setQrBooking] = useState(null);
-  const [viewMode, setViewMode]  = useState('list');
+  const [report,      setReport]      = useState(null);
+  const [qrBooking,   setQrBooking]   = useState(null);
+  const [viewMode,    setViewMode]    = useState('list');
+  const [cancelModal, setCancelModal] = useState(null); // booking object | null
 
   const fetchBookings = (t = tab) => {
     setLoading(true);
@@ -252,8 +334,24 @@ export default function MyBookings() {
     }
   };
 
+  const handleCancelConfirm = async (id) => {
+    setCancelModal(null);
+    try {
+      const { data } = await api.put(`/bookings/${id}/cancel`);
+      const refundMsg = data?.refund ? ` · ${data.refund} DH remboursés` : '';
+      toast.success(`Réservation annulée${refundMsg}`);
+      setBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
+    } catch {
+      toast.error('Erreur lors de l\'annulation');
+    }
+  };
+
   const handleAction = async (id, action) => {
-    if (action === 'cancel' && !window.confirm('Annuler cette réservation ?')) return;
+    if (action === 'cancel') {
+      const booking = bookings.find(b => b.id === id);
+      setCancelModal(booking);
+      return;
+    }
     try {
       const { data } = await api.put(`/bookings/${id}/${action}`);
       toast.success(action === 'accept' ? 'Acceptée !' : action === 'refuse' ? 'Refusée' : (data?.message || 'Réservation annulée'));
@@ -271,6 +369,15 @@ export default function MyBookings() {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px 48px' }}>
+
+      {/* ── Cancel modal ── */}
+      {cancelModal && (
+        <CancelModal
+          booking={cancelModal}
+          onConfirm={handleCancelConfirm}
+          onClose={() => setCancelModal(null)}
+        />
+      )}
 
       {/* ── Header card ── */}
       <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)', marginBottom: 20 }}>
