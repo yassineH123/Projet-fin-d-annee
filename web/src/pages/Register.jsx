@@ -55,7 +55,7 @@ export default function Register() {
       const { data } = await api.post('/auth/verify-email', { email: form.email, code: otp });
       login(data.token, data.user);
       toast.success('Compte créé avec succès !');
-      navigate('/');
+      navigate('/onboarding');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Code invalide');
     } finally {

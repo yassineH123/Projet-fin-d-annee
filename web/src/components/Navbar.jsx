@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
   Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff,
-  Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones, Navigation
+  Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones, Navigation,
+  Heart, Building2
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -190,8 +191,11 @@ export default function Navbar() {
     { to: '/stories',             icon: Camera,        label: 'Stories' },
     { to: '/groups',              icon: Users,         label: 'Groupes' },
     { to: '/events',              icon: CalendarDays,  label: 'Événements' },
+    { to: '/favorites',           icon: Heart,         label: 'Mes favoris' },
+    { to: '/notifications',       icon: Bell,          label: 'Notifications' },
     { to: '/ride-alerts',         icon: Bell,          label: 'Alertes trajets' },
     { to: '/emergency-contacts',  icon: LifeBuoy,      label: 'Contacts SOS' },
+    { to: '/enterprise',          icon: Building2,     label: 'Tableau entreprise' },
     { to: '/support',             icon: Headphones,    label: 'Support & Aide' },
     { to: '/rides/publish',       icon: Plus,          label: t.profileMenu.publish },
     { to: '/rides/mine',          icon: Car,           label: t.profileMenu.rides },
@@ -521,10 +525,11 @@ export default function Navbar() {
                       })}
                     </div>
                     <div className="px-4 py-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
-                      <button className="w-full text-sm font-semibold py-1.5 rounded-xl transition-all" style={{ color: '#C1272D' }}
-                        onClick={() => setNotifOpen(false)}>
+                      <Link to="/notifications" onClick={() => setNotifOpen(false)}
+                        className="block w-full text-sm font-semibold py-1.5 rounded-xl transition-all text-center"
+                        style={{ color: '#C1272D' }}>
                         {t.nav.viewAll}
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 )}
