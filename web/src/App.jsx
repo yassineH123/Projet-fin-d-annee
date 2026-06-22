@@ -86,6 +86,7 @@ const TrackRide             = lazy(() => import('./pages/TrackRide'));
 const EnterpriseDashboard   = lazy(() => import('./pages/EnterpriseDashboard'));
 const MobilityHub           = lazy(() => import('./pages/MobilityHub'));
 const BookTransport         = lazy(() => import('./pages/BookTransport'));
+const CityRide              = lazy(() => import('./pages/CityRide'));
 
 import SOSButton           from './components/SOSButton';
 import AccessibilityWidget from './components/AccessibilityWidget';
@@ -152,6 +153,7 @@ function AppRoutes() {
           <Route path="/enterprise"       element={<PrivateRoute><EnterpriseDashboard /></PrivateRoute>} />
           <Route path="/mobility"         element={<MobilityHub />} />
           <Route path="/book-transport"   element={<PrivateRoute><BookTransport /></PrivateRoute>} />
+          <Route path="/city-ride"        element={<PrivateRoute><CityRide /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
         </Suspense>

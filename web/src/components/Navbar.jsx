@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
   Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff,
-  Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones
+  Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones, Navigation
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -369,6 +369,20 @@ export default function Navbar() {
                 )}
               </NavLink>
 
+              {/* City Ride */}
+              <NavLink to="/city-ride"
+                className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+                style={({ isActive }) => ({ background: isActive ? 'rgba(212,137,10,0.08)' : 'transparent' })}
+                title="Course en ville"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Navigation size={20} style={{ color: isActive ? '#D4890A' : 'var(--text-secondary)' }} />
+                    <span className="text-[10px] font-semibold" style={{ color: isActive ? '#D4890A' : 'var(--text-muted)' }}>City</span>
+                  </>
+                )}
+              </NavLink>
+
               {/* Mes Trajets */}
               <NavLink to="/rides/mine"
                 className="hidden md:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group"
@@ -680,6 +694,7 @@ export default function Navbar() {
           <MobileLink to="/rides/search"  icon={<Search size={16} />}       label={t.mobile.search} />
           <MobileLink to="/compare"       icon={<Map size={16} />}           label={t.mobile.compare} />
           <MobileLink to="/mobility"      icon={<Globe size={16} />}         label="Mobilité" />
+          <MobileLink to="/city-ride"     icon={<Navigation size={16} />}    label="City" />
           <MobileLink to="/feed"          icon={<Rss size={16} />}           label={t.mobile.feed} />
           {user ? (
             <>
