@@ -1,16 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Star, ArrowLeft, Send, Clock, Car, MessageCircle, Sparkles, User } from 'lucide-react';
+import { Star, ArrowLeft, Send, Clock, Car, MessageCircle, Sparkles, User, Luggage, ThumbsUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 
-const CRITERIA = [
-  { key: 'punctuality',    label: 'Ponctualité',    icon: Clock,         color: '#3B82F6' },
-  { key: 'driving',        label: 'Conduite',        icon: Car,           color: '#10B981' },
-  { key: 'communication',  label: 'Communication',   icon: MessageCircle, color: '#8B5CF6' },
-  { key: 'cleanliness',    label: 'Propreté / confort', icon: Sparkles,  color: '#F59E0B' },
+const DRIVER_CRITERIA = [
+  { key: 'punctuality',   label: 'Ponctualité',        icon: Clock,         color: '#3B82F6' },
+  { key: 'driving',       label: 'Conduite',            icon: Car,           color: '#10B981' },
+  { key: 'communication', label: 'Communication',       icon: MessageCircle, color: '#8B5CF6' },
+  { key: 'cleanliness',   label: 'Propreté / confort',  icon: Sparkles,      color: '#F59E0B' },
 ];
+
+const PASSENGER_CRITERIA = [
+  { key: 'punctuality',   label: 'Ponctualité',         icon: Clock,         color: '#3B82F6' },
+  { key: 'communication', label: 'Communication',        icon: MessageCircle, color: '#8B5CF6' },
+  { key: 'baggage',       label: 'Bagages raisonnables', icon: Luggage,       color: '#10B981' },
+  { key: 'behavior',      label: 'Comportement',         icon: ThumbsUp,      color: '#F59E0B' },
+];
+
+const PASSENGER_TAGS = ['Ponctuel', 'Agréable', 'Propre', 'Peu de bagages', 'Respectueux', 'Discret', 'À l\'heure', 'Sympa'];
 
 const LABELS = ['', 'Très mauvais 😤', 'Mauvais 😕', 'Correct 😐', 'Bien 😊', 'Excellent 🤩'];
 
@@ -49,7 +58,8 @@ export default function WriteReview() {
 
   const [rating,    setRating]    = useState(0);
   const [hovGlobal, setHovGlobal] = useState(0);
-  const [criteria,  setCriteria]  = useState({ punctuality: 0, driving: 0, communication: 0, cleanliness: 0 });
+  const [criteria,  setCriteria]  = useState({ punctuality: 0, driving: 0, communication: 0, cleanliness: 0, baggage: 0, behavior: 0 });
+  const [tags,      setTags]      = useState([]);
   const [comment,   setComment]   = useState('');
 
   useEffect(() => {
@@ -61,6 +71,7 @@ export default function WriteReview() {
   }, [reviewedId]);
 
   const setCrit = (key) => (val) => setCriteria(c => ({ ...c, [key]: val }));
+  const toggleTag = (t) => setTags(ts => ts.includes(t) ? ts.filter(x => x !== t) : [...ts, t]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,11 +79,13 @@ export default function WriteReview() {
     setSaving(true);
     try {
       await api.post('/reviews', {
-        reviewedId, rideId, rating, comment, type,
+        reviewedId, rideId, rating, comment, type, tags,
         punctuality:   criteria.punctuality   || null,
         driving:       criteria.driving       || null,
         communication: criteria.communication || null,
         cleanliness:   criteria.cleanliness   || null,
+        baggage:       criteria.baggage       || null,
+        behavior:      criteria.behavior      || null,
       });
       toast.success('Avis envoyé ! Merci pour votre retour.');
       navigate('/bookings');
@@ -160,22 +173,45 @@ export default function WriteReview() {
             )}
           </div>
 
-          {/* Critères détaillés (conducteur uniquement) */}
-          {isDriver && (
+          {/* Critères détaillés */}
+          <div>
+            <label className="text-sm font-semibold mb-3 block" style={{ color: 'var(--text-secondary)' }}>
+              Critères détaillés <span className="font-normal text-xs" style={{ color: 'var(--text-muted)' }}>(optionnel)</span>
+            </label>
+            <div className="flex flex-col gap-3 p-4 rounded-xl" style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+              {(isDriver ? DRIVER_CRITERIA : PASSENGER_CRITERIA).map(({ key, label, icon: Icon, color }) => (
+                <div key={key} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 w-36 shrink-0">
+                    <Icon size={14} style={{ color }} />
+                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                  </div>
+                  <StarRow value={criteria[key]} onChange={setCrit(key)} color={color} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags rapides (passager uniquement) */}
+          {!isDriver && (
             <div>
               <label className="text-sm font-semibold mb-3 block" style={{ color: 'var(--text-secondary)' }}>
-                Critères détaillés <span className="font-normal text-xs" style={{ color: 'var(--text-muted)' }}>(optionnel)</span>
+                Points positifs <span className="font-normal text-xs" style={{ color: 'var(--text-muted)' }}>(optionnel)</span>
               </label>
-              <div className="flex flex-col gap-3 p-4 rounded-xl" style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
-                {CRITERIA.map(({ key, label, icon: Icon, color }) => (
-                  <div key={key} className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 w-36 shrink-0">
-                      <Icon size={14} style={{ color }} />
-                      <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                    </div>
-                    <StarRow value={criteria[key]} onChange={setCrit(key)} color={color} />
-                  </div>
-                ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {PASSENGER_TAGS.map(t => {
+                  const active = tags.includes(t);
+                  return (
+                    <button key={t} type="button" onClick={() => toggleTag(t)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        border: `1.5px solid ${active ? '#10B981' : 'var(--border-color)'}`,
+                        background: active ? 'rgba(16,185,129,0.12)' : 'var(--bg-700)',
+                        color: active ? '#10B981' : 'var(--text-muted)', transition: 'all .15s',
+                      }}>
+                      {active ? '✓ ' : ''}{t}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
