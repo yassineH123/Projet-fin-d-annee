@@ -26,7 +26,7 @@ export default function Events() {
     if (filter.city) params.set('city', filter.city);
     if (filter.category) params.set('category', filter.category);
     setLoading(true);
-    api.get(`/events?${params}`).then(({ data }) => setEvents(data.events)).finally(() => setLoading(false));
+    api.get(`/events?${params}`).then(({ data }) => setEvents(data.events || [])).catch(() => setEvents([])).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, [filter]);
 

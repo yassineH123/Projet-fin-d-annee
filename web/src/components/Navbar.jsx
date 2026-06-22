@@ -214,8 +214,8 @@ export default function Navbar() {
 
         {/* ── LOGO (gauche) ── */}
         <Link
-          to={['admin', 'superadmin'].includes(user?.role) ? '/admin/home' : '/'}
-          onClick={() => { if (location.pathname === '/' || location.pathname === '/admin/home') window.location.reload(); }}
+          to={['admin', 'superadmin'].includes(user?.role) ? '/admin' : '/'}
+          onClick={() => { if (location.pathname === '/' || location.pathname === '/admin') window.location.reload(); }}
           className="flex items-center gap-2 flex-shrink-0 group"
         >
           <img src="/logo.svg" alt="AtlasWay" className="w-9 h-9 rounded-xl transition-all duration-300 group-hover:scale-110"

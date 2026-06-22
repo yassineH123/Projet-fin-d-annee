@@ -472,7 +472,7 @@ export default function Feed() {
       if (f.tag)   params.set('tag', f.tag);
       if (f.saved) params.set('saved', '1');
       const { data } = await api.get(`/posts?${params}`);
-      setPosts(data);
+      setPosts(Array.isArray(data) ? data : (data.posts || []));
     } catch { toast.error('Erreur de chargement'); }
     finally { setLoading(false); }
   }, []); // eslint-disable-line

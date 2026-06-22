@@ -86,7 +86,7 @@ export default function Messages() {
 
   /* ── Load conversations ─────────────────────────────── */
   const loadConversations = useCallback(() =>
-    api.get('/messages/conversations').then(({ data }) => data.conversations), []);
+    api.get('/messages/conversations').then(({ data }) => data.conversations || []).catch(() => []), []);
 
   useEffect(() => {
     loadConversations().then(conversations => {
