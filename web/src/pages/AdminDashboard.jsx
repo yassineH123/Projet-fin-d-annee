@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Car, BookOpen, Star, Search, Shield, Ban, Trash2, CheckCircle, Flag, TrendingUp, Wallet, AlertTriangle, FileCheck, X, ExternalLink } from 'lucide-react';
+import { Users, Car, BookOpen, Star, Search, Shield, Ban, Trash2, CheckCircle, Flag, TrendingUp, Wallet, AlertTriangle, FileCheck, X, ExternalLink, ShieldCheck, ShieldOff } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -89,8 +89,10 @@ export default function AdminDashboard() {
     if (tab === 'kyc')     fetchPendingKyc();
   }, [tab]);
 
-  const blockUser   = async (id) => { await api.patch(`/admin/users/${id}/block`);   toast.success('Bloqué');    fetchUsers(); };
-  const unblockUser = async (id) => { await api.patch(`/admin/users/${id}/unblock`); toast.success('Débloqué'); fetchUsers(); };
+  const blockUser    = async (id) => { await api.patch(`/admin/users/${id}/block`);         toast.success('Bloqué');             fetchUsers(); };
+  const unblockUser  = async (id) => { await api.patch(`/admin/users/${id}/unblock`);       toast.success('Débloqué');           fetchUsers(); };
+  const promoteUser  = async (id) => { await api.patch(`/admin/users/${id}/role`, { role: 'admin' });  toast.success('Promu administrateur'); fetchUsers(); };
+  const demoteUser   = async (id) => { await api.patch(`/admin/users/${id}/role`, { role: 'user' });   toast.success('Rétrogradé utilisateur'); fetchUsers(); };
   const deleteUser  = async (id) => {
     toast((t) => (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -252,6 +254,18 @@ export default function AdminDashboard() {
       {/* ── Users tab ── */}
       {tab === 'users' && (
         <>
+          {isSuperAdmin && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm"
+              style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+              <Shield size={15} className="text-purple-400 shrink-0" />
+              <p className="text-purple-300/80">
+                En tant que <strong>Super Admin</strong>, vous pouvez promouvoir des utilisateurs en admin
+                <span className="inline-flex items-center gap-1 mx-1 text-blue-400"><ShieldCheck size={13} /></span>
+                ou rétrograder des admins
+                <span className="inline-flex items-center gap-1 mx-1 text-orange-400"><ShieldOff size={13} /></span>.
+              </p>
+            </div>
+          )}
           <div className="relative mb-4 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchUsers()} placeholder="Rechercher..." className="input pl-9 text-sm" />
@@ -298,6 +312,16 @@ export default function AdminDashboard() {
                               ? <button onClick={() => blockUser(u.id)} title="Bloquer" className="text-yellow-400 hover:text-yellow-300 transition"><Ban size={15} /></button>
                               : <button onClick={() => unblockUser(u.id)} title="Débloquer" className="text-green-400 hover:text-green-300 transition"><CheckCircle size={15} /></button>
                             }
+                            {isSuperAdmin && u.role === 'user' && (
+                              <button onClick={() => promoteUser(u.id)} title="Promouvoir admin" className="text-blue-400 hover:text-blue-300 transition">
+                                <ShieldCheck size={15} />
+                              </button>
+                            )}
+                            {isSuperAdmin && u.role === 'admin' && (
+                              <button onClick={() => demoteUser(u.id)} title="Rétrograder utilisateur" className="text-orange-400 hover:text-orange-300 transition">
+                                <ShieldOff size={15} />
+                              </button>
+                            )}
                             <button onClick={() => deleteUser(u.id)} title="Supprimer" className="text-red-400 hover:text-red-300 transition"><Trash2 size={15} /></button>
                           </div>
                         ) : (
