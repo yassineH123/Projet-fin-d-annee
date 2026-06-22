@@ -285,6 +285,57 @@ export const FLIGHTS = [
   },
 ];
 
+// ── Deep Link Builder ─────────────────────────────────────────────────────────
+// City codes for ONCF booking portal
+const ONCF_CODES = {
+  casablanca: 'CASAV', rabat: 'RAGDL', fes: 'FES', tanger: 'TANV',
+  marrakech: 'MRAK', meknes: 'MKN', oujda: 'OUD', kenitra: 'KEN',
+  settat: 'SET', benmellal: 'BML',
+};
+
+// IATA airport codes
+const IATA_CODES = {
+  casablanca: 'CMN', marrakech: 'RAK', tanger: 'TNG', fes: 'FEZ',
+  agadir: 'AGA', oujda: 'OUD', rabat: 'RBA', 'al hoceima': 'AHU',
+  nador: 'NDR', laayoune: 'EUN', dakhla: 'VIL',
+};
+
+function normKey(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
+export function buildDeepLink(operator, from, to, date) {
+  const f = normKey(from);
+  const t = normKey(to);
+  const d = date || new Date().toISOString().split('T')[0];   // YYYY-MM-DD
+  const dCompact = d.replace(/-/g, '');                        // YYYYMMDD (RAM format)
+
+  const op = normKey(operator);
+
+  if (op === 'oncf' || op === 'al boraq lgv' || op === 'al boraq') {
+    const orig = ONCF_CODES[f] || encodeURIComponent(from);
+    const dest = ONCF_CODES[t] || encodeURIComponent(to);
+    return `https://www.oncf-voyages.ma/fr/trains?departure=${orig}&destination=${dest}&outward=${d}&count=1&class=2`;
+  }
+  if (op === 'ctm') {
+    return `https://www.ctm.ma/fr/reservation?depart=${encodeURIComponent(from)}&arrivee=${encodeURIComponent(to)}&date=${d}&passagers=1`;
+  }
+  if (op === 'supratours') {
+    return `https://www.supratours.ma/fr/billet?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${d}`;
+  }
+  if (op === 'royal air maroc') {
+    const org = IATA_CODES[f] || 'CMN';
+    const dst = IATA_CODES[t] || 'RAK';
+    return `https://www.royalairmaroc.com/ma-fr/booking/search?tripType=OW&org0=${org}&dst0=${dst}&dep0=${dCompact}&adt=1&inf=0&chd=0`;
+  }
+  if (op === 'air arabia maroc') {
+    const org = IATA_CODES[f] || 'CMN';
+    const dst = IATA_CODES[t] || 'RAK';
+    return `https://www.airarabia.com/fr/book/select-flight?type=O&origin=${org}&destination=${dst}&departuredate=${d}&adult=1&child=0&infant=0`;
+  }
+  return null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export function formatDuration(minutes) {
   const h = Math.floor(minutes / 60);
@@ -302,4 +353,34 @@ export function co2Label(kg) {
   if (kg <= 1.5) return 'Très écolo';
   if (kg <= 5)   return 'Modéré';
   return 'Polluant';
+}
+
+// ── Temps réel simulé ─────────────────────────────────────────────────────────
+// Retourne le prochain départ à partir de maintenant (ou null si aucun aujourd'hui)
+export function nextDeparture(departures = []) {
+  if (!departures.length) return null;
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  for (const d of departures) {
+    const [h, m] = d.split(':').map(Number);
+    const depMin = h * 60 + m;
+    if (depMin > nowMin) {
+      const diff = depMin - nowMin;
+      const hLeft = Math.floor(diff / 60);
+      const mLeft = diff % 60;
+      return { time: d, diffMin: diff, label: hLeft > 0 ? `Dans ${hLeft}h${String(mLeft).padStart(2,'0')}` : `Dans ${mLeft} min` };
+    }
+  }
+  // Premier départ demain
+  const first = departures[0];
+  const [h, m] = first.split(':').map(Number);
+  const tomorrowMin = 24 * 60 - nowMin + h * 60 + m;
+  return { time: first, diffMin: tomorrowMin, label: `Demain ${first}`, tomorrow: true };
+}
+
+// Places disponibles simulées (stable par route + heure pour éviter le flickering)
+export function simulatedSeats(routeKey, departureTime) {
+  const seed = [...(routeKey + departureTime)].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const base = (seed % 40) + 5;
+  return Math.max(1, base);
 }

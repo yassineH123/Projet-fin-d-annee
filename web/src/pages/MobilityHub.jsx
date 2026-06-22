@@ -5,7 +5,8 @@ import {
   ArrowLeftRight, ExternalLink, CheckCircle, Search, Globe,
 } from 'lucide-react';
 import {
-  ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS, findRoutes, formatDuration, co2Color,
+  ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS, findRoutes, formatDuration, co2Color, buildDeepLink,
+  nextDeparture, simulatedSeats,
 } from '../data/transportData';
 
 /* ─── Config modes ─── */
@@ -157,7 +158,7 @@ function ModeBadge({ mode, size = 12 }) {
 }
 
 /* ─── Itinerary card ─── */
-function ItineraryCard({ itin, badges = [] }) {
+function ItineraryCard({ itin, badges = [], date }) {
   const [expanded, setExpanded] = useState(false);
 
   const hasBadge = (b) => badges.includes(b);
@@ -241,6 +242,36 @@ function ItineraryCard({ itin, badges = [] }) {
           })}
         </div>
 
+        {/* Prochain départ + places dispo (temps réel simulé) */}
+        {itin.legs.some(l => l.departures?.length > 0) && (() => {
+          const firstLeg = itin.legs.find(l => l.departures?.length > 0);
+          const next = nextDeparture(firstLeg?.departures || []);
+          const seats = simulatedSeats(`${firstLeg?.from}-${firstLeg?.to}`, next?.time || '');
+          if (!next) return null;
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800,
+                padding: '4px 10px', borderRadius: 99,
+                background: next.tomorrow ? 'rgba(100,100,100,0.1)' : 'rgba(34,197,94,0.12)',
+                color: next.tomorrow ? 'var(--text-muted)' : '#22C55E',
+                border: `1px solid ${next.tomorrow ? 'rgba(100,100,100,0.2)' : 'rgba(34,197,94,0.25)'}`,
+              }}>
+                🕐 Prochain : {next.time} · <strong>{next.label}</strong>
+              </span>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
+                padding: '4px 10px', borderRadius: 99,
+                background: seats <= 5 ? 'rgba(239,68,68,0.10)' : 'rgba(33,150,243,0.10)',
+                color: seats <= 5 ? '#EF4444' : '#2196F3',
+                border: `1px solid ${seats <= 5 ? 'rgba(239,68,68,0.25)' : 'rgba(33,150,243,0.20)'}`,
+              }}>
+                🪑 {seats} place{seats > 1 ? 's' : ''} {seats <= 5 ? '— Presque complet' : 'disponibles'}
+              </span>
+            </div>
+          );
+        })()}
+
         {/* Summary row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border-color)', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -263,27 +294,50 @@ function ItineraryCard({ itin, badges = [] }) {
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {itin.legs[0].mode === 'covoiturage' ? (
-              <Link to={`/rides/search?from=${itin.legs[0].from}&to=${itin.legs[itin.legs.length-1].to}`}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {itin.legs.map((leg, li) => {
+              if (leg.mode === 'covoiturage') return (
+                <Link key={li} to={`/rides/search?from=${encodeURIComponent(leg.from)}&to=${encodeURIComponent(leg.to)}&date=${date}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10,
+                    background: 'rgba(193,39,45,0.10)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)',
+                    textDecoration: 'none', fontSize: 12, fontWeight: 800,
+                  }}>
+                  <Car size={13} /> Covoiturage
+                </Link>
+              );
+              const deepLink = buildDeepLink(leg.operator, leg.from, leg.to, date);
+              const cfg = MODE[leg.mode] || {};
+              if (!deepLink) return null;
+              return (
+                <a key={li} href={deepLink} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10,
+                    background: cfg.bg || 'rgba(33,150,243,0.1)', color: cfg.color || '#2196F3',
+                    border: `1px solid ${(cfg.color || '#2196F3')}35`, textDecoration: 'none',
+                    fontSize: 12, fontWeight: 800,
+                  }}>
+                  {leg.operator} <ExternalLink size={11} />
+                </a>
+              );
+            })}
+            {/* Bouton réservation interne AtlasWay (train/bus uniquement) */}
+            {itin.legs.some(l => ['train','bus'].includes(l.mode)) && (
+              <Link
+                to={`/book-transport?mode=${itin.legs.find(l=>['train','bus'].includes(l.mode))?.mode}&from=${encodeURIComponent(itin.legs[0].from)}&to=${encodeURIComponent(itin.legs[itin.legs.length-1].to)}&date=${date}&operator=${encodeURIComponent(itin.legs.find(l=>['train','bus'].includes(l.mode))?.operator||'')}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10,
-                  background: 'rgba(193,39,45,0.10)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)',
+                  background: 'linear-gradient(135deg, #C1272D, #a01f24)', color: '#fff',
                   textDecoration: 'none', fontSize: 12, fontWeight: 800,
+                  boxShadow: '0 3px 10px rgba(193,39,45,0.3)',
                 }}>
-                <Car size={13} /> Voir les trajets
+                🎟 Réserver sur AtlasWay
               </Link>
-            ) : itin.legs[0].bookingUrl ? (
-              <a href={itin.legs[0].bookingUrl} target="_blank" rel="noopener noreferrer"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10,
-                  background: `${MODE[itin.legs[0].mode]?.bg}`, color: MODE[itin.legs[0].mode]?.color,
-                  border: `1px solid ${MODE[itin.legs[0].mode]?.color}35`, textDecoration: 'none',
-                  fontSize: 12, fontWeight: 800,
-                }}>
-                Réserver <ExternalLink size={11} />
-              </a>
-            ) : null}
+            )}
+            {/* Pre-filled badge */}
+            <span style={{ fontSize: 10, color: '#22C55E', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}>
+              ✓ Paramètres pré-remplis
+            </span>
           </div>
         </div>
 
@@ -318,6 +372,7 @@ export default function MobilityHub() {
   const [sp] = useSearchParams();
   const [from, setFrom] = useState(sp.get('from') || '');
   const [to,   setTo]   = useState(sp.get('to')   || '');
+  const [date, setDate] = useState(sp.get('date')  || new Date().toISOString().split('T')[0]);
   const [searched, setSearched] = useState(!!(sp.get('from') && sp.get('to')));
 
   const itineraries = useMemo(() => {
@@ -392,6 +447,13 @@ export default function MobilityHub() {
           </div>
         </div>
 
+        <div style={{ minWidth: 140 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Date</label>
+          <input type="date" value={date} min={new Date().toISOString().split('T')[0]}
+            onChange={e => setDate(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13, background: 'var(--bg-700)', border: '1.5px solid var(--border-color)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+
         <button type="submit" style={{
           padding: '10px 20px', borderRadius: 10, background: 'linear-gradient(135deg, #C1272D, #a01f24)',
           color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 800,
@@ -463,7 +525,7 @@ export default function MobilityHub() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {itineraries.map(itin => (
-                <ItineraryCard key={itin.id} itin={itin} badges={badges[itin.id] || []} />
+                <ItineraryCard key={itin.id} itin={itin} badges={badges[itin.id] || []} date={date} />
               ))}
 
               {/* Last mile suggestion */}

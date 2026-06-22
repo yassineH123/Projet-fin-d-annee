@@ -85,6 +85,7 @@ const Notifications     = lazy(() => import('./pages/Notifications'));
 const TrackRide             = lazy(() => import('./pages/TrackRide'));
 const EnterpriseDashboard   = lazy(() => import('./pages/EnterpriseDashboard'));
 const MobilityHub           = lazy(() => import('./pages/MobilityHub'));
+const BookTransport         = lazy(() => import('./pages/BookTransport'));
 
 import SOSButton           from './components/SOSButton';
 import AccessibilityWidget from './components/AccessibilityWidget';
@@ -150,6 +151,7 @@ function AppRoutes() {
           <Route path="/track/:rideId"      element={<TrackRide />} />
           <Route path="/enterprise"       element={<PrivateRoute><EnterpriseDashboard /></PrivateRoute>} />
           <Route path="/mobility"         element={<MobilityHub />} />
+          <Route path="/book-transport"   element={<PrivateRoute><BookTransport /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
         </Suspense>
