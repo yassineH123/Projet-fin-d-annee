@@ -14,17 +14,67 @@ import ReliabilityScore from '../components/ReliabilityScore';
 
 const LANGUAGES = ['Français', 'Arabe', 'Darija', 'Amazigh', 'Anglais', 'Espagnol'];
 
-function StarDisplay({ rating, count }) {
+/* ── Zellige stripe ── */
+function ZelligeStripe({ radius = '14px 14px 0 0' }) {
+  const colors = ['#C1272D', '#D4890A', '#006233'];
   return (
-    <div className="flex items-center gap-1.5 mt-1">
-      {[1,2,3,4,5].map(s => (
-        <Star key={s} size={13} className={s <= Math.round(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />
+    <div style={{ height: 5, display: 'flex', overflow: 'hidden', borderRadius: radius }}>
+      {Array.from({ length: 50 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: colors[i % 3], opacity: 0.88 }} />
       ))}
-      {count > 0 && <span className="text-slate-400 text-xs">({count} avis)</span>}
     </div>
   );
 }
 
+/* ── Section card ── */
+function SectionCard({ title, icon: Icon, accent = '#C1272D', children, action }) {
+  return (
+    <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+      <div style={{ height: 3, background: accent }} />
+      <div style={{ padding: '16px 18px' }}>
+        {title && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.07em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {Icon && <Icon size={13} style={{ color: accent }} />}{title}
+            </p>
+            {action}
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ── Toggle switch ── */
+function Toggle({ checked, onChange, color = '#C1272D' }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      style={{
+        width: 38, height: 21, borderRadius: 10.5, flexShrink: 0, cursor: 'pointer', border: 'none',
+        background: checked ? color : 'var(--bg-500)', position: 'relative', transition: 'background .2s',
+      }}>
+      <span style={{
+        position: 'absolute', top: 2.5, left: checked ? 19 : 2.5, width: 16, height: 16,
+        borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      }} />
+    </button>
+  );
+}
+
+/* ── Star display ── */
+function StarDisplay({ rating, count }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+      {[1,2,3,4,5].map(s => (
+        <Star key={s} size={13} style={{ color: s <= Math.round(rating) ? '#F59E0B' : 'var(--border-color)', fill: s <= Math.round(rating) ? '#F59E0B' : 'none' }} />
+      ))}
+      {count > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>({count} avis)</span>}
+    </div>
+  );
+}
+
+/* ── Doc upload field ── */
 function DocUploadField({ label, fieldName, currentDoc, onChange, required }) {
   const ref = useRef();
   const [preview, setPreview] = useState(null);
@@ -41,34 +91,32 @@ function DocUploadField({ label, fieldName, currentDoc, onChange, required }) {
 
   return (
     <div>
-      <label className="text-sm text-slate-400 mb-1.5 block">
-        {label} {required && <span className="text-red-400">*</span>}
+      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+        {label} {required && <span style={{ color: '#F87171' }}>*</span>}
       </label>
-      <div
-        onClick={() => ref.current.click()}
-        className={`relative border-2 border-dashed rounded-xl p-4 flex items-center gap-3 cursor-pointer transition
-          ${hasDoc ? 'border-green-500/50 bg-green-500/5' : 'border-dark-500 hover:border-primary-500/50 bg-dark-700'}`}
-      >
+      <div onClick={() => ref.current.click()} style={{
+        border: `2px dashed ${hasDoc ? '#22C55E' : 'var(--border-color)'}`,
+        borderRadius: 12, padding: '14px', display: 'flex', alignItems: 'center', gap: 10,
+        cursor: 'pointer', background: hasDoc ? 'rgba(34,197,94,0.05)' : 'var(--bg-700)',
+        transition: 'border-color .2s',
+      }}>
         {hasDoc ? (
           preview === 'pdf' || (currentDoc && currentDoc.endsWith('.pdf')) ? (
-            <div className="flex items-center gap-2 text-green-400">
-              <FileText size={20} />
-              <span className="text-sm font-medium">Document chargé</span>
-              <CheckCircle size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#22C55E' }}>
+              <FileText size={18} /><span style={{ fontSize: 13, fontWeight: 600 }}>Document chargé</span><CheckCircle size={15} />
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <img src={preview || currentDoc} alt="" className="w-12 h-12 object-cover rounded-lg" />
-              <span className="text-green-400 text-sm font-medium flex items-center gap-1"><CheckCircle size={14} /> Chargé</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src={preview || currentDoc} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} />
+              <span style={{ color: '#22C55E', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle size={13} /> Chargé</span>
             </div>
           )
         ) : (
-          <div className="flex items-center gap-2 text-slate-500">
-            <Upload size={18} />
-            <span className="text-sm">Cliquer pour uploader (image ou PDF)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}>
+            <Upload size={16} /><span style={{ fontSize: 13 }}>Cliquer pour uploader (image ou PDF)</span>
           </div>
         )}
-        <input ref={ref} type="file" accept="image/*,.pdf" className="hidden" onChange={handleChange} />
+        <input ref={ref} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={handleChange} />
       </div>
     </div>
   );
@@ -97,26 +145,22 @@ export default function Profile() {
   });
   const [prefs, setPrefs] = useState({ smoking: false, music: true, pets: false, chat: true });
   const [langs, setLangs] = useState([]);
-  const [isHandicapped, setIsHandicapped]     = useState(false);
-  const [handicapAccessible, setHandicapAccessible] = useState(false);
+  const [isHandicapped,     setIsHandicapped]     = useState(false);
+  const [handicapAccessible,setHandicapAccessible] = useState(false);
   const [nationality, setNationality] = useState('moroccan');
-  const [gender, setGender] = useState('');
-  const [country, setCountry] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  const [gender,      setGender]      = useState('');
+  const [country,     setCountry]     = useState('');
+  const [birthDate,   setBirthDate]   = useState('');
 
   const [pwdForm,   setPwdForm]   = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [pwdSaving, setPwdSaving] = useState(false);
 
-  // ── Vérification d'identité (KYC) ──
   const [kycSelfie, setKycSelfie] = useState(null);
   const [kycCin,    setKycCin]    = useState(null);
   const [kycSaving, setKycSaving] = useState(false);
 
   const submitKyc = async () => {
-    if (!kycSelfie || (!kycCin && !profile?.cinDoc)) {
-      toast.error('Selfie et photo de la CIN requis.');
-      return;
-    }
+    if (!kycSelfie || (!kycCin && !profile?.cinDoc)) { toast.error('Selfie et photo de la CIN requis.'); return; }
     setKycSaving(true);
     try {
       const fd = new FormData();
@@ -126,11 +170,8 @@ export default function Profile() {
       toast.success('Vérification d\'identité soumise !');
       setProfile(p => ({ ...p, kycStatus: data.kycStatus }));
       setKycSelfie(null); setKycCin(null);
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Erreur lors de la soumission.');
-    } finally {
-      setKycSaving(false);
-    }
+    } catch (e) { toast.error(e.response?.data?.message || 'Erreur lors de la soumission.'); }
+    finally { setKycSaving(false); }
   };
 
   useEffect(() => {
@@ -141,19 +182,10 @@ export default function Profile() {
       setRides(data.rides   || []);
       setReviews(data.reviews || []);
       if (isMe) {
-        setForm({
-          firstName:    u.firstName    || '',
-          lastName:     u.lastName     || '',
-          phone:        u.phone        || '',
-          bio:          u.bio          || '',
-          carModel:     u.carModel     || '',
-          carColor:     u.carColor     || '',
-          carYear:      u.carYear      || '',
-          licensePlate: u.licensePlate || '',
-        });
+        setForm({ firstName: u.firstName || '', lastName: u.lastName || '', phone: u.phone || '', bio: u.bio || '', carModel: u.carModel || '', carColor: u.carColor || '', carYear: u.carYear || '', licensePlate: u.licensePlate || '' });
         setPrefs(u.preferences || { smoking: false, music: true, pets: false, chat: true });
-        setLangs(u.languages   || []);
-        setIsHandicapped(u.isHandicapped       || false);
+        setLangs(u.languages || []);
+        setIsHandicapped(u.isHandicapped || false);
         setHandicapAccessible(u.handicapAccessible || false);
         setNationality(u.nationality || 'moroccan');
         setGender(u.gender || '');
@@ -169,9 +201,9 @@ export default function Profile() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => v !== undefined && fd.append(k, v));
-      fd.append('preferences',       JSON.stringify(prefs));
-      fd.append('languages',         JSON.stringify(langs));
-      fd.append('isHandicapped',     isHandicapped);
+      fd.append('preferences', JSON.stringify(prefs));
+      fd.append('languages', JSON.stringify(langs));
+      fd.append('isHandicapped', isHandicapped);
       fd.append('handicapAccessible', handicapAccessible);
       fd.append('nationality', nationality);
       fd.append('gender', gender);
@@ -179,15 +211,10 @@ export default function Profile() {
       fd.append('birthDate', birthDate);
       Object.entries(docFiles).forEach(([k, f]) => fd.append(k, f));
       const { data } = await api.put('/users/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      updateUser(data.user);
-      setProfile(data.user);
-      setDocFiles({});
+      updateUser(data.user); setProfile(data.user); setDocFiles({});
       toast.success('Profil mis à jour !');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { toast.error(err.response?.data?.message || 'Erreur'); }
+    finally { setSaving(false); }
   };
 
   const handlePhoto = async (e) => {
@@ -197,8 +224,7 @@ export default function Profile() {
     fd.append('photo', file);
     try {
       const { data } = await api.put('/users/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      updateUser(data.user);
-      setProfile(data.user);
+      updateUser(data.user); setProfile(data.user);
       toast.success('Photo mise à jour !');
     } catch { toast.error('Erreur upload photo'); }
   };
@@ -212,15 +238,14 @@ export default function Profile() {
       toast.success('Mot de passe modifié !');
       setPwdForm({ currentPassword: '', newPassword: '', confirm: '' });
       setShowPwd(false);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    } finally { setPwdSaving(false); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Erreur'); }
+    finally { setPwdSaving(false); }
   };
 
   const toggleLang = (lang) => setLangs(l => l.includes(lang) ? l.filter(x => x !== lang) : [...l, lang]);
 
   if (loading) return <Spinner size="lg" />;
-  if (!profile) return <div className="text-center py-20 text-slate-400">Utilisateur introuvable.</div>;
+  if (!profile) return <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>Utilisateur introuvable.</div>;
 
   const memberSince = new Date(profile.createdAt).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const prefConfig = [
@@ -230,14 +255,12 @@ export default function Profile() {
     { k: 'chat',    label: 'Discussion', icon: MessageCircle },
   ];
 
-  const verifStatus = () => {
-    if (profile.driverVerified) return { label: 'Conducteur vérifié', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/30', icon: ShieldCheck };
-    if (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc) return { label: 'Vérification en cours', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30', icon: AlertCircle };
+  const verifBadge = (() => {
+    if (profile.driverVerified) return { label: 'Conducteur vérifié', color: '#22C55E', bg: 'rgba(34,197,94,0.10)', border: 'rgba(34,197,94,0.25)', Icon: ShieldCheck };
+    if (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc) return { label: 'Vérification en cours', color: '#F59E0B', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', Icon: AlertCircle };
     return null;
-  };
-  const verifBadge = verifStatus();
+  })();
 
-  // Moyennes par critère (sur les avis qui les renseignent)
   const REVIEW_CRITERIA = [
     { key: 'punctuality',   label: 'Ponctualité' },
     { key: 'driving',       label: 'Conduite' },
@@ -254,232 +277,206 @@ export default function Profile() {
     try {
       const { data } = await api.post(`/reviews/${reviewId}/respond`, { response: responseText.trim() });
       setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, response: data.review.response } : r));
-      setRespondingId(null);
-      setResponseText('');
+      setRespondingId(null); setResponseText('');
       toast.success('Réponse publiée');
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Erreur');
-    }
+    } catch (e) { toast.error(e.response?.data?.message || 'Erreur'); }
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 48px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* ── HEADER ── */}
-      <div className="card">
-        <div className="flex items-start gap-5 flex-wrap">
-          <div className="relative shrink-0">
-            {profile.photo
-              ? <img src={profile.photo} alt="" className="w-24 h-24 rounded-full object-cover ring-2 ring-primary-500/40" />
-              : <div className="w-24 h-24 rounded-full bg-primary-700 flex items-center justify-center text-4xl font-black text-white">{profile.firstName?.[0]}</div>
-            }
-            {isMe && (
-              <>
-                <button onClick={() => photoRef.current.click()} className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center hover:bg-primary-700 transition">
-                  <Camera size={14} className="text-white" />
-                </button>
-                <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-              </>
+      {/* ── PROFILE HEADER ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <ZelligeStripe />
+
+        {/* Cover area */}
+        <div style={{ height: 72, background: 'linear-gradient(135deg, rgba(193,39,45,0.15) 0%, rgba(212,137,10,0.10) 50%, rgba(0,98,51,0.10) 100%)', position: 'relative' }}>
+          <div style={{ position: 'absolute', right: 16, bottom: -8, fontFamily: 'Amiri, serif', fontSize: 48, color: 'rgba(193,39,45,0.08)', fontWeight: 900, userSelect: 'none' }}>رفيق الطريق</div>
+        </div>
+
+        <div style={{ padding: '0 20px 20px' }}>
+          {/* Avatar row */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12, marginTop: -32 }}>
+            <div style={{ position: 'relative' }}>
+              {profile.photo
+                ? <img src={profile.photo} alt="" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--card-bg)', boxShadow: '0 0 0 2px #C1272D40' }} />
+                : <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, color: '#fff', border: '3px solid var(--card-bg)' }}>{profile.firstName?.[0]}</div>
+              }
+              {isMe && (
+                <>
+                  <button onClick={() => photoRef.current.click()} style={{
+                    position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%',
+                    background: '#C1272D', border: '2px solid var(--card-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                  }}>
+                    <Camera size={12} style={{ color: '#fff' }} />
+                  </button>
+                  <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} />
+                </>
+              )}
+            </div>
+
+            {/* Action buttons for other profiles */}
+            {!isMe && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                <FriendButton userId={profile.id} />
+                <Link to={`/messages?with=${profile.id}&name=${encodeURIComponent(profile.firstName + ' ' + profile.lastName)}&photo=${encodeURIComponent(profile.photo || '')}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', background: 'var(--bg-700)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+                  <MessageSquare size={14} /> Message
+                </Link>
+              </div>
             )}
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-black text-white">{profile.firstName} {profile.lastName}</h1>
-              {profile.isHandicapped && (
-                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
-                  <Accessibility size={11} /> PMR
-                </span>
-              )}
-              {profile.nationality === 'foreign' && (
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
-                  <Globe size={11} /> {profile.country || 'Étranger'}
-                </span>
-              )}
-              {profile.nationality === 'moroccan' && (
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
-                  <Flag size={11} /> Marocain
-                </span>
-              )}
-              {verifBadge && (
-                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${verifBadge.bg} ${verifBadge.color}`}>
-                  <verifBadge.icon size={11} /> {verifBadge.label}
-                </span>
-              )}
-              {profile.kycStatus === 'approved' && (
-                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/30 text-blue-400">
-                  <ShieldCheck size={11} /> Identité vérifiée
-                </span>
-              )}
-            </div>
-            <StarDisplay rating={profile.avgRating || 0} count={profile.totalRatings || 0} />
-            <p className="text-slate-500 text-xs mt-1">Membre depuis {memberSince}</p>
-            {profile.bio && <p className="text-slate-400 text-sm mt-2">{profile.bio}</p>}
-
-            {/* Stats */}
-            <div className="flex gap-4 mt-3">
-              <div className="text-center">
-                <p className="text-white font-bold text-lg">{profile.totalTrips || 0}</p>
-                <p className="text-slate-500 text-xs">Trajets</p>
-              </div>
-              <div className="text-center">
-                <p className="text-white font-bold text-lg">{(profile.avgRating || 0).toFixed(1)}</p>
-                <p className="text-slate-500 text-xs">Note moy.</p>
-              </div>
-              {(profile.languages || []).length > 0 && (
-                <div className="flex flex-wrap gap-1 items-center">
-                  {(profile.languages || []).map(l => (
-                    <span key={l} className="text-xs px-2 py-0.5 rounded-full bg-dark-600 border border-dark-500 text-slate-300">{l}</span>
-                  ))}
-                </div>
-              )}
-            </div>
+          {/* Name + badges */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>{profile.firstName} {profile.lastName}</h1>
+            {profile.isHandicapped && (
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: 'rgba(59,130,246,0.10)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Accessibility size={10} /> PMR
+              </span>
+            )}
+            {verifBadge && (
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: verifBadge.bg, color: verifBadge.color, border: `1px solid ${verifBadge.border}`, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <verifBadge.Icon size={10} /> {verifBadge.label}
+              </span>
+            )}
+            {profile.kycStatus === 'approved' && (
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: 'rgba(59,130,246,0.10)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ShieldCheck size={10} /> Identité vérifiée
+              </span>
+            )}
+            {profile.nationality === 'moroccan' && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-700)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>🇲🇦 Marocain</span>
+            )}
+            {profile.nationality === 'foreign' && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-700)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
+                <Globe size={9} style={{ display: 'inline', marginRight: 3 }} />{profile.country || 'Étranger'}
+              </span>
+            )}
           </div>
 
-          {/* Action buttons — only on someone else's profile */}
-          {!isMe && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              <FriendButton userId={profile.id} />
-              <Link
-                to={`/messages?with=${profile.id}&name=${encodeURIComponent(profile.firstName + ' ' + profile.lastName)}&photo=${encodeURIComponent(profile.photo || '')}`}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                style={{ background: 'var(--bg-700)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#C1272D'; e.currentTarget.style.color = '#C1272D'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-              >
-                <MessageSquare size={15} /> Message
-              </Link>
-            </div>
+          <StarDisplay rating={profile.avgRating || 0} count={profile.totalRatings || 0} />
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Membre depuis {memberSince}</p>
+
+          {profile.bio && (
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.55, paddingTop: 10, borderTop: '1px solid var(--border-color)' }}>
+              {profile.bio}
+            </p>
           )}
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{profile.totalTrips || 0}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Trajets</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 22, fontWeight: 900, color: '#F59E0B', lineHeight: 1 }}>{(profile.avgRating || 0).toFixed(1)}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Note moy.</p>
+            </div>
+            {(profile.languages || []).length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                {(profile.languages || []).map(l => (
+                  <span key={l} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: 'var(--bg-700)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{l}</span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Score de fiabilité — visible par tous */}
-      {profile.totalTrips > 0 || profile.driverVerified ? (
-        <div className="mt-6">
-          <ReliabilityScore user={profile} />
-        </div>
-      ) : null}
+      {/* Reliability score */}
+      {(profile.totalTrips > 0 || profile.driverVerified) && (
+        <ReliabilityScore user={profile} />
+      )}
 
+      {/* ══════════════════════════════════════
+          OWN PROFILE — edit mode
+      ══════════════════════════════════════ */}
       {isMe ? (
         <>
-          {/* ── VÉRIFICATION D'IDENTITÉ (KYC) ── */}
-          <div className="card mt-6">
-            <div className="flex items-center gap-2 mb-1">
-              <ShieldCheck size={18} className="text-blue-400" />
-              <h2 className="font-bold text-white">Vérification d'identité</h2>
-            </div>
-            <p className="text-slate-400 text-sm mb-4">
-              Vérifiez votre identité (selfie + CIN) pour obtenir un badge de confiance et rassurer les autres membres.
+          {/* KYC */}
+          <SectionCard title="Vérification d'identité" icon={ShieldCheck} accent="#3B82F6">
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
+              Soumettez un selfie + votre CIN pour obtenir le badge de confiance 🛡️
             </p>
-
             {profile.kycStatus === 'approved' ? (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-sm font-semibold">
-                <CheckCircle size={16} /> Votre identité est vérifiée.
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22C55E', fontSize: 13, fontWeight: 700 }}>
+                <CheckCircle size={15} /> Votre identité est vérifiée.
               </div>
             ) : profile.kycStatus === 'pending' ? (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm font-semibold">
-                <Clock size={16} /> Vérification en attente de validation par un administrateur.
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B', fontSize: 13, fontWeight: 700 }}>
+                <Clock size={15} /> Vérification en attente de validation.
               </div>
             ) : (
               <>
                 {profile.kycStatus === 'rejected' && (
-                  <div className="flex items-center gap-2 p-3 mb-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold">
-                    <AlertCircle size={16} /> Vérification refusée. Merci de soumettre des documents valides.
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#F87171', fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
+                    <AlertCircle size={15} /> Refusée. Merci de soumettre des documents valides.
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
-                    style={{ borderColor: kycSelfie ? '#3B82F6' : 'var(--border-color)', background: 'var(--bg-700)' }}>
-                    <Camera size={20} className="text-blue-400" />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-base)' }}>{kycSelfie ? kycSelfie.name.slice(0, 20) : 'Selfie'}</span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Photo de votre visage</span>
-                    <input type="file" accept="image/*" capture="user" className="sr-only" onChange={e => setKycSelfie(e.target.files[0] || null)} />
-                  </label>
-                  <label className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
-                    style={{ borderColor: (kycCin || profile.cinDoc) ? '#3B82F6' : 'var(--border-color)', background: 'var(--bg-700)' }}>
-                    <FileText size={20} className="text-blue-400" />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-base)' }}>{kycCin ? kycCin.name.slice(0, 20) : (profile.cinDoc ? 'CIN déjà fournie' : 'CIN')}</span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Carte d'identité nationale</span>
-                    <input type="file" accept="image/*,application/pdf" className="sr-only" onChange={e => setKycCin(e.target.files[0] || null)} />
-                  </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  {[
+                    { icon: Camera, label: 'Selfie', sub: 'Photo de votre visage', file: kycSelfie, setFile: setKycSelfie, capture: 'user' },
+                    { icon: FileText, label: kycCin ? kycCin.name.slice(0,20) : (profile.cinDoc ? 'CIN déjà fournie' : 'CIN'), sub: 'Carte d\'identité nationale', file: kycCin, setFile: setKycCin },
+                  ].map(({ icon: Icon, label, sub, file, setFile, capture }) => (
+                    <label key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '16px 12px', borderRadius: 12, border: `2px dashed ${file ? '#3B82F6' : 'var(--border-color)'}`, background: 'var(--bg-700)', cursor: 'pointer', textAlign: 'center', transition: 'border-color .2s' }}>
+                      <Icon size={20} style={{ color: '#3B82F6' }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sub}</span>
+                      <input type="file" accept="image/*,application/pdf" capture={capture} style={{ display: 'none' }} onChange={e => setFile(e.target.files[0] || null)} />
+                    </label>
+                  ))}
                 </div>
-                <button type="button" onClick={submitKyc} disabled={kycSaving}
-                  className="btn-primary mt-4 w-full flex items-center justify-center gap-2">
-                  {kycSaving ? 'Envoi…' : <><Upload size={15} /> Soumettre pour vérification</>}
+                <button type="button" onClick={submitKyc} disabled={kycSaving} className="btn-primary"
+                  style={{ width: '100%', height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13 }}>
+                  {kycSaving ? 'Envoi…' : <><Upload size={14} /> Soumettre pour vérification</>}
                 </button>
               </>
             )}
-          </div>
+          </SectionCard>
 
-          {/* ── FORMULAIRE EDITION ── */}
-          <form onSubmit={handleSave} className="flex flex-col gap-6">
+          {/* Edit form */}
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {/* Infos de base */}
-            <div className="card">
-              <h2 className="font-bold text-white mb-5">Informations personnelles</h2>
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1.5 block">Prénom</label>
-                    <input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} className="input" />
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1.5 block">Nom</label>
-                    <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} className="input" />
-                  </div>
+            {/* Personal info */}
+            <SectionCard title="Informations personnelles" icon={Flag} accent="#C1272D">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[['firstName','Prénom'],['lastName','Nom']].map(([k,l]) => (
+                    <div key={k}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>{l}</label>
+                      <input value={form[k]} onChange={e => setForm({...form, [k]: e.target.value})} className="input" style={{ fontSize: 14 }} />
+                    </div>
+                  ))}
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Téléphone</label>
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+212 6XX XXX XXX" className="input" />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Téléphone</label>
+                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+212 6XX XXX XXX" className="input" style={{ fontSize: 14 }} />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Date de naissance</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="date"
-                      value={birthDate}
-                      onChange={e => setBirthDate(e.target.value)}
-                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0, 10)}
-                      min="1924-01-01"
-                      className="input flex-1"
-                    />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Date de naissance</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="input" style={{ flex: 1, fontSize: 14 }}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0,10)} min="1924-01-01" />
                     {birthDate && (() => {
                       const age = Math.floor((new Date() - new Date(birthDate)) / (365.25 * 24 * 3600 * 1000));
-                      return (
-                        <span className="text-sm font-semibold px-3 py-1.5 rounded-lg shrink-0"
-                          style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)' }}>
-                          {age} ans
-                        </span>
-                      );
+                      return <span style={{ fontSize: 12, fontWeight: 800, padding: '5px 10px', borderRadius: 8, flexShrink: 0, background: 'rgba(193,39,45,0.08)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)' }}>{age} ans</span>;
                     })()}
                   </div>
-                  <p className="text-slate-600 text-xs mt-1">Vous devez avoir au moins 18 ans pour utiliser AtlasWay.</p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Bio</label>
-                  <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} placeholder="Parlez de vous en quelques mots..." className="input resize-none" rows={3} maxLength={300} />
-                  <p className="text-slate-600 text-xs mt-1 text-right">{form.bio.length}/300</p>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Bio <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({form.bio.length}/300)</span></label>
+                  <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} placeholder="Parlez de vous en quelques mots…" className="input" style={{ resize: 'none', fontSize: 14 }} rows={3} maxLength={300} />
                 </div>
 
                 {/* Genre */}
                 <div>
-                  <label className="text-sm text-slate-400 mb-2 block">
-                    Genre <span className="text-slate-500 text-xs">(requis pour réserver les trajets « femmes uniquement »)</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { value: 'femme', label: 'Femme' },
-                      { value: 'homme', label: 'Homme' },
-                      { value: '',      label: 'Non spécifié' },
-                    ].map(opt => (
-                      <button key={opt.value || 'none'} type="button" onClick={() => setGender(opt.value)}
-                        className="flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all"
-                        style={{
-                          background: gender === opt.value ? 'rgba(193,39,45,0.1)' : 'var(--bg-700)',
-                          border: `1.5px solid ${gender === opt.value ? '#C1272D' : 'var(--border-color)'}`,
-                          color: gender === opt.value ? '#C1272D' : 'var(--text-secondary)',
-                        }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Genre</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                    {[{value:'femme',label:'Femme'},{value:'homme',label:'Homme'},{value:'',label:'Non spécifié'}].map(opt => (
+                      <button key={opt.value||'none'} type="button" onClick={() => setGender(opt.value)}
+                        style={{ padding: '9px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1.5px solid', transition: 'all .15s', background: gender === opt.value ? 'rgba(193,39,45,0.08)' : 'var(--bg-700)', borderColor: gender === opt.value ? '#C1272D' : 'var(--border-color)', color: gender === opt.value ? '#C1272D' : 'var(--text-secondary)' }}>
                         {opt.label}
                       </button>
                     ))}
@@ -488,345 +485,324 @@ export default function Profile() {
 
                 {/* Nationalité */}
                 <div>
-                  <label className="text-sm text-slate-400 mb-2 block">Nationalité</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'moroccan', Icon: Flag,  label: 'Marocain(e)' },
-                      { value: 'foreign',  Icon: Globe, label: 'Étranger(ère)' },
-                    ].map(opt => (
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Nationalité</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {[{value:'moroccan',Icon:Flag,label:'Marocain(e)'},{value:'foreign',Icon:Globe,label:'Étranger(ère)'}].map(opt => (
                       <button key={opt.value} type="button" onClick={() => setNationality(opt.value)}
-                        className="flex items-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all"
-                        style={{
-                          background: nationality === opt.value ? 'rgba(193,39,45,0.1)' : 'var(--bg-700)',
-                          border: `1.5px solid ${nationality === opt.value ? '#C1272D' : 'var(--border-color)'}`,
-                          color: nationality === opt.value ? '#C1272D' : 'var(--text-secondary)',
-                        }}>
-                        <opt.Icon size={16} /> {opt.label}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1.5px solid', transition: 'all .15s', background: nationality === opt.value ? 'rgba(193,39,45,0.08)' : 'var(--bg-700)', borderColor: nationality === opt.value ? '#C1272D' : 'var(--border-color)', color: nationality === opt.value ? '#C1272D' : 'var(--text-secondary)' }}>
+                        <opt.Icon size={15} />{opt.label}
                       </button>
                     ))}
                   </div>
                   {nationality === 'foreign' && (
-                    <div className="mt-3">
-                      <label className="text-sm text-slate-400 mb-1.5 block">Pays d'origine</label>
-                      <input value={country} onChange={e => setCountry(e.target.value)}
-                        placeholder="ex: France, Espagne, Sénégal..." className="input" />
-                    </div>
+                    <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Pays d'origine" className="input" style={{ marginTop: 8, fontSize: 14 }} />
                   )}
                 </div>
 
                 {/* Langues */}
                 <div>
-                  <label className="text-sm text-slate-400 mb-2 block">Langues parlées</label>
-                  <div className="flex flex-wrap gap-2">
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Langues parlées</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {LANGUAGES.map(l => (
                       <button key={l} type="button" onClick={() => toggleLang(l)}
-                        className={`text-sm px-3 py-1.5 rounded-full border transition ${langs.includes(l) ? 'bg-primary-500/20 border-primary-500 text-primary-400' : 'bg-dark-700 border-dark-500 text-slate-400 hover:border-dark-400'}`}>
+                        style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 99, cursor: 'pointer', border: '1.5px solid', transition: 'all .15s', background: langs.includes(l) ? 'rgba(193,39,45,0.10)' : 'var(--bg-700)', borderColor: langs.includes(l) ? '#C1272D' : 'var(--border-color)', color: langs.includes(l) ? '#C1272D' : 'var(--text-muted)' }}>
                         {l}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Handicap passager */}
-                <label className="flex items-center gap-3 cursor-pointer p-3 bg-dark-700 rounded-xl border border-dark-500 hover:border-blue-500/40 transition">
-                  <Accessibility size={18} className="text-blue-400 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm text-white font-medium">Je suis une personne à mobilité réduite (PMR)</p>
-                    <p className="text-xs text-slate-500">Affiche un badge sur votre profil pour informer les conducteurs</p>
+                {/* PMR toggle */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, cursor: 'pointer', background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+                  <Accessibility size={18} style={{ color: '#3B82F6', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Je suis une personne à mobilité réduite (PMR)</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Affiche un badge sur votre profil</p>
                   </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${isHandicapped ? 'bg-blue-500' : 'bg-dark-500'}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${isHandicapped ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                  </div>
-                  <input type="checkbox" checked={isHandicapped} onChange={e => setIsHandicapped(e.target.checked)} className="sr-only" />
+                  <Toggle checked={isHandicapped} onChange={setIsHandicapped} color="#3B82F6" />
+                  <input type="checkbox" checked={isHandicapped} onChange={e => setIsHandicapped(e.target.checked)} style={{ display: 'none' }} />
                 </label>
               </div>
-            </div>
+            </SectionCard>
 
-            {/* Préférences de voyage */}
-            <div className="card">
-              <h2 className="font-bold text-white mb-4">Préférences de voyage</h2>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Préférences */}
+            <SectionCard title="Préférences de voyage" icon={Music} accent="#D4890A">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {prefConfig.map(({ k, label, icon: Icon }) => (
-                  <label key={k} className="flex items-center gap-3 cursor-pointer p-3 bg-dark-700 rounded-xl border border-dark-500 hover:border-dark-400 transition">
-                    <Icon size={16} className={prefs[k] ? 'text-primary-400' : 'text-slate-500'} />
-                    <span className="text-sm text-slate-300 flex-1">{label}</span>
-                    <div className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${prefs[k] ? 'bg-primary-500' : 'bg-dark-500'}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${prefs[k] ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </div>
-                    <input type="checkbox" checked={prefs[k]} onChange={e => setPrefs({...prefs, [k]: e.target.checked})} className="sr-only" />
+                  <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', borderRadius: 10, cursor: 'pointer', background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+                    <Icon size={15} style={{ color: prefs[k] ? '#C1272D' : 'var(--text-muted)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
+                    <Toggle checked={prefs[k]} onChange={v => setPrefs({...prefs, [k]: v})} />
+                    <input type="checkbox" checked={prefs[k]} onChange={e => setPrefs({...prefs, [k]: e.target.checked})} style={{ display: 'none' }} />
                   </label>
                 ))}
               </div>
-            </div>
+            </SectionCard>
 
             {/* Véhicule */}
-            <div className="card">
-              <h2 className="font-bold text-white mb-4 flex items-center gap-2"><Car size={18} className="text-primary-400" /> Informations véhicule</h2>
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3">
+            <SectionCard title="Informations véhicule" icon={Car} accent="#006233">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[['carModel','Marque / Modèle','ex: Dacia Sandero'],['carColor','Couleur','ex: Blanc']].map(([k,l,p]) => (
+                    <div key={k}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>{l}</label>
+                      <input value={form[k]} onChange={e => setForm({...form, [k]: e.target.value})} placeholder={p} className="input" style={{ fontSize: 14 }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label className="text-sm text-slate-400 mb-1.5 block">Marque / Modèle</label>
-                    <input value={form.carModel} onChange={e => setForm({...form, carModel: e.target.value})} placeholder="ex: Dacia Sandero" className="input" />
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Année</label>
+                    <input type="number" value={form.carYear} onChange={e => setForm({...form, carYear: e.target.value})} placeholder="ex: 2020" className="input" style={{ fontSize: 14 }} min="1990" max="2030" />
                   </div>
                   <div>
-                    <label className="text-sm text-slate-400 mb-1.5 block">Couleur</label>
-                    <input value={form.carColor} onChange={e => setForm({...form, carColor: e.target.value})} placeholder="ex: Blanc" className="input" />
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Plaque</label>
+                    <input value={form.licensePlate} onChange={e => setForm({...form, licensePlate: e.target.value})} placeholder="ex: 12345-A-1" className="input" style={{ fontSize: 14 }} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1.5 block">Année</label>
-                    <input type="number" value={form.carYear} onChange={e => setForm({...form, carYear: e.target.value})} placeholder="ex: 2020" className="input" min="1990" max="2030" />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10, cursor: 'pointer', background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+                  <Accessibility size={16} style={{ color: '#3B82F6', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Véhicule accessible aux PMR</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Mon véhicule est adapté aux personnes à mobilité réduite</p>
                   </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-1.5 block">Plaque d'immatriculation</label>
-                    <input value={form.licensePlate} onChange={e => setForm({...form, licensePlate: e.target.value})} placeholder="ex: 12345-A-1" className="input" />
-                  </div>
-                </div>
-
-                {/* Accessibilité véhicule */}
-                <label className="flex items-center gap-3 cursor-pointer p-3 bg-dark-700 rounded-xl border border-dark-500 hover:border-blue-500/40 transition">
-                  <Accessibility size={18} className="text-blue-400 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm text-white font-medium">Véhicule accessible aux PMR</p>
-                    <p className="text-xs text-slate-500">Mon véhicule est adapté aux personnes à mobilité réduite</p>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${handicapAccessible ? 'bg-blue-500' : 'bg-dark-500'}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${handicapAccessible ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                  </div>
-                  <input type="checkbox" checked={handicapAccessible} onChange={e => setHandicapAccessible(e.target.checked)} className="sr-only" />
+                  <Toggle checked={handicapAccessible} onChange={setHandicapAccessible} color="#3B82F6" />
+                  <input type="checkbox" checked={handicapAccessible} onChange={e => setHandicapAccessible(e.target.checked)} style={{ display: 'none' }} />
                 </label>
+              </div>
+            </SectionCard>
+
+            {/* Documents */}
+            <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+              <div style={{ height: 3, background: profile.driverVerified ? '#22C55E' : '#6B7280' }} />
+              <div style={{ padding: '14px 18px' }}>
+                <button type="button" onClick={() => setShowDocs(!showDocs)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                    <Shield size={16} style={{ color: profile.driverVerified ? '#22C55E' : 'var(--text-muted)', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Vérification conducteur</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>CIN · Permis · Carte grise</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {profile.driverVerified
+                      ? <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E', display: 'flex', alignItems: 'center', gap: 4 }}><ShieldCheck size={12} /> Vérifié</span>
+                      : (profile.cinDoc && profile.permisDoc && profile.carteGriseDoc)
+                        ? <span style={{ fontSize: 11, fontWeight: 700, color: '#F59E0B' }}>En attente</span>
+                        : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Non soumis</span>
+                    }
+                    <ChevronRight size={16} style={{ color: 'var(--text-muted)', transform: showDocs ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
+                  </div>
+                </button>
+
+                {showDocs && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {profile.driverVerified && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: '#22C55E', fontSize: 13, fontWeight: 700 }}>
+                        <ShieldCheck size={14} /> Compte conducteur vérifié par l'administration.
+                      </div>
+                    )}
+                    {!profile.driverVerified && (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B', fontSize: 13, fontWeight: 700 }}>
+                        <AlertCircle size={14} /> Documents en cours de vérification.
+                      </div>
+                    )}
+                    {nationality === 'foreign'
+                      ? <DocUploadField label="Passeport" fieldName="passportDoc" currentDoc={profile.passportDoc} onChange={(k,f) => setDocFiles(d => ({...d,[k]:f}))} required />
+                      : <DocUploadField label="Carte Nationale d'Identité (CIN)" fieldName="cinDoc" currentDoc={profile.cinDoc} onChange={(k,f) => setDocFiles(d => ({...d,[k]:f}))} required />
+                    }
+                    <DocUploadField label="Permis de conduire" fieldName="permisDoc" currentDoc={profile.permisDoc} onChange={(k,f) => setDocFiles(d => ({...d,[k]:f}))} required />
+                    <DocUploadField label="Carte grise du véhicule" fieldName="carteGriseDoc" currentDoc={profile.carteGriseDoc} onChange={(k,f) => setDocFiles(d => ({...d,[k]:f}))} required />
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Documents traités de manière confidentielle.</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Documents vérification */}
-            <div className="card">
-              <button type="button" onClick={() => setShowDocs(!showDocs)} className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
-                  <Shield size={18} className={profile.driverVerified ? 'text-green-400' : 'text-slate-400'} />
-                  <div className="text-left">
-                    <p className="font-bold text-white">Vérification conducteur</p>
-                    <p className="text-xs text-slate-500">
-                      {nationality === 'foreign' ? 'Passeport, Permis de conduire, Carte grise — obligatoires' : 'CIN, Permis de conduire, Carte grise — obligatoires'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {profile.driverVerified
-                    ? <span className="text-xs text-green-400 flex items-center gap-1"><ShieldCheck size={13} /> Vérifié</span>
-                    : (nationality === 'foreign' ? (profile.passportDoc && profile.permisDoc && profile.carteGriseDoc) : (profile.cinDoc && profile.permisDoc && profile.carteGriseDoc))
-                      ? <span className="text-xs text-yellow-400">En attente</span>
-                      : <span className="text-xs text-slate-500">Non soumis</span>
-                  }
-                  <ChevronRight size={18} className={`text-slate-500 transition-transform ${showDocs ? 'rotate-90' : ''}`} />
-                </div>
-              </button>
-
-              {showDocs && (
-                <div className="mt-5 pt-5 border-t border-dark-500 flex flex-col gap-4">
-                  {profile.driverVerified && (
-                    <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">
-                      <ShieldCheck size={16} /> Votre compte conducteur est vérifié par l'administration.
-                    </div>
-                  )}
-                  {!profile.driverVerified && (nationality === 'foreign' ? (profile.passportDoc || profile.permisDoc || profile.carteGriseDoc) : (profile.cinDoc || profile.permisDoc || profile.carteGriseDoc)) && (
-                    <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">
-                      <AlertCircle size={16} /> Documents en cours de vérification par l'administration.
-                    </div>
-                  )}
-                  {nationality === 'foreign' ? (
-                    <DocUploadField label="Passeport" fieldName="passportDoc" currentDoc={profile.passportDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
-                  ) : (
-                    <DocUploadField label="Carte Nationale d'Identité (CIN)" fieldName="cinDoc" currentDoc={profile.cinDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
-                  )}
-                  <DocUploadField label="Permis de conduire" fieldName="permisDoc" currentDoc={profile.permisDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
-                  <DocUploadField label="Carte grise du véhicule" fieldName="carteGriseDoc" currentDoc={profile.carteGriseDoc} onChange={(k, f) => setDocFiles(d => ({...d, [k]: f}))} required />
-                  <p className="text-slate-500 text-xs">Les documents sont traités de manière confidentielle et servent uniquement à la vérification de votre identité.</p>
-                </div>
-              )}
-            </div>
-
-            <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2 h-12 rounded-xl">
-              <Save size={16} /> {saving ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
+            <button type="submit" disabled={saving} className="btn-primary"
+              style={{ height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 800, borderRadius: 12 }}>
+              <Save size={15} /> {saving ? 'Sauvegarde…' : 'Sauvegarder les modifications'}
             </button>
           </form>
 
-          {/* ── MOT DE PASSE ── */}
-          <div className="card">
-            <button onClick={() => setShowPwd(!showPwd)} className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <Lock size={18} className="text-slate-400" />
-                <span className="font-bold text-white">Changer le mot de passe</span>
-              </div>
-              <ChevronRight size={18} className={`text-slate-500 transition-transform ${showPwd ? 'rotate-90' : ''}`} />
-            </button>
-            {showPwd && (
-              <form onSubmit={handlePasswordChange} className="flex flex-col gap-4 mt-5 pt-5 border-t border-dark-500">
-                {['currentPassword','newPassword','confirm'].map((k, i) => (
-                  <div key={k}>
-                    <label className="text-sm text-slate-400 mb-1.5 block">
-                      {['Mot de passe actuel','Nouveau mot de passe','Confirmer le nouveau'][i]}
-                    </label>
-                    <input type="password" value={pwdForm[k]} onChange={e => setPwdForm({...pwdForm, [k]: e.target.value})} className="input" required minLength={i > 0 ? 8 : 1} />
-                  </div>
-                ))}
-                <button type="submit" disabled={pwdSaving} className="btn-primary h-11 flex items-center justify-center gap-2">
-                  <Lock size={15} /> {pwdSaving ? 'Modification...' : 'Modifier le mot de passe'}
-                </button>
-              </form>
-            )}
-          </div>
-        </>
-      ) : (
-        /* ── VUE PUBLIQUE ── */
-        <>
-          {/* Préférences */}
-          <div className="card">
-            <h2 className="font-bold text-white mb-4">Préférences de voyage</h2>
-            <div className="flex flex-wrap gap-2">
-              {prefConfig.map(({ k, label, icon: Icon }) => (
-                <span key={k} className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border ${(profile.preferences || {})[k] ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                  <Icon size={13} /> {label}
-                </span>
-              ))}
-              {profile.handicapAccessible && (
-                <span className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border bg-blue-500/10 border-blue-500/30 text-blue-400">
-                  <Accessibility size={13} /> Accessible PMR
-                </span>
+          {/* Password */}
+          <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+            <div style={{ height: 3, background: '#6B7280' }} />
+            <div style={{ padding: '14px 18px' }}>
+              <button onClick={() => setShowPwd(!showPwd)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Lock size={16} style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Changer le mot de passe</span>
+                </div>
+                <ChevronRight size={16} style={{ color: 'var(--text-muted)', transform: showPwd ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
+              </button>
+              {showPwd && (
+                <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
+                  {['currentPassword','newPassword','confirm'].map((k, i) => (
+                    <div key={k}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                        {['Mot de passe actuel','Nouveau mot de passe','Confirmer le nouveau'][i]}
+                      </label>
+                      <input type="password" value={pwdForm[k]} onChange={e => setPwdForm({...pwdForm, [k]: e.target.value})} className="input" style={{ fontSize: 14 }} required minLength={i > 0 ? 8 : 1} />
+                    </div>
+                  ))}
+                  <button type="submit" disabled={pwdSaving} className="btn-primary"
+                    style={{ height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13 }}>
+                    <Lock size={14} /> {pwdSaving ? 'Modification…' : 'Modifier le mot de passe'}
+                  </button>
+                </form>
               )}
             </div>
           </div>
+        </>
+      ) : (
+        /* ══════════════════════════════════════
+           PUBLIC PROFILE view
+        ══════════════════════════════════════ */
+        <>
+          {/* Préférences publiques */}
+          <SectionCard title="Préférences de voyage" icon={Music} accent="#D4890A">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {prefConfig.map(({ k, label, icon: Icon }) => {
+                const active = (profile.preferences || {})[k];
+                return (
+                  <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 99, background: active ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.06)', color: active ? '#22C55E' : '#F87171', border: `1px solid ${active ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.15)'}` }}>
+                    <Icon size={12} /> {label}
+                  </span>
+                );
+              })}
+              {profile.handicapAccessible && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 99, background: 'rgba(59,130,246,0.08)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <Accessibility size={12} /> Accessible PMR
+                </span>
+              )}
+            </div>
+          </SectionCard>
 
-          {/* Véhicule (si conducteur vérifié) */}
+          {/* Véhicule */}
           {profile.isDriver && (profile.carModel || profile.carColor) && (
-            <div className="card">
-              <h2 className="font-bold text-white mb-4 flex items-center gap-2"><Car size={18} className="text-primary-400" /> Véhicule</h2>
-              <div className="flex items-center gap-4">
-                {profile.carPhoto && <img src={profile.carPhoto} alt="véhicule" className="w-24 h-16 object-cover rounded-xl border border-dark-500" />}
+            <SectionCard title="Véhicule" icon={Car} accent="#006233">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                {profile.carPhoto && <img src={profile.carPhoto} alt="" style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-color)' }} />}
                 <div>
-                  {profile.carModel && <p className="text-white font-semibold">{profile.carModel}</p>}
-                  <p className="text-slate-400 text-sm">
-                    {[profile.carColor, profile.carYear].filter(Boolean).join(' · ')}
-                  </p>
+                  {profile.carModel && <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{profile.carModel}</p>}
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{[profile.carColor, profile.carYear].filter(Boolean).join(' · ')}</p>
                   {profile.driverVerified && (
-                    <p className="flex items-center gap-1 text-green-400 text-xs mt-1"><ShieldCheck size={12} /> Conducteur vérifié</p>
+                    <p style={{ fontSize: 11, color: '#22C55E', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><ShieldCheck size={11} /> Conducteur vérifié</p>
                   )}
                 </div>
               </div>
-            </div>
+            </SectionCard>
           )}
 
           {/* Trajets */}
           {rides.length > 0 && (
-            <div className="card">
-              <h2 className="font-bold text-white mb-4">Prochains trajets</h2>
-              <div className="flex flex-col gap-3">
+            <SectionCard title="Prochains trajets" icon={MapPin} accent="#C1272D">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {rides.map(r => (
-                  <Link key={r.id} to={`/rides/${r.id}`} className="flex items-center justify-between p-3 bg-dark-700 rounded-xl border border-dark-500 hover:border-primary-500/50 transition group">
-                    <div className="flex items-center gap-3">
-                      <MapPin size={15} className="text-primary-400 shrink-0" />
+                  <Link key={r.id} to={`/rides/${r.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 10, background: 'var(--bg-700)', border: '1px solid var(--border-color)', textDecoration: 'none', transition: 'border-color .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#C1272D'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <MapPin size={13} style={{ color: '#C1272D', flexShrink: 0 }} />
                       <div>
-                        <p className="text-white text-sm font-semibold group-hover:text-primary-400 transition">{r.from} → {r.to}</p>
-                        <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5">
-                          <Clock size={11} />
-                          {new Date(r.departureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{r.from} → {r.to}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={10} /> {new Date(r.departureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     </div>
-                    <span className="text-white font-bold text-sm">{Number(r.price).toFixed(0)} MAD</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>{Number(r.price).toFixed(0)} DH</span>
                   </Link>
                 ))}
               </div>
-            </div>
+            </SectionCard>
           )}
 
           {rides.length === 0 && reviews.length === 0 && (
-            <div className="card text-center py-8">
-              <p className="text-slate-500 text-sm">Aucun trajet ni avis pour le moment.</p>
+            <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--card-bg)', borderRadius: 14, border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 13 }}>
+              Aucun trajet ni avis pour le moment.
             </div>
           )}
         </>
       )}
 
-      {/* ── AVIS REÇUS (commun : son propre profil + celui des autres) ── */}
+      {/* ── REVIEWS (commun) ── */}
       {reviews.length > 0 && (
-        <div className="card">
-          <h2 className="font-bold text-white mb-4">Avis reçus ({reviews.length})</h2>
+        <SectionCard title={`Avis reçus · ${reviews.length}`} icon={Star} accent="#F59E0B">
 
-          {/* Moyennes par critère */}
+          {/* Criteria averages */}
           {criteriaAverages.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 pb-5 border-b border-dark-500">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px,1fr))', gap: 8, marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}>
               {criteriaAverages.map(c => (
-                <div key={c.key} className="text-center p-2 rounded-xl" style={{ background: 'var(--bg-700)' }}>
-                  <div className="flex items-center justify-center gap-1">
-                    <Star size={13} className="text-yellow-400 fill-yellow-400" />
-                    <span className="font-black text-white text-sm">{c.avg}</span>
+                <div key={c.key} style={{ textAlign: 'center', padding: '10px 8px', borderRadius: 10, background: 'var(--bg-700)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                    <Star size={13} style={{ color: '#F59E0B', fill: '#F59E0B' }} />
+                    <span style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: 15 }}>{c.avg}</span>
                   </div>
-                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{c.label}</p>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, fontWeight: 600 }}>{c.label}</p>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="flex flex-col gap-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {reviews.map(r => {
               const crit = REVIEW_CRITERIA.filter(c => r[c.key] != null && r[c.key] > 0);
               return (
-              <div key={r.id} className="border-b border-dark-500 pb-4 last:border-0 last:pb-0">
-                <div className="flex items-center gap-3 mb-2">
-                  {r.reviewer?.photo
-                    ? <img src={r.reviewer.photo} alt="" className="w-8 h-8 rounded-full object-cover" />
-                    : <div className="w-8 h-8 rounded-full bg-dark-600 flex items-center justify-center text-sm font-bold text-white">{r.reviewer?.firstName?.[0]}</div>
-                  }
-                  <div>
-                    <p className="text-sm font-semibold text-white">{r.reviewer?.firstName} {r.reviewer?.lastName}</p>
-                    <div className="flex gap-0.5 mt-0.5">
-                      {[1,2,3,4,5].map(s => <Star key={s} size={11} className={s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />)}
+                <div key={r.id} style={{ paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }} className="last:border-0 last:pb-0">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    {r.reviewer?.photo
+                      ? <img src={r.reviewer.photo} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
+                      : <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>{r.reviewer?.firstName?.[0]}</div>
+                    }
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{r.reviewer?.firstName} {r.reviewer?.lastName}</p>
+                      <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+                        {[1,2,3,4,5].map(s => <Star key={s} size={11} style={{ color: s <= r.rating ? '#F59E0B' : 'var(--border-color)', fill: s <= r.rating ? '#F59E0B' : 'none' }} />)}
+                      </div>
                     </div>
                   </div>
+
+                  {r.comment && <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}>{r.comment}</p>}
+
+                  {crit.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                      {crit.map(c => (
+                        <span key={c.key} style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-700)', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          {c.label} <Star size={8} style={{ color: '#F59E0B', fill: '#F59E0B' }} /> {r[c.key]}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {r.response && (
+                    <div style={{ marginTop: 10, marginLeft: 12, paddingLeft: 12, borderLeft: '2px solid rgba(193,39,45,0.3)' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#C1272D', marginBottom: 3 }}>Réponse de {profile.firstName}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.response}</p>
+                    </div>
+                  )}
+
+                  {isMe && !r.response && (
+                    respondingId === r.id ? (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                        <input value={responseText} onChange={e => setResponseText(e.target.value)}
+                          placeholder="Votre réponse…" className="input" style={{ fontSize: 13, flex: 1 }} />
+                        <button onClick={() => submitResponse(r.id)} className="btn-primary" style={{ height: 40, padding: '0 14px', fontSize: 12 }}>Publier</button>
+                        <button onClick={() => { setRespondingId(null); setResponseText(''); }} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-700)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12 }}>Annuler</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setRespondingId(r.id); setResponseText(''); }}
+                        style={{ fontSize: 12, fontWeight: 700, color: '#C1272D', background: 'none', border: 'none', cursor: 'pointer', marginTop: 8, padding: 0 }}>
+                        Répondre
+                      </button>
+                    )
+                  )}
                 </div>
-                {r.comment && <p className="text-slate-400 text-sm">{r.comment}</p>}
-
-                {/* Critères de cet avis */}
-                {crit.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {crit.map(c => (
-                      <span key={c.key} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: 'var(--bg-700)', color: 'var(--text-secondary)' }}>
-                        {c.label} <Star size={9} className="text-yellow-400 fill-yellow-400" /> {r[c.key]}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Réponse de l'utilisateur noté */}
-                {r.response && (
-                  <div className="mt-2 ml-3 pl-3 border-l-2 border-primary-500/40">
-                    <p className="text-xs font-semibold text-primary-400 mb-0.5">Réponse de {profile.firstName}</p>
-                    <p className="text-slate-400 text-sm">{r.response}</p>
-                  </div>
-                )}
-
-                {/* Répondre (seulement l'utilisateur noté, si pas déjà répondu) */}
-                {isMe && !r.response && (
-                  respondingId === r.id ? (
-                    <div className="flex gap-2 mt-2">
-                      <input value={responseText} onChange={e => setResponseText(e.target.value)}
-                        placeholder="Votre réponse…" className="input text-sm flex-1" />
-                      <button onClick={() => submitResponse(r.id)} className="btn-primary btn-sm">Publier</button>
-                      <button onClick={() => { setRespondingId(null); setResponseText(''); }} className="btn-ghost btn-sm">Annuler</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setRespondingId(r.id); setResponseText(''); }}
-                      className="text-xs font-semibold text-primary-400 hover:underline mt-2">
-                      Répondre
-                    </button>
-                  )
-                )}
-              </div>
-            )})}
+              );
+            })}
           </div>
-        </div>
+        </SectionCard>
       )}
     </div>
   );
