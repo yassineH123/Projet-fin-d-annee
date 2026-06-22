@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight, Banknote } from 'lucide-react';
+import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight, Banknote, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { SkeletonList } from '../components/SkeletonCard';
@@ -152,6 +152,17 @@ function BookingCard({ b, tab, me, onAction, onQR, onReport, onCashConfirm }) {
             {tab === 'passenger' && b.status === 'accepted' && (
               <button onClick={() => onQR(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#60A5FA' }}>
                 <ScanLine size={13} /> Billet QR
+              </button>
+            )}
+            {tab === 'passenger' && b.status === 'accepted' && ride.id && (
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/track/${ride.id}`;
+                  navigator.clipboard.writeText(link)
+                    .then(() => toast.success('Lien de suivi copié ! Envoyez-le à votre famille 📍'));
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#C1272D' }}>
+                <MapPin size={13} /> Partager le suivi
               </button>
             )}
 

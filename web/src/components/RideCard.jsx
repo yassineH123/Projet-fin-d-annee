@@ -89,6 +89,11 @@ export default function RideCard({ ride }) {
                   <Star size={10} fill="currentColor" /> {Number(driver.avgRating).toFixed(1)}
                 </p>
               )}
+            {driver.avgPunctuality > 0 && (
+                <p className="text-xs flex items-center gap-0.5 font-semibold" style={{ color: '#3B82F6' }}>
+                  <Clock size={10} /> {Number(driver.avgPunctuality).toFixed(1)}
+                </p>
+              )}
             </div>
           </div>
 

@@ -303,7 +303,22 @@ export default function RideDetail() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{driver.firstName} {driver.lastName}</p>
                   <StarDisplay rating={driver.avgRating} count={driver.totalRatings} />
-                  {driver.bio && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{driver.bio}</p>}
+                  {driver.avgPunctuality > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5 }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
+                        padding: '3px 9px', borderRadius: 99,
+                        background: 'rgba(59,130,246,0.10)', color: '#3B82F6',
+                        border: '1px solid rgba(59,130,246,0.25)',
+                      }}>
+                        <Clock size={10} /> Ponctualité {Number(driver.avgPunctuality).toFixed(1)}/5
+                      </span>
+                      {driver.avgPunctuality >= 4.5 && (
+                        <span style={{ fontSize: 10, color: '#3B82F6', fontWeight: 600 }}>⏱ Toujours à l'heure</span>
+                      )}
+                    </div>
+                  )}
+                  {driver.bio && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{driver.bio}</p>}
                 </div>
                 <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               </Link>
@@ -473,6 +488,20 @@ export default function RideDetail() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                   }}>
                     <Share2 size={13} /> Partager sur WhatsApp
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const link = `${window.location.origin}/track/${id}`;
+                      navigator.clipboard.writeText(link).then(() => toast.success('Lien de suivi copié ! Envoyez-le à votre famille 📍'));
+                    }}
+                    style={{
+                      width: '100%', height: 40, borderRadius: 10, cursor: 'pointer',
+                      background: 'rgba(193,39,45,0.08)', color: '#C1272D',
+                      border: '1.5px solid rgba(193,39,45,0.22)', fontWeight: 700, fontSize: 13,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    }}>
+                    <MapPin size={13} /> Partager le suivi à ma famille
                   </button>
 
                   {user && (
