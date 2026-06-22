@@ -77,6 +77,9 @@ export default function PublishRide() {
     acceptsPackages: false, packagePricePerKg: '',
     // Paiement
     acceptCash: true, acceptOnline: true,
+    // Préférences conducteur
+    prefMusic: false, prefSilence: false, prefSmoking: false,
+    prefPets: false, prefAC: false, prefTalkative: false,
   });
   const [loading, setLoading] = useState(false);
   const [fErr, setFErr]       = useState({});
@@ -491,6 +494,40 @@ export default function PublishRide() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ── Préférences conducteur ── */}
+        <div style={{ background: 'var(--card-bg)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 20 }}>
+          <SectionTitle>Préférences dans le véhicule</SectionTitle>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[
+              { key: 'prefMusic',    emoji: '🎵', label: 'Musique OK',      sub: 'Musique pendant le trajet',       color: '#8B5CF6' },
+              { key: 'prefSilence',  emoji: '🤫', label: 'Silence apprécié', sub: 'Trajet calme, peu de discussion', color: '#6B7280' },
+              { key: 'prefSmoking',  emoji: '🚬', label: 'Fumeur OK',        sub: 'Pauses cigarette acceptées',      color: '#F59E0B' },
+              { key: 'prefPets',     emoji: '🐾', label: 'Animaux OK',       sub: 'Animaux de compagnie acceptés',   color: '#10B981' },
+              { key: 'prefAC',       emoji: '❄️', label: 'Clim disponible',  sub: 'Véhicule avec climatisation',     color: '#2196F3' },
+              { key: 'prefTalkative',emoji: '💬', label: 'Bavard',           sub: 'J\'aime discuter en route',       color: '#C1272D' },
+            ].map(({ key, emoji, label, sub, color }) => {
+              const active = form[key];
+              return (
+                <button key={key} type="button"
+                  onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
+                  style={{
+                    padding: '12px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                    border: `2px solid ${active ? color : 'var(--border-color)'}`,
+                    background: active ? `${color}12` : 'var(--bg-700)',
+                    transition: 'all .15s',
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 20 }}>{emoji}</span>
+                    {active && <span style={{ fontSize: 10, fontWeight: 800, color, background: `${color}20`, padding: '2px 6px', borderRadius: 6 }}>✓</span>}
+                  </div>
+                  <p style={{ fontSize: 12, fontWeight: 800, color: active ? color : 'var(--text-primary)', marginBottom: 2 }}>{label}</p>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.3 }}>{sub}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
 

@@ -282,6 +282,34 @@ export default function RideDetail() {
                 )}
               </div>
 
+              {/* Préférences conducteur */}
+              {[
+                { key: 'prefMusic',     emoji: '🎵', label: 'Musique OK',       color: '#8B5CF6' },
+                { key: 'prefSilence',   emoji: '🤫', label: 'Silence apprécié', color: '#6B7280' },
+                { key: 'prefSmoking',   emoji: '🚬', label: 'Fumeur OK',         color: '#F59E0B' },
+                { key: 'prefPets',      emoji: '🐾', label: 'Animaux OK',        color: '#10B981' },
+                { key: 'prefAC',        emoji: '❄️', label: 'Clim disponible',   color: '#2196F3' },
+                { key: 'prefTalkative', emoji: '💬', label: 'Bavard',            color: '#C1272D' },
+              ].some(p => ride[p.key]) && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-color)' }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Préférences du conducteur</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {[
+                      { key: 'prefMusic',     emoji: '🎵', label: 'Musique OK',       color: '#8B5CF6' },
+                      { key: 'prefSilence',   emoji: '🤫', label: 'Silence apprécié', color: '#6B7280' },
+                      { key: 'prefSmoking',   emoji: '🚬', label: 'Fumeur OK',         color: '#F59E0B' },
+                      { key: 'prefPets',      emoji: '🐾', label: 'Animaux OK',        color: '#10B981' },
+                      { key: 'prefAC',        emoji: '❄️', label: 'Clim disponible',   color: '#2196F3' },
+                      { key: 'prefTalkative', emoji: '💬', label: 'Bavard',            color: '#C1272D' },
+                    ].filter(p => ride[p.key]).map(p => (
+                      <span key={p.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: `${p.color}12`, color: p.color, border: `1px solid ${p.color}30` }}>
+                        {p.emoji} {p.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {ride.description && (
                 <p style={{ marginTop: 14, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
                   {ride.description}
