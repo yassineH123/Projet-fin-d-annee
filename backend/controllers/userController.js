@@ -27,7 +27,15 @@ async function me(req, res, next) {
   try {
     const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
-    return res.json({ user });
+
+    // Avis reçus (pour pouvoir y répondre depuis son propre profil)
+    const reviews = await Review.findAll({
+      where: { reviewedId: req.user.id },
+      include: [{ model: User, as: 'reviewer', attributes: ['id', 'firstName', 'lastName', 'photo'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 20,
+    });
+    return res.json({ user, reviews });
   } catch (err) { return next(err); }
 }
 
@@ -66,7 +74,7 @@ async function updateProfile(req, res, next) {
       firstName, lastName, phone, bio, preferences, languages,
       carModel, carColor, carYear, licensePlate,
       isHandicapped, handicapAccessible,
-      nationality, country, birthDate,
+      nationality, country, birthDate, gender,
     } = req.body;
 
     const updates = {};
@@ -81,6 +89,7 @@ async function updateProfile(req, res, next) {
     if (isHandicapped !== undefined)     updates.isHandicapped     = isHandicapped === 'true' || isHandicapped === true;
     if (handicapAccessible !== undefined) updates.handicapAccessible = handicapAccessible === 'true' || handicapAccessible === true;
     if (nationality !== undefined)        updates.nationality        = nationality;
+    if (gender      !== undefined)        updates.gender             = gender || null;
     if (country     !== undefined)        updates.country            = country;
     if (birthDate   !== undefined)        updates.birthDate          = birthDate || null;
 
@@ -196,4 +205,23 @@ function computeBadges(user, totalRides, referredCount) {
   return badges;
 }
 
-module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats, searchUsers };
+// Soumission de la vérification d'identité (KYC) : selfie + CIN
+async function submitKyc(req, res, next) {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const updates = {};
+    if (req.files?.kycSelfie?.[0]) updates.kycSelfie = `/uploads/${req.files.kycSelfie[0].filename}`;
+    if (req.files?.cinDoc?.[0])    updates.cinDoc    = `/uploads/${req.files.cinDoc[0].filename}`;
+
+    if (!updates.kycSelfie && !user.kycSelfie) return res.status(400).json({ message: 'Selfie requis.' });
+    if (!updates.cinDoc && !user.cinDoc)       return res.status(400).json({ message: "Photo de la CIN requise." });
+
+    updates.kycStatus = 'pending';
+    await user.update(updates);
+    return res.json({ message: 'Vérification d\'identité soumise.', kycStatus: 'pending' });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats, searchUsers, submitKyc };

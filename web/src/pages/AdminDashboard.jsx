@@ -31,13 +31,13 @@ const REPORT_STATUS_COLORS = {
 };
 
 const REASON_LABELS = {
-  conduite_dangereuse: '🚨 Conduite dangereuse',
-  impolitesse:         '😤 Impolitesse',
-  no_show:             '👻 No-show',
-  escroquerie:         '💸 Escroquerie',
-  harcelement:         '⚠️ Harcèlement',
-  arnaque_prix:        '💰 Arnaque prix',
-  autre:               '📋 Autre',
+  conduite_dangereuse: 'Conduite dangereuse',
+  impolitesse:         'Impolitesse',
+  no_show:             'No-show',
+  escroquerie:         'Escroquerie',
+  harcelement:         'Harcèlement',
+  arnaque_prix:        'Arnaque prix',
+  autre:               'Autre',
 };
 
 export default function AdminDashboard() {
@@ -86,6 +86,7 @@ export default function AdminDashboard() {
     if (tab === 'rides')   fetchRides();
     if (tab === 'reports') fetchReports();
     if (tab === 'drivers') fetchPendingDrivers();
+    if (tab === 'kyc')     fetchPendingKyc();
   }, [tab]);
 
   const blockUser   = async (id) => { await api.patch(`/admin/users/${id}/block`);   toast.success('Bloqué');    fetchUsers(); };
@@ -100,7 +101,7 @@ export default function AdminDashboard() {
 
   const approveDriver = async (id) => {
     await api.patch(`/admin/drivers/${id}/approve`);
-    toast.success('Conducteur approuvé ✅');
+    toast.success('Conducteur approuvé');
     fetchPendingDrivers();
   };
 
@@ -112,6 +113,22 @@ export default function AdminDashboard() {
     fetchPendingDrivers();
   };
 
+  // ── KYC (vérification d'identité) ──
+  const [pendingKyc, setPendingKyc] = useState([]);
+  const fetchPendingKyc = () => api.get('/admin/kyc/pending').then(({ data }) => setPendingKyc(data.users)).catch(() => {});
+  const approveKyc = async (id) => {
+    await api.patch(`/admin/kyc/${id}/approve`);
+    toast.success('Identité approuvée');
+    fetchPendingKyc();
+  };
+  const rejectKyc = async (id) => {
+    await api.patch(`/admin/kyc/${id}/reject`, { reason: rejectReason });
+    toast.success('Identité refusée');
+    setRejectingId(null);
+    setRejectReason('');
+    fetchPendingKyc();
+  };
+
   if (loading) return <Spinner size="lg" />;
 
   const tabs = [
@@ -120,6 +137,7 @@ export default function AdminDashboard() {
     ['rides',    'Trajets'],
     ['reports',  'Signalements'],
     ['drivers',  `Conducteurs${pendingDrivers.length ? ` (${pendingDrivers.length})` : ''}`],
+    ['kyc',      `Identité${pendingKyc.length ? ` (${pendingKyc.length})` : ''}`],
   ];
 
   return (
@@ -339,7 +357,7 @@ export default function AdminDashboard() {
                   }
                   <div>
                     <p className="font-black text-white">{driver.firstName} {driver.lastName}</p>
-                    <p className="text-xs text-slate-400">{driver.email} · {driver.nationality === 'foreign' ? '🌍 Étranger' : '🇲🇦 Marocain'}</p>
+                    <p className="text-xs text-slate-400">{driver.email} · {driver.nationality === 'foreign' ? 'Étranger' : 'Marocain'}</p>
                   </div>
                 </div>
                 <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>
@@ -393,6 +411,80 @@ export default function AdminDashboard() {
                   </button>
                   <button onClick={() => setRejectingId(driver.id)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                    style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <X size={15} /> Refuser
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── KYC tab (vérification d'identité) ── */}
+      {tab === 'kyc' && (
+        <div className="flex flex-col gap-4">
+          {pendingKyc.length === 0 ? (
+            <div className="card text-center py-12">
+              <FileCheck size={36} className="text-green-500 mx-auto mb-3" />
+              <p className="text-white font-bold mb-1">Aucune vérification d'identité en attente</p>
+              <p className="text-slate-400 text-sm">Toutes les demandes ont été traitées.</p>
+            </div>
+          ) : pendingKyc.map(u => (
+            <div key={u.id} className="card flex flex-col gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  {u.photo
+                    ? <img src={u.photo} alt="" className="w-11 h-11 rounded-full object-cover" />
+                    : <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-black text-white"
+                        style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>{u.firstName?.[0]}</div>
+                  }
+                  <div>
+                    <p className="font-black text-white">{u.firstName} {u.lastName}</p>
+                    <p className="text-xs text-slate-400">{u.email}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>
+                  En attente
+                </span>
+              </div>
+
+              {/* Documents : selfie + CIN */}
+              <div className="flex flex-wrap gap-3">
+                {u.kycSelfie && (
+                  <a href={u.kycSelfie} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+                    style={{ background: 'rgba(59,130,246,0.1)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <ExternalLink size={12} /> Voir le selfie
+                  </a>
+                )}
+                {u.cinDoc && (
+                  <a href={u.cinDoc} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+                    style={{ background: 'rgba(139,92,246,0.1)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.2)' }}>
+                    <ExternalLink size={12} /> Voir la CIN
+                  </a>
+                )}
+              </div>
+
+              {rejectingId === u.id ? (
+                <div className="flex gap-2">
+                  <input value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                    placeholder="Motif du refus (optionnel)..." className="input text-sm flex-1" />
+                  <button onClick={() => rejectKyc(u.id)} className="px-4 py-2 rounded-xl text-xs font-bold"
+                    style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>Confirmer refus</button>
+                  <button onClick={() => { setRejectingId(null); setRejectReason(''); }} className="px-3 py-2 rounded-xl text-xs font-bold"
+                    style={{ background: 'rgba(107,114,128,0.15)', color: '#9CA3AF' }}><X size={14} /></button>
+                </div>
+              ) : (
+                <div className="flex gap-3 pt-1">
+                  <button onClick={() => approveKyc(u.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                    style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.2)' }}>
+                    <CheckCircle size={15} /> Approuver
+                  </button>
+                  <button onClick={() => setRejectingId(u.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
                     style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>
                     <X size={15} /> Refuser
                   </button>

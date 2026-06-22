@@ -64,6 +64,47 @@ async function getDriverStats(req, res, next) {
 
     const user = await User.findByPk(driverId, { attributes: ['totalTrips', 'avgRating', 'level', 'badges', 'totalKm'] });
 
+    // ── Séries mensuelles (6 derniers mois, par date de publication) ──
+    // Clé locale "YYYY-MM" sans passer par toISOString (évite le décalage de fuseau)
+    const localKey = (date) => {
+      const d = new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+    const now = new Date();
+    const monthKeys = [];
+    const monthLabels = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthKeys.push(key);
+      monthLabels[key] = d.toLocaleDateString('fr-FR', { month: 'short' });
+    }
+
+    const tripsByMonth = Object.fromEntries(monthKeys.map(k => [k, 0]));
+    const earnByMonth  = Object.fromEntries(monthKeys.map(k => [k, 0]));
+    let totalSeats = 0, totalBooked = 0;
+    const destCount = {};
+
+    rides.forEach(r => {
+      const key = localKey(r.createdAt);
+      const booked = Math.max(0, (r.seats || 0) - (r.seatsAvailable || 0));
+      totalSeats  += r.seats || 0;
+      totalBooked += booked;
+      destCount[r.to] = (destCount[r.to] || 0) + 1;
+      if (key in tripsByMonth) {
+        tripsByMonth[key] += 1;
+        earnByMonth[key]  += booked * parseFloat(r.price || 0);
+      }
+    });
+
+    const monthlyTrips    = monthKeys.map(k => ({ month: monthLabels[k], trips: tripsByMonth[k] }));
+    const monthlyEarnings = monthKeys.map(k => ({ month: monthLabels[k], earnings: Math.round(earnByMonth[k]) }));
+    const topDestinations = Object.entries(destCount)
+      .map(([city, count]) => ({ city, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+    const fillRate = totalSeats > 0 ? Math.round((totalBooked / totalSeats) * 100) : 0;
+
     return res.json({
       totalTrips: user.totalTrips,
       totalEarnings: Math.round(totalEarnings),
@@ -74,6 +115,10 @@ async function getDriverStats(req, res, next) {
       badges: user.badges || [],
       ratingEvolution,
       activeRides: rides.filter(r => r.status === 'active').length,
+      monthlyTrips,
+      monthlyEarnings,
+      topDestinations,
+      fillRate,
     });
   } catch (err) { return next(err); }
 }

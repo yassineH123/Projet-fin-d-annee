@@ -2,7 +2,8 @@ const { Review, User, Booking, Ride } = require('../models');
 
 async function create(req, res, next) {
   try {
-    const { reviewedId, rideId, rating, comment, type } = req.body;
+    const { reviewedId, rideId, rating, comment, type,
+            punctuality, driving, communication, cleanliness } = req.body;
 
     // Vérifier qu'une réservation acceptée existe
     if (type === 'driver') {
@@ -18,7 +19,13 @@ async function create(req, res, next) {
     const existing = await Review.findOne({ where: { reviewerId: req.user.id, rideId, type } });
     if (existing) return res.status(409).json({ message: 'Vous avez déjà noté cet utilisateur pour ce trajet.' });
 
-    const review = await Review.create({ reviewerId: req.user.id, reviewedId, rideId, rating, comment, type });
+    const review = await Review.create({
+      reviewerId: req.user.id, reviewedId, rideId, rating, comment, type,
+      punctuality:   punctuality   || null,
+      driving:       driving       || null,
+      communication: communication || null,
+      cleanliness:   cleanliness   || null,
+    });
 
     // Mettre à jour la note moyenne de l'utilisateur noté
     const reviews = await Review.findAll({ where: { reviewedId } });
@@ -43,4 +50,17 @@ async function getUserReviews(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { create, getUserReviews };
+// L'utilisateur noté répond à un avis le concernant
+async function respond(req, res, next) {
+  try {
+    const { response } = req.body;
+    if (!response || !response.trim()) return res.status(400).json({ message: 'Réponse vide.' });
+    const review = await Review.findByPk(req.params.id);
+    if (!review) return res.status(404).json({ message: 'Avis introuvable.' });
+    if (review.reviewedId !== req.user.id) return res.status(403).json({ message: 'Vous ne pouvez répondre qu\'aux avis vous concernant.' });
+    await review.update({ response: response.trim() });
+    return res.json({ message: 'Réponse publiée.', review });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { create, getUserReviews, respond };

@@ -3,7 +3,8 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Clock, Leaf, Star, Users, Zap,
   TrendingDown, ArrowLeftRight, ExternalLink, ChevronDown, ChevronUp,
-  Plane, Train, Bus, Car, Bike, ArrowUpDown
+  Plane, Train, Bus, Car, Bike, ArrowUpDown,
+  Map, Sparkles, Wallet, Ban
 } from 'lucide-react';
 import {
   ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS,
@@ -15,12 +16,20 @@ import Spinner from '../components/Spinner';
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Laâyoune','Kénitra','Chefchaouen','Essaouira','Dakhla','Al Hoceima','Nador'];
 
 const MODE_CONFIG = {
-  covoiturage: { label: 'Covoiturage', icon: '🚗', color: '#C1272D', bg: 'rgba(193,39,45,0.12)', border: 'rgba(193,39,45,0.3)' },
-  train:        { label: 'Train',        icon: '🚂', color: '#2196F3', bg: 'rgba(33,150,243,0.1)',  border: 'rgba(33,150,243,0.3)' },
-  bus:          { label: 'Bus',          icon: '🚌', color: '#FF9800', bg: 'rgba(255,152,0,0.1)',   border: 'rgba(255,152,0,0.3)' },
-  grandtaxi:    { label: 'Grand Taxi',   icon: '🚕', color: '#9C27B0', bg: 'rgba(156,39,176,0.1)', border: 'rgba(156,39,176,0.3)' },
-  avion:        { label: 'Avion',        icon: '✈️', color: '#00BCD4', bg: 'rgba(0,188,212,0.1)',  border: 'rgba(0,188,212,0.3)' },
+  covoiturage: { label: 'Covoiturage', Icon: Car,   color: '#C1272D', bg: 'rgba(193,39,45,0.12)', border: 'rgba(193,39,45,0.3)' },
+  train:        { label: 'Train',        Icon: Train, color: '#2196F3', bg: 'rgba(33,150,243,0.1)',  border: 'rgba(33,150,243,0.3)' },
+  bus:          { label: 'Bus',          Icon: Bus,   color: '#FF9800', bg: 'rgba(255,152,0,0.1)',   border: 'rgba(255,152,0,0.3)' },
+  grandtaxi:    { label: 'Grand Taxi',   Icon: Car,   color: '#9C27B0', bg: 'rgba(156,39,176,0.1)', border: 'rgba(156,39,176,0.3)' },
+  avion:        { label: 'Avion',        Icon: Plane, color: '#00BCD4', bg: 'rgba(0,188,212,0.1)',  border: 'rgba(0,188,212,0.3)' },
 };
+
+/* Petit helper pour afficher l'icône d'un mode de transport inline */
+function ModeIcon({ mode, size = 16, color }) {
+  const cfg = MODE_CONFIG[mode];
+  if (!cfg) return null;
+  const I = cfg.Icon;
+  return <I size={size} style={{ color: color || cfg.color, flexShrink: 0 }} />;
+}
 
 const SORT_OPTIONS = [
   { id: 'price',    label: 'Prix',     icon: TrendingDown },
@@ -38,11 +47,11 @@ function ComfortDots({ n = 0, max = 5 }) {
   );
 }
 
-function BadgePill({ label, color }) {
+function BadgePill({ label, color, icon: Icon }) {
   return (
-    <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide"
+    <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide"
       style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}>
-      {label}
+      {Icon && <Icon size={11} />} {label}
     </span>
   );
 }
@@ -59,7 +68,7 @@ function TransportCard({ option, from, to, badges = [] }) {
       <div className="p-4 pb-3">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xl">{cfg.icon}</span>
+            <cfg.Icon size={22} style={{ color: cfg.color, flexShrink: 0 }} />
             <div>
               <p className="font-black text-sm leading-none" style={{ color: cfg.color }}>{option.operator}</p>
               {option.class && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{option.class}</p>}
@@ -75,10 +84,10 @@ function TransportCard({ option, from, to, badges = [] }) {
         {/* Badges */}
         {badges.length > 0 && (
           <div className="flex gap-1.5 flex-wrap mb-3">
-            {badges.includes('cheapest')  && <BadgePill label="💰 Le + économique" color="#22c55e" />}
-            {badges.includes('fastest')   && <BadgePill label="⚡ Le + rapide"      color="#2196F3" />}
-            {badges.includes('eco')       && <BadgePill label="🌿 Le + éco"         color="#10b981" />}
-            {badges.includes('comfort')   && <BadgePill label="⭐ Le + confortable" color="#D4890A" />}
+            {badges.includes('cheapest')  && <BadgePill icon={Wallet} label="Le + économique" color="#22c55e" />}
+            {badges.includes('fastest')   && <BadgePill icon={Zap}    label="Le + rapide"      color="#2196F3" />}
+            {badges.includes('eco')       && <BadgePill icon={Leaf}   label="Le + éco"         color="#10b981" />}
+            {badges.includes('comfort')   && <BadgePill icon={Star}   label="Le + confortable" color="#D4890A" />}
           </div>
         )}
 
@@ -163,39 +172,39 @@ function SmartRecommendation({ cheapest, fastest, eco }) {
   return (
     <div className="rounded-2xl p-5 mb-6"
       style={{ background: 'linear-gradient(135deg,rgba(193,39,45,0.08),rgba(212,137,10,0.08))', border: '1px solid rgba(193,39,45,0.2)' }}>
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#D4890A' }}>
-        🤖 Recommandation AtlasWay
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#D4890A' }}>
+        <Sparkles size={13} /> Recommandation AtlasWay
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {cheapest && (
           <div className="flex items-center gap-2.5">
-            <span className="text-xl">💰</span>
+            <Wallet size={22} style={{ color: '#22c55e', flexShrink: 0 }} />
             <div>
               <p className="text-xs font-bold text-white">Le + économique</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {MODE_CONFIG[cheapest.mode]?.icon} {cheapest.operator} · <span style={{ color: '#22c55e' }}>{cheapest.price} DH</span>
+              <p className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <ModeIcon mode={cheapest.mode} size={13} /> {cheapest.operator} · <span style={{ color: '#22c55e' }}>{cheapest.price} DH</span>
               </p>
             </div>
           </div>
         )}
         {fastest && (
           <div className="flex items-center gap-2.5">
-            <span className="text-xl">⚡</span>
+            <Zap size={22} style={{ color: '#2196F3', flexShrink: 0 }} />
             <div>
               <p className="text-xs font-bold text-white">Le + rapide</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {MODE_CONFIG[fastest.mode]?.icon} {fastest.operator} · <span style={{ color: '#2196F3' }}>{formatDuration(fastest.duration)}</span>
+              <p className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <ModeIcon mode={fastest.mode} size={13} /> {fastest.operator} · <span style={{ color: '#2196F3' }}>{formatDuration(fastest.duration)}</span>
               </p>
             </div>
           </div>
         )}
         {eco && (
           <div className="flex items-center gap-2.5">
-            <span className="text-xl">🌿</span>
+            <Leaf size={22} style={{ color: '#10b981', flexShrink: 0 }} />
             <div>
               <p className="text-xs font-bold text-white">Le + écologique</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {MODE_CONFIG[eco.mode]?.icon} {eco.operator} · <span style={{ color: '#10b981' }}>{eco.co2}kg CO₂</span>
+              <p className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <ModeIcon mode={eco.mode} size={13} /> {eco.operator} · <span style={{ color: '#10b981' }}>{eco.co2}kg CO₂</span>
               </p>
             </div>
           </div>
@@ -297,7 +306,7 @@ export default function Compare() {
       <div className="py-10 px-4" style={{ background: 'linear-gradient(160deg,#C1272D 0%,#9e1f24 60%,#7e181d 100%)' }}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-black text-white mb-1">🗺️ Comparateur de transport</h1>
+            <h1 className="flex items-center justify-center gap-2 text-3xl font-black text-white mb-1"><Map size={28} /> Comparateur de transport</h1>
             <p style={{ color: 'rgba(255,255,255,0.75)' }}>Covoiturage, Train, Bus, Grand Taxi, Avion — tout en un coup d'œil</p>
           </div>
 
@@ -341,14 +350,14 @@ export default function Compare() {
         {!searched ? (
           /* Landing state */
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">🗺️</div>
+            <div className="flex justify-center mb-4"><Map size={56} style={{ color: 'var(--text-muted)' }} /></div>
             <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text-base)' }}>Comparez tous les moyens de transport</h2>
             <p className="text-sm mb-8" style={{ color: 'var(--text-muted)' }}>Entrez une ville de départ et d'arrivée pour voir toutes les options disponibles</p>
             <div className="flex flex-wrap justify-center gap-3">
               {Object.entries(MODE_CONFIG).map(([key, cfg]) => (
                 <div key={key} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
                   style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
-                  {cfg.icon} {cfg.label}
+                  <cfg.Icon size={16} /> {cfg.label}
                 </div>
               ))}
             </div>
@@ -363,7 +372,7 @@ export default function Compare() {
               <button onClick={() => setMode('all')}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all"
                 style={{ background: mode === 'all' ? 'var(--card-bg)' : 'transparent', color: mode === 'all' ? '#fff' : 'var(--text-muted)' }}>
-                🗺️ Tous
+                <Map size={15} /> Tous
                 <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: '#C1272D', color: '#fff' }}>{allOptions.length}</span>
               </button>
               {Object.entries(MODE_CONFIG).map(([key, cfg]) => (
@@ -371,7 +380,7 @@ export default function Compare() {
                   <button key={key} onClick={() => setMode(key)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all"
                     style={{ background: mode === key ? cfg.bg : 'transparent', color: mode === key ? cfg.color : 'var(--text-muted)', border: mode === key ? `1px solid ${cfg.border}` : '1px solid transparent' }}>
-                    {cfg.icon} {cfg.label}
+                    <cfg.Icon size={15} /> {cfg.label}
                     <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: mode === key ? cfg.color : 'var(--bg-800)', color: mode === key ? '#fff' : 'var(--text-muted)' }}>
                       {modeCounts[key]}
                     </span>
@@ -402,7 +411,7 @@ export default function Compare() {
               <div className="flex justify-center py-8"><Spinner /></div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-16">
-                <div className="text-4xl mb-3">🚫</div>
+                <div className="flex justify-center mb-3"><Ban size={40} style={{ color: 'var(--text-muted)' }} /></div>
                 <p className="font-semibold" style={{ color: 'var(--text-secondary)' }}>Aucune option trouvée pour ce trajet</p>
                 <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Essayez d'autres villes ou un autre mode</p>
               </div>
@@ -424,8 +433,8 @@ export default function Compare() {
             {/* CO2 comparison bar */}
             {allOptions.filter(o => o.co2).length > 1 && (
               <div className="mt-8 card p-5">
-                <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#10b981' }}>
-                  🌿 Comparaison CO₂ par personne
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#10b981' }}>
+                  <Leaf size={13} /> Comparaison CO₂ par personne
                 </p>
                 {allOptions
                   .filter(o => o.co2)
@@ -436,7 +445,7 @@ export default function Compare() {
                     return (
                       <div key={i} className="mb-3">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span>{cfg?.icon} {cfg?.label} · {o.operator}</span>
+                          <span className="flex items-center gap-1"><ModeIcon mode={o.mode} size={12} /> {cfg?.label} · {o.operator}</span>
                           <span className="font-bold" style={{ color: co2Color(o.co2) }}>{o.co2}kg</span>
                         </div>
                         <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-700)' }}>

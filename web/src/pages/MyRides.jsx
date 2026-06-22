@@ -22,10 +22,10 @@ export default function MyRides() {
   useEffect(() => { fetchRides(); }, []);
 
   const handleCancel = async (id) => {
-    if (!window.confirm('Annuler ce trajet ?')) return;
+    if (!window.confirm('Annuler ce trajet ? Les passagers seront notifiés et remboursés.')) return;
     try {
-      await api.delete(`/rides/${id}`);
-      toast.success('Trajet annulé');
+      const { data } = await api.delete(`/rides/${id}`);
+      toast.success(data.message || 'Trajet annulé');
       fetchRides();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');

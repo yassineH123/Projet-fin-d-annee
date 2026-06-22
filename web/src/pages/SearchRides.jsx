@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useScrollReveal from '../hooks/useScrollReveal';
 import { useSearchParams, Link } from 'react-router-dom';
 import SEO from '../components/SEO';
-import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Star, ShieldCheck, Accessibility, X, ArrowUpDown, ExternalLink, Clock, Leaf, Map, Car, Train, Bus, Plane, Bike, Truck, Users } from 'lucide-react';
 import api from '../services/api';
 import RideCard from '../components/RideCard';
 import { SkeletonList } from '../components/SkeletonCard';
@@ -18,19 +18,19 @@ const SORT_OPTIONS = [
 ];
 
 const TRANSPORT_TABS = [
-  { id: 'covoiturage', label: 'Covoiturage', icon: '🚗', color: '#C1272D' },
-  { id: 'train',       label: 'Train',       icon: '🚂', color: '#2196F3' },
-  { id: 'bus',         label: 'Bus CTM',     icon: '🚌', color: '#FF9800' },
-  { id: 'grandtaxi',   label: 'Grand Taxi',  icon: '🚕', color: '#9C27B0' },
-  { id: 'avion',       label: 'Avion',       icon: '✈️', color: '#00BCD4' },
+  { id: 'covoiturage', label: 'Covoiturage', Icon: Car,   color: '#C1272D' },
+  { id: 'train',       label: 'Train',       Icon: Train, color: '#2196F3' },
+  { id: 'bus',         label: 'Bus CTM',     Icon: Bus,   color: '#FF9800' },
+  { id: 'grandtaxi',   label: 'Grand Taxi',  Icon: Car,   color: '#9C27B0' },
+  { id: 'avion',       label: 'Avion',       Icon: Plane, color: '#00BCD4' },
 ];
 
 const VEHICLE_MODES = [
-  { id: 'all',      label: 'Tous',     emoji: '🔍' },
-  { id: 'voiture',  label: 'Voiture',  emoji: '🚗' },
-  { id: 'moto',     label: 'Moto',     emoji: '🏍️' },
-  { id: 'minibus',  label: 'Minibus',  emoji: '🚐' },
-  { id: 'van',      label: 'Van',      emoji: '🚌' },
+  { id: 'all',      label: 'Tous',     Icon: Search },
+  { id: 'voiture',  label: 'Voiture',  Icon: Car },
+  { id: 'moto',     label: 'Moto',     Icon: Bike },
+  { id: 'minibus',  label: 'Minibus',  Icon: Bus },
+  { id: 'van',      label: 'Van',      Icon: Truck },
 ];
 
 function StaticTransportCard({ item, mode }) {
@@ -95,10 +95,11 @@ export default function SearchRides() {
   const [minRating,  setMinRating]  = useState(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [pmrOnly,    setPmrOnly]    = useState(false);
+  const [womenOnly,  setWomenOnly]  = useState(false);
   const [sortBy,     setSortBy]     = useState('date_asc');
   const [seats,      setSeats]      = useState(1);
 
-  const activeFilters = [verifiedOnly, pmrOnly, minRating > 0, maxPrice].filter(Boolean).length;
+  const activeFilters = [verifiedOnly, pmrOnly, womenOnly, minRating > 0, maxPrice].filter(Boolean).length;
 
   const staticResults = {
     train:      findRoutes(ONCF,       from, to),
@@ -110,7 +111,7 @@ export default function SearchRides() {
   const fetchRides = async (overrides = {}) => {
     setLoading(true);
     try {
-      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, sortBy, seats,
+      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, womenOnly, sortBy, seats,
         transportMode: vehicleMode !== 'all' ? vehicleMode : undefined, ...overrides };
       Object.keys(params).forEach(k => !params[k] && params[k] !== 0 && delete params[k]);
       const { data } = await api.get('/rides/search', { params });
@@ -131,7 +132,7 @@ export default function SearchRides() {
     fetchRides();
   };
 
-  const resetFilters = () => { setMaxPrice(''); setMinRating(0); setVerifiedOnly(false); setPmrOnly(false); setSortBy('date_asc'); setSeats(1); };
+  const resetFilters = () => { setMaxPrice(''); setMinRating(0); setVerifiedOnly(false); setPmrOnly(false); setWomenOnly(false); setSortBy('date_asc'); setSeats(1); };
 
   const seoTitle = from && to ? `${from} → ${to}` : 'Rechercher un trajet';
   const seoDesc  = from && to
@@ -145,7 +146,7 @@ export default function SearchRides() {
         <h1 className="text-2xl font-black text-white">Rechercher un trajet</h1>
         <Link to="/compare" className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all"
           style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)' }}>
-          🗺️ Comparer tous les transports
+          <Map size={14} /> Comparer tous les transports
         </Link>
       </div>
 
@@ -239,6 +240,13 @@ export default function SearchRides() {
                   <span className="text-sm text-slate-300 flex items-center gap-1.5"><Accessibility size={14} className="text-blue-400" /> Véhicule accessible PMR</span>
                   <input type="checkbox" checked={pmrOnly} onChange={e => setPmrOnly(e.target.checked)} className="sr-only" />
                 </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="w-9 h-5 rounded-full relative transition-colors" style={{ background: womenOnly ? '#EC4899' : 'var(--bg-500)' }}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${womenOnly ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </div>
+                  <span className="text-sm text-slate-300 flex items-center gap-1.5"><Users size={14} style={{ color: '#EC4899' }} /> Trajets « femmes uniquement »</span>
+                  <input type="checkbox" checked={womenOnly} onChange={e => setWomenOnly(e.target.checked)} className="sr-only" />
+                </label>
               </div>
             </div>
 
@@ -259,7 +267,7 @@ export default function SearchRides() {
               color:      transportMode === tab.id ? tab.color          : 'var(--text-muted)',
               border:     transportMode === tab.id ? `1px solid ${tab.color}40` : '1px solid var(--border-color)',
             }}>
-            {tab.icon} {tab.label}
+            <tab.Icon size={15} /> {tab.label}
             {tab.id !== 'covoiturage' && from && to && staticResults[tab.id]?.length > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded-full"
                 style={{ background: tab.color, color: '#fff', fontSize: 10 }}>
@@ -275,7 +283,7 @@ export default function SearchRides() {
         <>
           {/* Sous-filtre véhicule */}
           <div className="flex gap-2 overflow-x-auto pb-1 mb-4" style={{ scrollbarWidth: 'none' }}>
-            {VEHICLE_MODES.map(({ id, label, emoji }) => {
+            {VEHICLE_MODES.map(({ id, label, Icon }) => {
               const active = vehicleMode === id;
               return (
                 <button key={id} onClick={() => { setVehicleMode(id); fetchRides({ transportMode: id !== 'all' ? id : undefined }); }}
@@ -286,7 +294,7 @@ export default function SearchRides() {
                     border:     active ? '1.5px solid rgba(193,39,45,0.4)' : '1.5px solid var(--border-color)',
                     transform:  active ? 'scale(1.05)' : 'scale(1)',
                   }}>
-                  <span style={{ fontSize: 16 }}>{emoji}</span> {label}
+                  <Icon size={16} /> {label}
                 </button>
               );
             })}
@@ -294,7 +302,7 @@ export default function SearchRides() {
 
           {loading ? <SkeletonList count={4} card="ride" /> : rides.length === 0 ? (
             <EmptyState
-              emoji={VEHICLE_MODES.find(v => v.id === vehicleMode)?.emoji || '🔍'}
+              icon={(() => { const I = VEHICLE_MODES.find(v => v.id === vehicleMode)?.Icon || Search; return <I size={28} style={{ color: 'var(--text-muted)' }} />; })()}
               title="Aucun trajet trouvé"
               description="Essayez un autre véhicule ou regardez les autres modes de transport ci-dessus."
               actionLabel="Voir tous les trajets"
@@ -309,7 +317,7 @@ export default function SearchRides() {
                     {ride.transportMode && ride.transportMode !== 'voiture' && (
                       <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
                         style={{ background: 'rgba(193,39,45,0.12)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.25)' }}>
-                        {VEHICLE_MODES.find(v => v.id === ride.transportMode)?.emoji} {VEHICLE_MODES.find(v => v.id === ride.transportMode)?.label}
+                        {(() => { const I = VEHICLE_MODES.find(v => v.id === ride.transportMode)?.Icon; return I ? <I size={12} /> : null; })()} {VEHICLE_MODES.find(v => v.id === ride.transportMode)?.label}
                       </div>
                     )}
                     <RideCard ride={ride} />
@@ -326,7 +334,7 @@ export default function SearchRides() {
         const results = staticResults[transportMode] || [];
         return results.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">{TRANSPORT_TABS.find(t => t.id === transportMode)?.icon}</div>
+            <div className="flex justify-center mb-3">{(() => { const I = TRANSPORT_TABS.find(t => t.id === transportMode)?.Icon || Map; return <I size={40} style={{ color: 'var(--text-muted)' }} />; })()}</div>
             <p className="text-slate-400 font-medium">
               {!from || !to
                 ? 'Entrez une ville de départ et d\'arrivée pour voir les options'

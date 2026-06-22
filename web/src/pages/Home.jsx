@@ -1,32 +1,29 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import useScrollReveal from '../hooks/useScrollReveal';
 import SEO from '../components/SEO';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Shield, Star, Users, Car,
-  CheckCircle, ChevronRight,
-  TrendingDown, Lock, ThumbsUp, MessageCircle, Mic
+  CheckCircle, ChevronRight, Backpack,
+  TrendingDown, Lock, ThumbsUp, MessageCircle, Mic,
+  Heart, Bookmark, Bell, Home as HomeIcon,
+  CreditCard, Calendar, Compass,
+  Clock, Zap, Trophy, RefreshCw, GitCompare, Wifi
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { reverseGeocode } from '../utils/geocode';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const MapPicker = lazy(() => import('../components/MapPicker'));
 const RouteMap  = lazy(() => import('../components/RouteMap'));
 
 /* ─── DATA ─────────────────────────────────────── */
-const STATS = [
-  { value: '12 000+', label: 'Voyageurs actifs',  icon: Users },
-  { value: '45+',     label: 'Villes connectées', icon: MapPin },
-  { value: '4.8/5',   label: 'Note moyenne',       icon: Star },
-  { value: '60%',     label: 'Économies vs taxi',  icon: TrendingDown },
-];
-
 const STEPS = [
-  { num: '01', icon: MapPin,      title: 'Recherchez',     desc: 'Entrez votre destination et la date. Des centaines de trajets disponibles partout au Maroc.' },
-  { num: '02', icon: Users,       title: 'Choisissez',     desc: 'Comparez les conducteurs, leurs notes et leurs tarifs avant de réserver.' },
-  { num: '03', icon: CheckCircle, title: 'Voyagez serein', desc: 'Réservation confirmée en quelques secondes. Rencontrez votre conducteur et partez !' },
+  { num: '01', icon: MapPin,       title: 'Recherchez',     desc: 'Entrez votre destination et la date. Des centaines de trajets disponibles partout au Maroc.' },
+  { num: '02', icon: Users,        title: 'Choisissez',     desc: 'Comparez les conducteurs, leurs notes et leurs tarifs avant de réserver.' },
+  { num: '03', icon: CheckCircle,  title: 'Voyagez serein', desc: 'Réservation confirmée en quelques secondes. Rencontrez votre conducteur et partez !' },
 ];
 
 const TESTIMONIALS = [
@@ -44,24 +41,65 @@ const TESTIMONIALS = [
     detail: 'Membre depuis 3 mois' },
 ];
 
-
 const SAMPLE_TRIPS = [
-  { from: 'Casablanca', to: 'Marrakech', depTime: '07:30', arrTime: '11:00', date: 'Demain', driver: 'Ahmed B.', rating: 4.9, seats: 2, price: 80, avatar: 'AB' },
-  { from: 'Rabat',      to: 'Fès',       depTime: '09:00', arrTime: '11:30', date: 'Demain', driver: 'Sara M.',  rating: 5.0, seats: 3, price: 60, avatar: 'SM' },
-  { from: 'Tanger',     to: 'Rabat',     depTime: '06:00', arrTime: '10:00', date: 'Lundi',  driver: 'Youssef K.', rating: 4.8, seats: 1, price: 90, avatar: 'YK' },
+  { from: 'Casablanca', to: 'Marrakech', depTime: '07:30', date: 'Demain',    driver: 'Ahmed B.',    rating: 4.9, seats: 2, price: 80,  avatar: 'AB', ago: 'il y a 2h' },
+  { from: 'Rabat',      to: 'Fès',       depTime: '09:00', date: 'Demain',    driver: 'Sara M.',     rating: 5.0, seats: 3, price: 60,  avatar: 'SM', ago: 'il y a 4h' },
+  { from: 'Tanger',     to: 'Rabat',     depTime: '06:00', date: 'Lundi',     driver: 'Youssef K.',  rating: 4.8, seats: 1, price: 90,  avatar: 'YK', ago: 'il y a 6h' },
+  { from: 'Agadir',     to: 'Marrakech', depTime: '08:00', date: "Aujourd'hui", driver: 'Fatima Z.', rating: 4.7, seats: 2, price: 70,  avatar: 'FZ', ago: 'il y a 1h' },
+  { from: 'Fès',        to: 'Casablanca',depTime: '10:30', date: 'Demain',    driver: 'Omar T.',     rating: 4.6, seats: 4, price: 75,  avatar: 'OT', ago: 'il y a 3h' },
 ];
-
 
 const CITIES = ['Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger', 'Agadir', 'Meknès', 'Oujda', 'Tétouan', 'Laâyoune'];
 
+const CITY_STORIES = [
+  { city: 'Casablanca', arabic: 'الدار البيضاء', emoji: '🌆', color: '#C1272D' },
+  { city: 'Marrakech',  arabic: 'مراكش',         emoji: '🕌', color: '#D4890A' },
+  { city: 'Rabat',      arabic: 'الرباط',         emoji: '🏛️', color: '#006233' },
+  { city: 'Fès',        arabic: 'فاس',            emoji: '🏺', color: '#8B5A2B' },
+  { city: 'Tanger',     arabic: 'طنجة',           emoji: '🌊', color: '#0077B6' },
+  { city: 'Agadir',     arabic: 'أكادير',         emoji: '🌴', color: '#2D6A4F' },
+  { city: 'Meknès',     arabic: 'مكناس',          emoji: '🌿', color: '#6B4E3D' },
+  { city: 'Oujda',      arabic: 'وجدة',           emoji: '⭐', color: '#7B2D8B' },
+];
 
+const TRENDING_ROUTES = [
+  { from: 'Casablanca', to: 'Marrakech', price: 80,  emoji: '🏔️' },
+  { from: 'Rabat',      to: 'Fès',       price: 60,  emoji: '🕌' },
+  { from: 'Tanger',     to: 'Casablanca',price: 100, emoji: '🌊' },
+  { from: 'Agadir',     to: 'Marrakech', price: 70,  emoji: '🌴' },
+];
 
+const NAV_ITEMS = [
+  { icon: HomeIcon,      label: 'Accueil',         to: '/' },
+  { icon: Compass,       label: 'Tous les trajets', to: '/rides/search' },
+  { icon: GitCompare,    label: 'Comparer',         to: '/compare' },
+  { icon: Calendar,      label: 'Réservations',     to: '/bookings' },
+  { icon: Heart,         label: 'Favoris',          to: '/favorites' },
+  { icon: Bell,          label: 'Alertes prix',     to: '/ride-alerts' },
+  { icon: MessageCircle, label: 'Messages',         to: '/messages' },
+  { icon: CreditCard,    label: 'Portefeuille',     to: '/wallet' },
+  { icon: Trophy,        label: 'Classement',       to: '/leaderboard' },
+];
 
+const ARABIC_CITIES = {
+  'Casablanca': 'الدار البيضاء', 'Rabat': 'الرباط',
+  'Marrakech': 'مراكش', 'Fès': 'فاس', 'Tanger': 'طنجة',
+  'Agadir': 'أكادير', 'Meknès': 'مكناس', 'Oujda': 'وجدة', 'Tétouan': 'تطوان',
+};
 
-const CONFETTI_COLS = ['#B8232A','#D4890A','#005A2E','#F5EDD8','#B8232A','#D4890A','#005A2E','#F5EDD8','#B8232A','#D4890A','#005A2E','#F5EDD8'];
+const CONFETTI_COLS = ['#C1272D','#D4890A','#006233','#F5EDD8','#C1272D','#D4890A','#006233','#F5EDD8','#C1272D','#D4890A','#006233','#F5EDD8'];
 const CONFETTI_X    = [-26,-16,-6,4,14,24,-21,-11,1,11,21,28];
 
+const FILTERS = [
+  { key: 'all',      label: 'Tous' },
+  { key: 'today',    label: "Aujourd'hui" },
+  { key: 'tomorrow', label: 'Demain' },
+  { key: 'cheap',    label: '< 50 DH' },
+  { key: 'mid',      label: '< 100 DH' },
+  { key: 'seats',    label: 'Places dispo' },
+];
 
+/* ─── UTILS ─────────────────────────────────────── */
 function formatRideDate(iso) {
   const d = new Date(iso);
   const today = new Date();
@@ -74,24 +112,24 @@ function formatRideDate(iso) {
 
 function adaptRide(ride) {
   const d = new Date(ride.departureDate);
+  const now = new Date();
+  const diffH = Math.floor((now - new Date(ride.createdAt || now)) / 3600000);
   return {
     id: ride.id,
     from: ride.from,
     to: ride.to,
     depTime: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    arrTime: '—',
     date: formatRideDate(ride.departureDate),
     driver: `${ride.driver?.firstName || ''} ${ride.driver?.lastName?.[0] || ''}.`,
     rating: ride.driver?.avgRating || 0,
     seats: ride.seatsAvailable,
     price: ride.price,
     avatar: `${ride.driver?.firstName?.[0] || '?'}${ride.driver?.lastName?.[0] || ''}`,
+    ago: diffH < 1 ? 'à l\'instant' : diffH < 24 ? `il y a ${diffH}h` : `il y a ${Math.floor(diffH/24)}j`,
+    rawDate: ride.departureDate,
   };
 }
 
-/* ─── COMPONENTS ────────────────────────────────── */
-
-/* ─── HOOK useInView ────────────────────────────── */
 function useInView(threshold = 0.15) {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
@@ -104,111 +142,6 @@ function useInView(threshold = 0.15) {
   }, [threshold]);
   return [ref, inView];
 }
-
-
-/* ─── SKELETON CARD ─────────────────────────────── */
-function SkeletonCard() {
-  return (
-    <div className="card" style={{ padding: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div className="skeleton" style={{ height: 22, width: '35%' }} />
-        <div className="skeleton" style={{ height: 22, width: '22%' }} />
-      </div>
-      <div className="skeleton" style={{ height: 13, width: '70%', marginBottom: 8 }} />
-      <div className="skeleton" style={{ height: 13, width: '55%', marginBottom: 20 }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="skeleton" style={{ height: 16, width: '28%' }} />
-        <div className="skeleton" style={{ height: 28, width: '22%', borderRadius: 12 }} />
-      </div>
-    </div>
-  );
-}
-
-
-
-
-
-
-function Stars({ n = 5 }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: n }).map((_, i) => (
-        <Star key={i} size={13} className="text-gold-400 fill-gold-400" />
-      ))}
-    </div>
-  );
-}
-
-
-function TripCard({ trip }) {
-  const navigate = useNavigate();
-  const { t } = useLanguage();
-  const h = t.home;
-  return (
-    <div
-      className="card cursor-pointer group hover:scale-[1.01] transition-all duration-200"
-      onClick={() => navigate(`/rides/search?from=${trip.from}&to=${trip.to}`)}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(193,39,45,0.12)', color: '#C1272D' }}>
-          {trip.date}
-        </span>
-        <div className="flex items-center gap-1.5">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: '#C1272D' }}>
-            {trip.avatar}
-          </div>
-          <div>
-            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{trip.driver}</span>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-xs flex items-center gap-0.5" style={{ color: '#D4890A' }}>
-                <Star size={10} className="fill-current" /> {trip.rating}
-              </span>
-              <span className="badge-verified">{h.verified}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Timeline */}
-      <div className="flex items-stretch gap-3 mb-4">
-        <div className="flex flex-col items-center gap-1 pt-1">
-          <div className="w-3 h-3 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#006233', background: '#006233' }} />
-          <div className="flex-1 w-0.5" style={{ background: 'var(--border-muted)', minHeight: 32 }} />
-          <div className="w-3 h-3 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#C1272D', background: '#C1272D' }} />
-        </div>
-        <div className="flex flex-col justify-between flex-1 gap-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-black text-base leading-none" style={{ color: 'var(--text-base)' }}>{trip.from}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{h.departure}</p>
-            </div>
-            <span className="font-mono font-bold text-sm" style={{ color: '#006233' }}>{trip.depTime}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-black text-base leading-none" style={{ color: 'var(--text-base)' }}>{trip.to}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{h.arrival}</p>
-            </div>
-            <span className="font-mono font-bold text-sm" style={{ color: '#C1272D' }}>{trip.arrTime}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-        <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <Users size={13} /> {trip.seats} {trip.seats > 1 ? h.seats : h.seat}
-        </div>
-        <div className="text-right">
-          <span className="font-black text-lg" style={{ color: '#C1272D' }}>{trip.price} DH</span>
-          <span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>{h.perPerson}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 /* ─── SPLASH SCREEN ─────────────────────────────── */
 function SplashScreen() {
@@ -240,16 +173,489 @@ function SplashScreen() {
   );
 }
 
+/* ─── ZELLIGE STRIPE ────────────────────────────── */
+function ZelligeStripe() {
+  return <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 0%, #C1272D 33%, #D4890A 50%, #006233 67%, #006233 100%)' }} />;
+}
 
-/* ─── ZELLIGE DIVIDER ───────────────────────────── */
-function ZelligeDivider() {
+/* ─── SKELETON ──────────────────────────────────── */
+function SkeletonCard() {
   return (
-    <div style={{ height: 28, background: 'var(--bg-900)', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(to right, #C1272D 0%, #C1272D 40%, #D4890A 50%, #00875A 60%, #00875A 100%)' }} />
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M14 2 L16.8 10.2 L25.5 10.2 L18.4 15.4 L21.1 23.6 L14 18.4 L6.9 23.6 L9.6 15.4 L2.5 10.2 L11.2 10.2Z' fill='none' stroke='rgba(212%2C137%2C10%2C0.15)' stroke-width='0.6'/%3E%3C/svg%3E\")", backgroundSize: '28px 28px', backgroundPosition: 'center' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'var(--border-color)' }} />
+    <div className="card" style={{ padding: '1rem', marginBottom: 10, overflow: 'hidden' }}>
+      <ZelligeStripe />
+      <div style={{ padding: '12px 0 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="skeleton" style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div className="skeleton" style={{ height: 13, width: '40%', marginBottom: 6 }} />
+          <div className="skeleton" style={{ height: 11, width: '60%' }} />
+        </div>
+        <div className="skeleton" style={{ height: 30, width: 70, borderRadius: 99 }} />
+      </div>
+      <div className="skeleton" style={{ height: 70, borderRadius: 10, margin: '12px 0' }} />
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[0,1,2].map(i => <div key={i} className="skeleton" style={{ flex: 1, height: 34, borderRadius: 8 }} />)}
+      </div>
     </div>
   );
+}
+
+function Stars({ n = 5 }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 2 }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} size={11} style={{ color: i < n ? '#D4890A' : 'var(--border-muted)', fill: i < n ? '#D4890A' : 'none' }} />
+      ))}
+    </span>
+  );
+}
+
+/* ─── CITY STORIES ──────────────────────────────── */
+function CityStories() {
+  const navigate = useNavigate();
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{
+        display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6,
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+      }}>
+        {/* "Tous les trajets" story */}
+        <button onClick={() => navigate('/rides/search')} style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+          background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #C1272D, #D4890A)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 0 3px var(--bg-900), 0 0 0 5px #C1272D',
+            fontSize: 22,
+          }}>🚗</div>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: 600 }}>Tous</span>
+        </button>
+
+        {CITY_STORIES.map(({ city, arabic, emoji, color }) => (
+          <button key={city} onClick={() => navigate(`/rides/search?to=${city}`)} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+            background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${color}22, ${color}44)`,
+              border: `2.5px solid ${color}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 0 0 2px var(--bg-900), 0 0 0 4.5px ${color}55`,
+              fontSize: 22,
+              transition: 'transform 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
+              {emoji}
+            </div>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>{city}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── QUICK FILTERS ─────────────────────────────── */
+function QuickFilters({ active, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 10, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
+      {FILTERS.map(({ key, label }) => (
+        <button key={key} onClick={() => onChange(key)} style={{
+          flexShrink: 0, padding: '5px 13px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+          cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+          background: active === key ? 'linear-gradient(135deg, #C1272D, #9e1f24)' : 'var(--bg-800)',
+          color: active === key ? '#fff' : 'var(--text-secondary)',
+          boxShadow: active === key ? '0 3px 12px rgba(193,39,45,0.3)' : 'none',
+          border: active === key ? 'none' : '1px solid var(--border-color)',
+        }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ─── LEFT SIDEBAR ──────────────────────────────── */
+function LeftSidebar({ user }) {
+  const location = useLocation();
+  return (
+    <aside style={{
+      position: 'sticky', top: 72, height: 'calc(100vh - 80px)',
+      overflowY: 'auto', paddingBottom: 24, scrollbarWidth: 'none',
+    }}>
+      {user && (
+        <Link to="/profile" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 10px', borderRadius: 12, marginBottom: 4,
+          textDecoration: 'none', background: 'var(--bg-800)',
+          border: '1px solid var(--border-color)', transition: 'all 0.2s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.06)'; e.currentTarget.style.borderColor = 'rgba(193,39,45,0.25)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
+          {user.photo
+            ? <img src={user.photo} alt="" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2px solid #C1272D', flexShrink: 0 }} />
+            : <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0, border: '2px solid rgba(212,137,10,0.4)' }}>
+                {user.firstName?.[0]}{user.lastName?.[0]}
+              </div>
+          }
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-base)', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user.firstName} {user.lastName}
+            </p>
+            <p style={{ margin: 0, fontSize: 11, color: '#D4890A', fontFamily: "'Amiri', serif", marginTop: 2 }}>رفيق الطريق</p>
+          </div>
+        </Link>
+      )}
+
+      <nav style={{ marginTop: 8 }}>
+        {NAV_ITEMS.map(({ icon: Icon, label, to }) => {
+          const active = location.pathname === to;
+          return (
+            <Link key={to} to={to} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 10px', borderRadius: 8, marginBottom: 2,
+              textDecoration: 'none',
+              background: active ? 'rgba(193,39,45,0.1)' : 'transparent',
+              color: active ? '#C1272D' : 'var(--text-secondary)',
+              fontWeight: active ? 700 : 500, fontSize: 14,
+              transition: 'all 0.15s',
+              border: active ? '1px solid rgba(193,39,45,0.2)' : '1px solid transparent',
+            }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.color = 'var(--text-base)'; } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
+              <Icon size={18} style={{ flexShrink: 0, color: active ? '#C1272D' : undefined }} />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div style={{ height: 1, background: 'var(--border-color)', margin: '12px 0' }} />
+
+      <Link to="/rides/publish" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        padding: '11px 16px', borderRadius: 10,
+        background: 'linear-gradient(135deg, #D4890A, #a86508)',
+        color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13,
+        boxShadow: '0 4px 16px rgba(212,137,10,0.3)', transition: 'transform 0.2s, box-shadow 0.2s',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(212,137,10,0.4)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(212,137,10,0.3)'; }}>
+        <Car size={15} /> Proposer un trajet
+      </Link>
+
+    </aside>
+  );
+}
+
+/* ─── RIGHT SIDEBAR ─────────────────────────────── */
+function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, handleGeolocate, locating, stats, burst, liveUsers }) {
+  return (
+    <aside style={{
+      position: 'sticky', top: 72, height: 'calc(100vh - 80px)',
+      overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12,
+      scrollbarWidth: 'none', paddingBottom: 24,
+    }}>
+      {/* Search widget */}
+      <div style={{ background: 'var(--bg-800)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden' }}>
+        <ZelligeStripe />
+        <div style={{ padding: '14px 14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D', margin: 0 }}>✦ Trouver un trajet</p>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#00875A', fontWeight: 600 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C851', display: 'inline-block', animation: 'pulse 2s ease infinite' }} />
+              {liveUsers || '—'} en ligne
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <button type="button" onClick={handleVoiceSearch} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(0,135,90,0.1)', color: '#00875A', border: '1px solid rgba(0,135,90,0.22)', cursor: 'pointer' }}>
+              <Mic size={12} /> Voix
+            </button>
+            <button type="button" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(245,166,35,0.1)', color: '#F5A623', border: '1px solid rgba(245,166,35,0.22)', cursor: 'pointer' }}>
+              <MapPin size={12} /> Carte
+            </button>
+          </div>
+          <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: '#006233', boxShadow: '0 0 5px rgba(0,135,90,0.6)' }} />
+              <input value={form.from} onChange={e => setForm(f => ({ ...f, from: e.target.value }))}
+                placeholder="Ville de départ" className="input" style={{ paddingLeft: 26, paddingRight: 32, fontSize: 13 }} list="sb-from" />
+              <datalist id="sb-from">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+              <button type="button" onClick={handleGeolocate} disabled={locating} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: locating ? '#F5A623' : '#006233', display: 'flex', alignItems: 'center' }}>
+                {locating ? <div style={{ width: 11, height: 11, border: '2px solid #F5A623', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> : <MapPin size={11} />}
+              </button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button type="button" onClick={swap} style={{ background: 'rgba(238,242,255,0.04)', border: '1px solid rgba(238,242,255,0.09)', borderRadius: 6, padding: '2px 12px', cursor: 'pointer', color: 'rgba(238,242,255,0.35)', fontSize: 10, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <ArrowRight size={9} /> inverser
+              </button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: '#C1272D', boxShadow: '0 0 5px rgba(193,39,45,0.6)' }} />
+              <input value={form.to} onChange={e => setForm(f => ({ ...f, to: e.target.value }))}
+                placeholder="Ville d'arrivée" className="input" style={{ paddingLeft: 26, fontSize: 13 }} list="sb-to" />
+              <datalist id="sb-to">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+            </div>
+            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+              min={new Date().toISOString().split('T')[0]} className="input" style={{ fontSize: 12 }} />
+            <button type="submit" style={{
+              width: '100%', height: 42, borderRadius: 10,
+              background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
+              color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 6px 20px rgba(193,39,45,0.3)', transition: 'transform 0.15s', position: 'relative',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+              Rechercher <ArrowRight size={14} />
+              {burst && (
+                <div className="confetti-container">
+                  {CONFETTI_X.map((x, i) => (
+                    <div key={i} className="confetti-piece" style={{ left: x, background: CONFETTI_COLS[i], animationDelay: `${i * 0.055}s` }} />
+                  ))}
+                </div>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Trending routes */}
+      <div style={{ background: 'var(--bg-800)', border: '1px solid var(--border-color)', borderRadius: 14, padding: '14px' }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#006233', marginBottom: 12 }}>🔥 Trajets populaires</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {TRENDING_ROUTES.map(({ from, to, price, emoji }, i) => (
+            <Link key={i} to={`/rides/search?from=${from}&to=${to}`} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 10px', borderRadius: 8, textDecoration: 'none',
+              border: '1px solid var(--border-color)', transition: 'all 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.05)'; e.currentTarget.style.borderColor = 'rgba(193,39,45,0.2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>{emoji}</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-base)' }}>{from} → {to}</p>
+                  <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)' }}>dès {price} DH</p>
+                </div>
+              </div>
+              <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ─── RIDE FEED CARD ────────────────────────────── */
+function RideFeedCard({ trip, initialFav = false, index = 0 }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [liked, setLiked]   = useState(initialFav);
+  const [saved, setSaved]   = useState(false);
+  const [liking, setLiking] = useState(false);
+
+  const arabicFrom = ARABIC_CITIES[trip.from] || '';
+  const arabicTo   = ARABIC_CITIES[trip.to]   || '';
+
+  const handleLike = async () => {
+    if (!user) { toast.error('Connectez-vous pour sauvegarder un trajet'); return; }
+    if (liking || !trip.id) return;
+    setLiking(true);
+    try {
+      const { data } = await api.post(`/favorites/${trip.id}`);
+      setLiked(data.favorited);
+      toast.success(data.favorited ? '❤️ Ajouté aux favoris' : 'Retiré des favoris');
+    } catch {
+      toast.error('Erreur');
+    } finally { setLiking(false); }
+  };
+
+  return (
+    <article className="feed-card-appear" style={{
+      background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+      borderRadius: 14, overflow: 'hidden', marginBottom: 10,
+      transition: 'box-shadow 0.2s, transform 0.2s',
+      animationDelay: `${index * 0.07}s`,
+    }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 28px rgba(0,0,0,0.13)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+
+      <ZelligeStripe />
+
+      {/* Header */}
+      <div style={{ padding: '12px 14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14, border: '2px solid rgba(212,137,10,0.3)' }}>
+          {trip.avatar}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--text-base)', lineHeight: 1.2 }}>{trip.driver}</p>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 99, background: 'rgba(0,98,51,0.1)', color: '#006233', border: '1px solid rgba(0,98,51,0.2)' }}>✓ VÉRIFIÉ</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <Stars n={Math.round(trip.rating)} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{trip.rating}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>·</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)' }}>
+              <Clock size={10} /> {trip.ago || trip.date}
+            </span>
+          </div>
+        </div>
+        <div style={{ padding: '6px 12px', borderRadius: 99, background: 'linear-gradient(135deg, rgba(193,39,45,0.12), rgba(193,39,45,0.06))', border: '1px solid rgba(193,39,45,0.25)' }}>
+          <span style={{ fontWeight: 900, fontSize: 16, color: '#C1272D' }}>{trip.price}</span>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 2 }}>DH</span>
+        </div>
+      </div>
+
+      {/* Route */}
+      <div style={{ padding: '12px 14px' }}>
+        <div style={{ background: 'var(--bg-800)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontFamily: "'Amiri', serif", fontSize: 28, color: 'rgba(212,137,10,0.07)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700 }}>رحلة</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'relative', zIndex: 1 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#006233', boxShadow: '0 0 5px rgba(0,135,90,0.5)', flexShrink: 0 }} />
+                <span style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-base)' }}>{trip.from}</span>
+              </div>
+              {arabicFrom && <p style={{ margin: 0, fontSize: 10, color: 'rgba(212,137,10,0.55)', fontFamily: "'Amiri', serif", marginLeft: 15 }}>{arabicFrom}</p>}
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginLeft: 15 }}>{trip.depTime}</p>
+            </div>
+            <div style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+              <div style={{ width: 36, height: 1, background: 'linear-gradient(to right, #006233, #D4890A, #C1272D)' }} />
+              <ArrowRight size={13} style={{ color: '#D4890A' }} />
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 2 }}>
+                <span style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-base)' }}>{trip.to}</span>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#C1272D', boxShadow: '0 0 5px rgba(193,39,45,0.5)', flexShrink: 0 }} />
+              </div>
+              {arabicTo && <p style={{ margin: 0, fontSize: 10, color: 'rgba(212,137,10,0.55)', fontFamily: "'Amiri', serif", marginRight: 15 }}>{arabicTo}</p>}
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginRight: 15 }}>{trip.date}</p>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+          <Users size={11} style={{ color: 'var(--text-muted)' }} />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{trip.seats} place{trip.seats > 1 ? 's' : ''} disponible{trip.seats > 1 ? 's' : ''}</span>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#D4890A' }}>
+            <Zap size={10} /> Réservation rapide
+          </span>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: 'var(--border-color)', margin: '0 14px' }} />
+
+      {/* Actions */}
+      <div style={{ display: 'flex', padding: '4px 6px' }}>
+        <button onClick={handleLike} disabled={liking} style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '8px 0', borderRadius: 8, border: 'none', cursor: liking ? 'default' : 'pointer',
+          fontSize: 12, fontWeight: 600, background: 'transparent',
+          color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.06)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+          <Heart size={15} style={{ fill: liked ? '#C1272D' : 'none', color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.2s' }} />
+          {liked ? 'Aimé' : "J'aime"}
+        </button>
+        <button onClick={() => { setSaved(s => !s); if (!saved) toast.success('🔖 Sauvegardé'); }} style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+          fontSize: 12, fontWeight: 600, background: 'transparent',
+          color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,137,10,0.06)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+          <Bookmark size={15} style={{ fill: saved ? '#D4890A' : 'none', color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.2s' }} />
+          {saved ? 'Sauvegardé' : 'Sauvegarder'}
+        </button>
+        <button onClick={() => navigate(trip.id ? `/rides/${trip.id}` : `/rides/search?from=${trip.from}&to=${trip.to}`)} style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+          fontSize: 12, fontWeight: 700, background: 'transparent', color: '#006233', transition: 'all 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,98,51,0.06)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+          <Car size={15} /> Réserver
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/* ─── COMPACT SEARCH BAR ────────────────────────── */
+function CompactSearchBar({ user }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+      {user ? (
+        <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 13 }}>
+          {user.firstName?.[0]}{user.lastName?.[0]}
+        </div>
+      ) : (
+        <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <MapPin size={16} style={{ color: 'var(--text-muted)' }} />
+        </div>
+      )}
+      <button onClick={() => navigate('/rides/search')} style={{
+        flex: 1, textAlign: 'left', padding: '9px 14px', borderRadius: 99,
+        background: 'var(--bg-800)', border: '1px solid var(--border-color)',
+        color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+        transition: 'border-color 0.15s',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(193,39,45,0.3)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
+        Où voulez-vous aller ? من فين لفين؟
+      </button>
+    </div>
+  );
+}
+
+/* ─── HERO BANNER (non-auth) ─────────────────────── */
+function HeroBanner() {
+  return (
+    <div style={{ background: 'linear-gradient(135deg, rgba(193,39,45,0.08) 0%, rgba(212,137,10,0.06) 50%, rgba(0,98,51,0.08) 100%)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden', marginBottom: 10, position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '-30%', right: '-5%', fontFamily: "'Amiri', serif", fontSize: 90, color: 'rgba(212,137,10,0.05)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700, lineHeight: 1 }}>المغرب</div>
+      <ZelligeStripe />
+      <div style={{ padding: '18px 20px' }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', color: '#C1272D', marginBottom: 8, textTransform: 'uppercase' }}>✦ LA PLATEFORME #1 AU MAROC</p>
+        <h1 style={{ margin: '0 0 8px', fontWeight: 900, fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: 'var(--text-base)', lineHeight: 1.15 }}>
+          Voyagez partout au Maroc<br />
+          <span style={{ background: 'linear-gradient(135deg, #C1272D, #D4890A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>pour moins cher.</span>
+        </h1>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>Covoiturage simple, économique et sécurisé. Économisez jusqu'à <strong style={{ color: '#D4890A' }}>60%</strong> par rapport au taxi.</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link to="/rides/search" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: 'linear-gradient(135deg, #C1272D, #9e1f24)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none', boxShadow: '0 4px 16px rgba(193,39,45,0.3)' }}>
+            Voir les trajets <ArrowRight size={14} />
+          </Link>
+          <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: 'var(--bg-800)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+            S'inscrire gratuitement
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── FILTER LOGIC ──────────────────────────────── */
+function applyFilter(trips, filter) {
+  const today = new Date().toDateString();
+  const tomorrow = new Date(Date.now() + 86400000).toDateString();
+  switch (filter) {
+    case 'today':    return trips.filter(t => t.date === "Aujourd'hui" || (t.rawDate && new Date(t.rawDate).toDateString() === today));
+    case 'tomorrow': return trips.filter(t => t.date === 'Demain' || (t.rawDate && new Date(t.rawDate).toDateString() === tomorrow));
+    case 'cheap':    return trips.filter(t => t.price < 50);
+    case 'mid':      return trips.filter(t => t.price < 100);
+    case 'seats':    return trips.filter(t => t.seats >= 2);
+    default:         return trips;
+  }
 }
 
 /* ─── PAGE ──────────────────────────────────────── */
@@ -258,46 +664,50 @@ export default function Home() {
   const { user }    = useAuth();
   const { t }       = useLanguage();
   const h           = t.home;
-  const [from,    setFrom]    = useState('');
-  const [to,      setTo]      = useState('');
-  const [date,    setDate]    = useState('');
-  const [pax,     setPax]     = useState(1);
-  const [showMap, setShowMap] = useState(false);
-  const [locating, setLocating] = useState(false);
-  const [realTrips,   setRealTrips]   = useState([]);
-  const [showDarija,  setShowDarija]  = useState(false);
-  const [burst,       setBurst]       = useState(false);
-  const [liveStats,   setLiveStats]   = useState(null);
 
-  // Stats dynamiques : vraies données de la BDD si dispo, sinon fallback hardcodé
-  const dynamicStats = [
-    { value: liveStats?.totalUsers > 0 ? `${liveStats.totalUsers.toLocaleString('fr-FR')}+` : '12 000+', label: STATS[0].label, icon: STATS[0].icon },
-    { value: liveStats?.totalCities > 0 ? `${liveStats.totalCities}+`                        : '45+',     label: STATS[1].label, icon: STATS[1].icon },
-    { value: liveStats?.avgRating   > 0 ? `${liveStats.avgRating}/5`                         : '4.8/5',   label: STATS[2].label, icon: STATS[2].icon },
-    STATS[3], // "60% Économies vs taxi" — marketing, reste fixe
-  ];
+  const [form,      setForm]      = useState({ from: '', to: '', date: '' });
+  const [showMap,   setShowMap]   = useState(false);
+  const [locating,  setLocating]  = useState(false);
+  const [realTrips, setRealTrips] = useState([]);
+  const [favIds,    setFavIds]    = useState(new Set());
+  const [liveStats, setLiveStats] = useState(null);
+  const [liveUsers, setLiveUsers] = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [showDarija,setShowDarija]= useState(false);
+  const [burst,     setBurst]     = useState(false);
+  const [page,      setPage]      = useState(1);
+  const [filter,    setFilter]    = useState('all');
 
-  // Scroll reveals — sections principales
   const revealSteps = useScrollReveal({ staggerMs: 120 });
-  const revealStats = useScrollReveal({ staggerMs: 80 });
-  const revealCta   = useScrollReveal({ threshold: 0.2 });
-  const [statsRef, statsInView] = useInView(0.3);
 
   useEffect(() => {
     api.get('/rides/home').then(({ data }) => {
-      if (data.upcoming?.length)   setRealTrips(data.upcoming.map(adaptRide));
-      if (data.stats)              setLiveStats(data.stats);
-    }).catch(() => {});
-  }, []);
+      if (data.upcoming?.length) setRealTrips(data.upcoming.map(adaptRide));
+      if (data.stats)            setLiveStats(data.stats);
+    }).catch(() => {}).finally(() => setLoading(false));
+
+    // Fetch favorites to pre-mark liked cards
+    if (user) {
+      api.get('/favorites').then(({ data }) => {
+        setFavIds(new Set((data.favorites || []).map(r => r.id)));
+      }).catch(() => {});
+    }
+
+    // Simulate live user count (would connect to socket in production)
+    const base = Math.floor(Math.random() * 40) + 15;
+    setLiveUsers(base);
+    const iv = setInterval(() => setLiveUsers(n => n + (Math.random() > 0.5 ? 1 : -1)), 8000);
+    return () => clearInterval(iv);
+  }, [user]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setBurst(true);
     setTimeout(() => setBurst(false), 1100);
     const p = new URLSearchParams();
-    if (from) p.set('from', from);
-    if (to)   p.set('to', to);
-    if (date) p.set('date', date);
+    if (form.from) p.set('from', form.from);
+    if (form.to)   p.set('to', form.to);
+    if (form.date) p.set('date', form.date);
     navigate(`/rides/search?${p.toString()}`);
   };
 
@@ -311,14 +721,13 @@ export default function Home() {
       const m = txt.match(/(?:de\s+)?(.+?)\s+(?:vers|à|pour|jusqu'?à)\s+(.+)/i);
       if (m) {
         const cap = s => s.trim().replace(/\b\w/g, c => c.toUpperCase());
-        setFrom(cap(m[1]));
-        setTo(cap(m[2]));
+        setForm(f => ({ ...f, from: cap(m[1]), to: cap(m[2]) }));
       }
     };
     rec.start();
   };
 
-  const swap = () => { setFrom(to); setTo(from); };
+  const swap = () => setForm(f => ({ ...f, from: f.to, to: f.from }));
 
   const handleGeolocate = () => {
     if (!navigator.geolocation) return;
@@ -326,7 +735,7 @@ export default function Home() {
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         const city = await reverseGeocode(coords.latitude, coords.longitude);
-        if (city) setFrom(city);
+        if (city) setForm(f => ({ ...f, from: city }));
         setLocating(false);
       },
       () => setLocating(false),
@@ -334,573 +743,236 @@ export default function Home() {
     );
   };
 
+  const allTrips  = realTrips.length ? realTrips : SAMPLE_TRIPS;
+  const filtered  = applyFilter(allTrips, filter);
+  const visible   = filtered.slice(0, page * 5);
+
   return (
     <>
-    <SEO path="/" />
-    <div className="overflow-x-hidden">
+      <SEO path="/" />
       <SplashScreen />
 
-      {/* ══════════════════════════════════════
-           HERO — Neo-Moroccan Midnight
-          ══════════════════════════════════════ */}
-      <section style={{
-        background: 'linear-gradient(145deg, #05070D 0%, #08101E 40%, #0E0814 80%, #05070D 100%)',
-        position: 'relative', overflow: 'hidden',
-        minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      }}>
-        {/* Barre drapeau marocain en haut */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-          background: 'linear-gradient(to right, #E8192C 0%, #E8192C 33%, #F5A623 50%, #00875A 67%, #00875A 100%)',
-        }} />
+      <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 0%, #C1272D 33%, #D4890A 50%, #006233 67%, #006233 100%)', position: 'sticky', top: 0, zIndex: 100 }} />
 
-        {/* ── Animated mesh gradient ── */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            position: 'absolute',
-            width: '140%', height: '140%',
-            top: '-20%', left: '-20%',
-            background: [
-              'radial-gradient(ellipse 60% 50% at 20% 30%, rgba(232,25,44,0.18) 0%, transparent 60%)',
-              'radial-gradient(ellipse 55% 45% at 80% 70%, rgba(212,137,10,0.12) 0%, transparent 60%)',
-              'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(0,90,46,0.10) 0%, transparent 60%)',
-            ].join(', '),
-            animation: 'meshDrift 10s ease-in-out infinite alternate',
-          }} />
-        </div>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 16px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 280px', gap: 14, alignItems: 'start' }} className="home-grid">
 
-        {/* Spotlight rouge — coin supérieur droit */}
-        <div style={{
-          position: 'absolute', top: '-15%', right: '-10%',
-          width: '65%', height: '75%',
-          background: 'radial-gradient(ellipse at center, rgba(232,25,44,0.13) 0%, rgba(232,25,44,0.04) 45%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
+          {/* LEFT */}
+          <LeftSidebar user={user} />
 
-        {/* Spotlight or — coin inférieur gauche */}
-        <div style={{
-          position: 'absolute', bottom: '-10%', left: '-8%',
-          width: '55%', height: '60%',
-          background: 'radial-gradient(ellipse at center, rgba(245,166,35,0.08) 0%, transparent 65%)',
-          pointerEvents: 'none',
-        }} />
+          {/* CENTER FEED */}
+          <main>
+            {!user && <HeroBanner />}
+            <QuickFilters active={filter} onChange={k => { setFilter(k); setPage(1); }} />
 
-        {/* Spotlight vert — centre bas */}
-        <div style={{
-          position: 'absolute', bottom: '0%', left: '30%',
-          width: '40%', height: '40%',
-          background: 'radial-gradient(ellipse at center, rgba(0,135,90,0.06) 0%, transparent 65%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Grille géométrique */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'linear-gradient(rgba(232,25,44,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232,25,44,0.04) 1px, transparent 1px)',
-          backgroundSize: '80px 80px',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Texte fantôme arabesque */}
-        <div style={{
-          position: 'absolute', bottom: '-1%', right: '-2%',
-          fontSize: 'clamp(60px, 10vw, 130px)',
-          fontFamily: 'Amiri, serif', fontWeight: 700,
-          color: 'transparent', WebkitTextStroke: '1px rgba(245,166,35,0.05)',
-          userSelect: 'none', pointerEvents: 'none',
-          letterSpacing: '0.08em', lineHeight: 1,
-        }}>المغرب</div>
-
-        <div className="max-w-6xl mx-auto px-6 py-20 pt-28 w-full relative z-10">
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0,1fr) minmax(0,420px)',
-            gap: '4rem',
-            alignItems: 'center',
-          }} className="hero-grid">
-
-            {/* ── GAUCHE : Texte ── */}
-            <div>
-              {/* Badge */}
-              <div className="animate-fade-up stagger-1" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '6px 18px', borderRadius: 99, marginBottom: 32,
-                background: 'rgba(232,25,44,0.1)', color: '#E8192C',
-                border: '1px solid rgba(232,25,44,0.28)', fontSize: '0.72rem', fontWeight: 700,
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-              }}>
-                ✦ {h.badge}
-              </div>
-
-              {/* Titre principal */}
-              <h1 className="font-heading animate-fade-up stagger-2" style={{
-                fontSize: 'clamp(2.6rem, 4.5vw, 5rem)',
-                lineHeight: 1.05, fontWeight: 700,
-                marginBottom: '1.5rem', color: '#FFFFFF',
-              }}>
-                {h.title1}<br />
-                <span style={{
-                  background: 'linear-gradient(135deg, #E8192C 20%, #F5A623 80%)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text', display: 'inline-block',
-                }}>{h.title2}</span>
-              </h1>
-
-              {/* Ligne décorative */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20,
-              }}>
-                <div style={{ width: 36, height: 2, background: 'linear-gradient(to right, #E8192C, #F5A623)' }} />
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(238,242,255,0.35)' }}>ATLASWAY</span>
-                <div style={{ width: 36, height: 2, background: 'linear-gradient(to left, #00875A, transparent)' }} />
-              </div>
-
-              {/* Description */}
-              <p className="animate-fade-up stagger-3" style={{
-                color: 'rgba(238,242,255,0.65)', fontSize: '1.05rem',
-                lineHeight: 1.8, marginBottom: '2rem', maxWidth: 480,
-              }}>
-                {h.desc} <strong style={{ color: '#F5A623' }}>{h.desc60}</strong> {h.descEnd}
+            {/* Feed header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, padding: '0 2px' }}>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#D4890A' }}>
+                ✦ رحلات متاحة · Trajets en direct
               </p>
-
-              {/* Stats pills */}
-              <div className="animate-fade-up stagger-4" style={{
-                display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2rem',
-              }}>
-                {dynamicStats.map(({ value, icon: Icon }, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 18px', borderRadius: 14,
-                    background: 'rgba(238,242,255,0.04)',
-                    border: '1px solid rgba(238,242,255,0.08)',
-                    backdropFilter: 'blur(10px)',
-                  }}>
-                    <Icon size={15} style={{ color: '#F5A623', flexShrink: 0 }} />
-                    <div>
-                      <p style={{ fontWeight: 800, fontSize: '1rem', color: '#fff', lineHeight: 1 }}>{value}</p>
-                      <p style={{ fontSize: '0.68rem', color: 'rgba(238,242,255,0.4)', lineHeight: 1.3, marginTop: 2 }}>{h.statLabels[i]}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTAs */}
-              <div className="animate-fade-up stagger-5" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link to="/rides/search" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '13px 26px', borderRadius: 14,
-                  background: 'linear-gradient(135deg, #E8192C, #C4152A)',
-                  color: '#fff', fontWeight: 700, fontSize: '0.92rem',
-                  boxShadow: '0 8px 32px rgba(232,25,44,0.3)',
-                  textDecoration: 'none', transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(232,25,44,0.4)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(232,25,44,0.3)'; }}>
-                  {h.seeAllRides || 'Voir les trajets'} <ArrowRight size={16} />
-                </Link>
-                <Link to="/register" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '13px 26px', borderRadius: 14,
-                  background: 'rgba(238,242,255,0.06)',
-                  border: '1px solid rgba(238,242,255,0.15)',
-                  color: '#EEF2FF', fontWeight: 600, fontSize: '0.92rem',
-                  textDecoration: 'none', transition: 'background 0.2s ease, border-color 0.2s ease',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(238,242,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(238,242,255,0.25)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(238,242,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(238,242,255,0.15)'; }}>
-                  S'inscrire gratuitement
-                </Link>
-              </div>
-
-              {/* Chips de confiance */}
-              <div className="animate-fade-up stagger-6" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '1.5rem' }}>
-                {h.chips.map(chip => (
-                  <span key={chip} style={{
-                    fontSize: '0.68rem', padding: '0.25rem 0.65rem', borderRadius: 99,
-                    background: 'rgba(238,242,255,0.04)', border: '1px solid rgba(238,242,255,0.09)',
-                    color: 'rgba(238,242,255,0.42)',
-                  }}>{chip}</span>
-                ))}
-              </div>
+              <Link to="/rides/search" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#C1272D', textDecoration: 'none', fontWeight: 600 }}>
+                Voir tout <ChevronRight size={13} />
+              </Link>
             </div>
 
-            {/* ── DROITE : Carte de recherche glass ── */}
-            <div className="animate-slide-left stagger-3">
-              <div style={{
-                background: 'rgba(10, 13, 24, 0.88)',
-                backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(232,25,44,0.22)',
-                borderRadius: 24, padding: '2rem',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.05)',
-                position: 'relative', overflow: 'hidden',
-              }}>
-                {/* Accent gradient en haut */}
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                  background: 'linear-gradient(to right, #E8192C, #F5A623, #00875A)',
-                  borderRadius: '24px 24px 0 0',
-                }} />
-
-                {/* Header */}
-                <div style={{ marginBottom: '1.25rem', marginTop: '0.5rem' }}>
-                  <p style={{
-                    fontSize: '0.63rem', fontWeight: 700, letterSpacing: '0.25em',
-                    textTransform: 'uppercase', color: '#E8192C', marginBottom: 4,
-                  }}>✦ {h.findRide}</p>
-                  <p style={{ color: 'rgba(238,242,255,0.38)', fontSize: '0.78rem' }}>
-                    Voyagez partout au Maroc
-                  </p>
-                </div>
-
-                {/* Boutons vocal + carte */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: '1rem' }}>
-                  <button type="button" onClick={handleVoiceSearch} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px', borderRadius: 10, fontSize: '0.73rem', fontWeight: 600,
-                    background: 'rgba(0,135,90,0.1)', color: '#00875A',
-                    border: '1px solid rgba(0,135,90,0.22)', cursor: 'pointer',
-                  }}>
-                    <Mic size={13} /> {h.voiceBtn}
-                  </button>
-                  <button type="button" onClick={() => setShowMap(true)} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px', borderRadius: 10, fontSize: '0.73rem', fontWeight: 600,
-                    background: 'rgba(245,166,35,0.1)', color: '#F5A623',
-                    border: '1px solid rgba(245,166,35,0.22)', cursor: 'pointer',
-                  }}>
-                    <MapPin size={13} /> {h.mapBtn}
-                  </button>
-                </div>
-
-                {/* Formulaire */}
-                <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                  {/* Départ */}
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: '#00875A', boxShadow: '0 0 6px rgba(0,135,90,0.6)' }} />
-                    <input value={from} onChange={e => setFrom(e.target.value)}
-                      placeholder={h.fromPh} className="input" style={{ paddingLeft: 30, paddingRight: 38, fontSize: '0.875rem' }} list="from-list" />
-                    <datalist id="from-list">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
-                    <button type="button" onClick={handleGeolocate} disabled={locating}
-                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: locating ? '#F5A623' : '#00875A', padding: 4, display: 'flex', alignItems: 'center' }}>
-                      {locating
-                        ? <div style={{ width: 13, height: 13, border: '2px solid #F5A623', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                        : <MapPin size={13} />}
-                    </button>
-                  </div>
-
-                  {/* Swap */}
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <button type="button" onClick={swap} style={{
-                      background: 'rgba(238,242,255,0.05)', border: '1px solid rgba(238,242,255,0.1)',
-                      borderRadius: 8, padding: '3px 14px', cursor: 'pointer',
-                      color: 'rgba(238,242,255,0.38)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4,
-                    }}>
-                      <ArrowRight size={11} /> inverser
-                    </button>
-                  </div>
-
-                  {/* Arrivée */}
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: '#E8192C', boxShadow: '0 0 6px rgba(232,25,44,0.6)' }} />
-                    <input value={to} onChange={e => setTo(e.target.value)}
-                      placeholder={h.toPh} className="input" style={{ paddingLeft: 30, fontSize: '0.875rem' }} list="to-list" />
-                    <datalist id="to-list">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
-                  </div>
-
-                  {/* Date + places */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.55rem' }}>
-                    <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]} className="input" style={{ fontSize: '0.84rem' }} />
-                    <div style={{ position: 'relative' }}>
-                      <Users style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={13} />
-                      <select value={pax} onChange={e => setPax(Number(e.target.value))} className="input" style={{ paddingLeft: 30, fontSize: '0.84rem', appearance: 'none' }}>
-                        {[1,2,3,4].map(n => <option key={n} value={n}>{n} {n > 1 ? h.paxN : h.pax1}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Bouton recherche */}
-                  <div style={{ position: 'relative', marginTop: 4 }}>
-                    <button type="submit" style={{
-                      width: '100%', height: 50, borderRadius: 14,
-                      background: 'linear-gradient(135deg, #E8192C 0%, #C4152A 100%)',
-                      color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-                      border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      boxShadow: '0 8px 28px rgba(232,25,44,0.35)',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                      letterSpacing: '0.01em',
-                    }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(232,25,44,0.45)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(232,25,44,0.35)'; }}>
-                      {h.searchBtn} <ArrowRight size={16} />
-                    </button>
-                    {burst && (
-                      <div className="confetti-container">
-                        {CONFETTI_X.map((x, i) => (
-                          <div key={i} className="confetti-piece" style={{ left: x, background: CONFETTI_COLS[i], animationDelay: `${i * 0.055}s` }} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </form>
-
-                {from && to && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <Suspense fallback={
-                      <div style={{ height: 130, borderRadius: 10, background: 'rgba(238,242,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(238,242,255,0.3)', fontSize: 13 }}>
-                        {h.mapLoading}
-                      </div>
-                    }>
-                      <RouteMap from={from} to={to} height={130} />
-                    </Suspense>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {showMap && (
-          <Suspense fallback={null}>
-            <MapPicker initialFrom={from} initialTo={to}
-              onConfirm={(f, t) => { setFrom(f); setTo(t); setShowMap(false); }}
-              onClose={() => setShowMap(false)} />
-          </Suspense>
-        )}
-      </section>
-
-      {/* ── STATS BAR ── */}
-      <div ref={statsRef} style={{ background: 'var(--bg-800)', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 0%, #C1272D 40%, #D4890A 50%, #00875A 60%, #00875A 100%)' }} />
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4">
-          {dynamicStats.map(({ value, label, icon: Icon }, i) => (
-            <div key={i} className={`text-center counter-appear`} style={{ borderRight: i < 3 ? '1px solid var(--border-color)' : 'none', padding: '24px 16px', animationDelay: `${i * 0.12}s`, animationPlayState: statsInView ? 'running' : 'paused' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 6 }}>
-                <Icon size={14} style={{ color: '#D4890A' }} />
-                <span className="font-black font-heading" style={{ fontSize: '1.5rem', color: 'var(--text-base)' }}>{value}</span>
-              </div>
-              <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── ZELLIGE DIVIDER ── */}
-      <ZelligeDivider />
-
-      {/* ── TRAJETS EN DIRECT ── */}
-      <section className="py-14 px-4" style={{ background: 'var(--bg-900)' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#D4890A' }}>{h.realtimeLabel}</p>
-              <h2 className="text-2xl font-black font-heading" style={{ color: 'var(--text-base)' }}>{h.availRides}</h2>
-            </div>
-            <Link to="/rides/search" className="btn-primary text-sm py-2 px-4 rounded-xl flex items-center gap-1.5">
-              {h.seeAll} <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {realTrips.length === 0 && !SAMPLE_TRIPS.length
+            {/* Cards */}
+            {loading
               ? [0,1,2].map(i => <SkeletonCard key={i} />)
-              : (realTrips.length ? realTrips : SAMPLE_TRIPS).map((trip, i) => <TripCard key={i} trip={trip} />)
+              : filtered.length === 0
+                ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, marginBottom: 10 }}>
+                    <p style={{ fontSize: 32, marginBottom: 8 }}>🔍</p>
+                    <p style={{ fontWeight: 700, color: 'var(--text-base)', margin: '0 0 4px' }}>Aucun trajet pour ce filtre</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Essayez un autre filtre ou revenez plus tard</p>
+                  </div>
+                )
+                : visible.map((trip, i) => (
+                  <RideFeedCard key={trip.id || i} trip={trip} initialFav={favIds.has(trip.id)} index={i} />
+                ))
             }
-          </div>
-          {realTrips.length === 0 && (
-            <p className="text-center text-xs mt-3" style={{ color: 'var(--text-muted)' }}>{h.sampleNote}</p>
-          )}
 
-          {/* Conducteur inline CTA */}
-          <div className="mt-8 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg,#1a0c00,#2e1600)', border: '1px solid rgba(212,137,10,0.2)', boxShadow: '0 8px 32px rgba(212,137,10,0.06)' }}>
-            <div style={{ position: 'absolute', top: 0, right: 0, width: 200, height: '100%', background: 'radial-gradient(ellipse at right center, rgba(212,137,10,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div className="relative">
-              <p className="font-black text-white text-xl mb-1">{h.driverTitle}</p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                {h.driverSub} — <strong className="text-white">{h.driverSavings}</strong>
+            {/* Load more */}
+            {!loading && visible.length < filtered.length && (
+              <button onClick={() => setPage(p => p + 1)} style={{
+                width: '100%', padding: '12px', borderRadius: 10,
+                background: 'var(--bg-800)', border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                marginBottom: 10, transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.05)'; e.currentTarget.style.color = '#C1272D'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+                <RefreshCw size={14} /> Voir plus de trajets
+              </button>
+            )}
+
+            {realTrips.length === 0 && (
+              <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Exemples — connectez-vous pour voir les vrais trajets en direct
               </p>
+            )}
+
+            {/* Publish inline CTA */}
+            <div style={{ marginBottom: 14, borderRadius: 14, padding: '18px 20px', background: 'linear-gradient(135deg, #1a0c00, #2e1600)', border: '1px solid rgba(212,137,10,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, right: 0, width: 180, height: '100%', background: 'radial-gradient(ellipse at right center, rgba(212,137,10,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: 4, right: 20, fontFamily: "'Amiri', serif", fontSize: 40, color: 'rgba(212,137,10,0.07)', userSelect: 'none' }}>سائق</div>
+              <div style={{ position: 'relative' }}>
+                <p style={{ margin: '0 0 4px', fontWeight: 900, color: '#fff', fontSize: 15 }}>Vous conduisez vers une ville ?</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Proposez vos sièges & remboursez votre carburant.</p>
+              </div>
+              <Link to="/rides/publish" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, background: 'linear-gradient(135deg, #D4890A, #a86508)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none', boxShadow: '0 4px 16px rgba(212,137,10,0.35)', position: 'relative' }}>
+                <Car size={15} /> Publier
+              </Link>
             </div>
-            <Link to="/rides/publish" className="flex-shrink-0 flex items-center gap-2 font-black px-6 py-3 rounded-xl transition-all"
-              style={{ background: 'linear-gradient(135deg,#D4890A,#a86508)', color: '#fff', boxShadow: '0 4px 16px rgba(212,137,10,0.3)' }}>
-              <Car size={18} /> {h.publishRide}
-            </Link>
-          </div>
-        </div>
-      </section>
 
-      {/* ── ZELLIGE DIVIDER ── */}
-      <ZelligeDivider />
+            {/* How it works */}
+            <section style={{ marginBottom: 14 }}>
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden' }}>
+                <ZelligeStripe />
+                <div style={{ padding: '18px 20px' }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#D4890A' }}>✦ Comment ça marche</p>
+                  <h2 style={{ margin: '0 0 16px', fontWeight: 900, fontSize: 18, color: 'var(--text-base)' }}>En 3 étapes simples</h2>
+                  <div ref={revealSteps} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {STEPS.map(({ num, icon: Icon }, i) => (
+                      <div key={num} data-reveal style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px', borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: i === 0 ? 'rgba(193,39,45,0.1)' : i === 1 ? 'rgba(0,98,51,0.1)' : 'rgba(212,137,10,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={17} style={{ color: i === 0 ? '#C1272D' : i === 1 ? '#006233' : '#D4890A' }} />
+                        </div>
+                        <div>
+                          <p style={{ margin: '0 0 3px', fontWeight: 700, fontSize: 14, color: 'var(--text-base)' }}>
+                            <span style={{ color: 'var(--text-muted)', marginRight: 6, fontSize: 11 }}>{num}</span>{h.steps[i].title}
+                          </p>
+                          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{h.steps[i].desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
 
-      {/* ── COMMENT ÇA MARCHE ── */}
-      <section className="py-20 px-4" style={{ background: 'var(--bg-800)' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#D4890A' }}>{h.howLabel}</p>
-            <h2 className="text-3xl font-black font-heading mb-2" style={{ color: 'var(--text-base)' }}>{h.howTitle}</h2>
-            <p style={{ color: 'var(--text-muted)' }}>{h.howSub}</p>
-          </div>
-          <div ref={revealSteps} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {STEPS.map(({ num, icon: Icon }, i) => (
-              <div key={num} data-reveal className={`relative animate-fade-up stagger-${i + 1}`}>
-                <div className="card p-6 h-full" style={{ borderTop: '2px solid rgba(196,136,42,0.4)' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="font-heading font-black leading-none" style={{ fontSize: '3.5rem', color: 'rgba(196,136,42,0.18)' }}>{num}</span>
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(196,136,42,0.1)', border: '1px solid rgba(196,136,42,0.2)' }}>
-                      <Icon size={20} style={{ color: '#C4882A' }} />
+            {/* Testimonials */}
+            <section style={{ marginBottom: 14 }}>
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden' }}>
+                <ZelligeStripe />
+                <div style={{ padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#006233' }}>✦ Ce qu'ils disent</p>
+                    <button onClick={() => setShowDarija(v => !v)} style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(212,137,10,0.35)', color: showDarija ? '#D4890A' : 'var(--text-muted)', background: showDarija ? 'rgba(212,137,10,0.08)' : 'transparent', cursor: 'pointer' }}>
+                      {showDarija ? 'Français' : 'بالدارجة'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {TESTIMONIALS.map(({ name, city, avatar, color, rating, text, darija, detail }) => (
+                      <div key={name} style={{ padding: '12px', borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 12, flexShrink: 0 }}>{avatar}</div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--text-base)' }}>{name}</p>
+                            <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)' }}>{city} · {detail}</p>
+                          </div>
+                          <Stars n={rating} />
+                        </div>
+                        <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--text-secondary)', fontFamily: showDarija ? "'Amiri', serif" : 'inherit', direction: showDarija ? 'rtl' : 'ltr', fontSize: showDarija ? 14 : 12, transition: 'all 0.2s' }}>
+                          "{showDarija ? darija : text}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Trust */}
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden', marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                {[
+                  { icon: Shield,       title: 'Profils vérifiés',  desc: 'Chaque conducteur est vérifié' },
+                  { icon: Lock,         title: 'Paiement sécurisé', desc: 'Transaction 100% sécurisée' },
+                  { icon: ThumbsUp,     title: 'Avis authentiques', desc: 'Avis vérifiés après trajet' },
+                  { icon: MessageCircle,title: 'Support 24/7',      desc: 'Équipe disponible toujours' },
+                ].map(({ icon: Icon, title, desc }, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRight: i % 2 === 0 ? '1px solid var(--border-color)' : 'none', borderBottom: i < 2 ? '1px solid var(--border-color)' : 'none' }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: 'rgba(193,39,45,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={14} style={{ color: '#C1272D' }} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: 'var(--text-base)' }}>{title}</p>
+                      <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>{desc}</p>
                     </div>
                   </div>
-                  <h3 className="font-heading font-black text-lg mb-2" style={{ color: 'var(--text-base)' }}>{h.steps[i].title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{h.steps[i].desc}</p>
-                </div>
-                {i < 2 && <ChevronRight className="hidden md:block absolute top-1/2 -right-4 -translate-y-1/2 z-10" size={20} style={{ color: 'var(--border-muted)' }} />}
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="text-center mt-8">
-            <Link to="/rides/search" className="btn-primary inline-flex items-center gap-2 py-3 px-8 rounded-xl">
-              {h.seeAvailRides} <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ZELLIGE DIVIDER ── */}
-      <ZelligeDivider />
-
-      {/* ── TÉMOIGNAGES — avec toggle Darija ── */}
-      <section className="py-20 px-4" style={{ background: 'var(--bg-900)' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#D4890A' }}>{h.trustLabel}</p>
-            <h2 className="text-3xl font-black font-heading mb-2" style={{ color: 'var(--text-base)' }}>{h.testTitle}</h2>
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                <Stars n={5} /> <span className="font-semibold ml-1" style={{ color: 'var(--text-base)' }}>4.8/5</span> {h.ratingNote}
-              </div>
-              <button onClick={() => setShowDarija(v => !v)}
-                style={{ fontSize: '0.7rem', fontWeight: 700, padding: '5px 12px', borderRadius: 99, border: '1px solid rgba(212,137,10,0.35)', color: showDarija ? '#D4890A' : 'var(--text-muted)', background: showDarija ? 'rgba(212,137,10,0.08)' : 'transparent', transition: 'all 0.2s', cursor: 'pointer' }}>
-                {showDarija ? h.frToggle : h.darijaToggle}
-              </button>
             </div>
-          </div>
-          <div ref={revealStats} className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map(({ name, city, avatar, color, rating, text, darija, detail }, i) => (
-              <div key={name} data-reveal className={`card p-5 flex flex-col gap-4 animate-fade-up stagger-${i + 1}`}>
-                <Stars n={rating} />
-                <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--text-secondary)', fontFamily: showDarija ? "'Amiri', serif" : 'inherit', direction: showDarija ? 'rtl' : 'ltr', fontSize: showDarija ? '1rem' : undefined, transition: 'all 0.2s' }}>
-                  "{showDarija ? darija : text}"
-                </p>
-                <div className="flex items-center gap-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0" style={{ background: color }}>
-                    {avatar}
+
+            {/* Final CTA non-auth */}
+            {!user && (
+              <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '20px', position: 'relative', overflow: 'hidden', background: 'linear-gradient(145deg, #0d0509, #200c12)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(193,39,45,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(193,39,45,0.15)', color: '#ff8a80', border: '1px solid rgba(193,39,45,0.3)', marginBottom: 10 }}><Backpack size={11} /> Passager</span>
+                    <h3 style={{ margin: '0 0 6px', fontWeight: 900, color: '#fff', fontSize: 15, lineHeight: 1.2 }}>Trouvez votre trajet<br /><span style={{ color: '#ff8a80' }}>idéal</span></h3>
+                    <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 8, marginTop: 8, background: '#C1272D', color: '#fff', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}>
+                      S'inscrire <ArrowRight size={12} />
+                    </Link>
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm" style={{ color: 'var(--text-base)' }}>{name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{city} · {detail}</p>
+                </div>
+                <div style={{ padding: '20px', position: 'relative', overflow: 'hidden', background: 'linear-gradient(145deg, #0d0900, #1e1200)' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(212,137,10,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(212,137,10,0.15)', color: '#ffd166', border: '1px solid rgba(212,137,10,0.3)', marginBottom: 10 }}><Car size={11} /> Conducteur</span>
+                    <h3 style={{ margin: '0 0 6px', fontWeight: 900, color: '#fff', fontSize: 15, lineHeight: 1.2 }}>Remboursez<br /><span style={{ color: '#ffd166' }}>votre carburant</span></h3>
+                    <Link to="/rides/publish" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 8, marginTop: 8, background: '#D4890A', color: '#fff', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}>
+                      <Car size={12} /> Publier
+                    </Link>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            )}
+          </main>
 
-      {/* ── TRUST — barre compacte horizontale ── */}
-      <div style={{ background: 'var(--bg-800)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4">
-          {[Shield, Lock, ThumbsUp, MessageCircle].map((Icon, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-5" style={{ borderRight: i < 3 ? '1px solid var(--border-color)' : 'none' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(193,39,45,0.1)' }}>
-                <Icon size={16} style={{ color: '#C1272D' }} />
-              </div>
-              <div>
-                <p className="font-bold text-xs leading-none mb-0.5" style={{ color: 'var(--text-base)' }}>{h.trustFeatures[i].title}</p>
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{h.trustFeatures[i].desc}</p>
-              </div>
-            </div>
-          ))}
+          {/* RIGHT */}
+          <RightSidebar
+            form={form} setForm={setForm}
+            handleSearch={handleSearch} swap={swap}
+            handleVoiceSearch={handleVoiceSearch}
+            handleGeolocate={handleGeolocate}
+            locating={locating} stats={liveStats}
+            burst={burst} liveUsers={liveUsers}
+          />
         </div>
       </div>
 
-      {/* ── FINAL DUAL CTA — Passager | Conducteur ── */}
-      {!user ? (
-        <section className="relative overflow-hidden" style={{ minHeight: 340 }}>
-          <div className="flex flex-col md:flex-row" style={{ minHeight: 340 }}>
-            {/* Passager */}
-            <div className="flex-1 flex flex-col items-center justify-center py-16 px-8 text-center relative overflow-hidden"
-              style={{ background: 'linear-gradient(145deg,#0d0509,#200c12)' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center,rgba(193,39,45,0.14) 0%,transparent 70%)', pointerEvents: 'none' }} />
-              <div ref={revealCta} className="relative max-w-xs">
-                <div data-reveal>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
-                    style={{ background: 'rgba(193,39,45,0.15)', color: '#ff8a80', border: '1px solid rgba(193,39,45,0.3)' }}>
-                    🎒 Passager
-                  </div>
-                  <h2 className="font-black text-white mb-3 font-heading" style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', lineHeight: 1.25 }}>
-                    {h.finalTitle1}<br />
-                    <span style={{ color: '#ff8a80' }}>{h.finalTitle2}</span>
-                  </h2>
-                  <p className="mb-6 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{h.finalSub}</p>
-                  <Link to="/register" className="inline-flex items-center gap-2 py-3 px-7 rounded-xl font-bold transition-all"
-                    style={{ background: '#C1272D', color: '#fff', boxShadow: '0 4px 20px rgba(193,39,45,0.4)' }}>
-                    {h.createAccount} <ArrowRight size={15} />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Séparateur losange central */}
-            <div className="hidden md:flex items-center justify-center relative" style={{ width: 1, background: 'var(--border-color)' }}>
-              <div style={{ position: 'absolute', width: 34, height: 34, background: 'var(--bg-900)', border: '1px solid var(--border-color)', borderRadius: 4, transform: 'rotate(45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ transform: 'rotate(-45deg)', fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800 }}>OU</span>
-              </div>
-            </div>
-
-            {/* Conducteur */}
-            <div className="flex-1 flex flex-col items-center justify-center py-16 px-8 text-center relative overflow-hidden"
-              style={{ background: 'linear-gradient(145deg,#0d0900,#1e1200)' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center,rgba(212,137,10,0.1) 0%,transparent 70%)', pointerEvents: 'none' }} />
-              <div className="relative max-w-xs">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
-                  style={{ background: 'rgba(212,137,10,0.15)', color: '#ffd166', border: '1px solid rgba(212,137,10,0.3)' }}>
-                  🚗 Conducteur
-                </div>
-                <h2 className="font-black text-white mb-3 font-heading" style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', lineHeight: 1.25 }}>
-                  Publiez votre trajet<br />
-                  <span style={{ color: '#ffd166' }}>& remboursez l'essence</span>
-                </h2>
-                <p className="mb-6 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Proposez vos sièges libres. Partagez les frais, voyagez autrement.
-                </p>
-                <Link to="/rides/publish" className="inline-flex items-center gap-2 py-3 px-7 rounded-xl font-bold transition-all"
-                  style={{ background: '#D4890A', color: '#fff', boxShadow: '0 4px 20px rgba(212,137,10,0.4)' }}>
-                  <Car size={15} /> {h.publishRide}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="py-14 px-4 text-center relative overflow-hidden" style={{ background: 'linear-gradient(145deg,#0d0900,#1a1000)' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center,rgba(212,137,10,0.08) 0%,transparent 70%)', pointerEvents: 'none' }} />
-          <div className="relative">
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#D4890A' }}>Conducteur</p>
-            <h2 className="font-black text-white mb-2 font-heading text-2xl">Publiez votre prochain trajet</h2>
-            <p className="mb-6 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>Partagez vos frais, rencontrez des gens.</p>
-            <Link to="/rides/publish" className="inline-flex items-center gap-2 py-3 px-8 rounded-xl font-bold"
-              style={{ background: '#D4890A', color: '#fff', boxShadow: '0 4px 20px rgba(212,137,10,0.4)' }}>
-              <Car size={16} /> {h.publishRide}
-            </Link>
-          </div>
-        </section>
+      {showMap && (
+        <Suspense fallback={null}>
+          <MapPicker initialFrom={form.from} initialTo={form.to}
+            onConfirm={(f, t) => { setForm(prev => ({ ...prev, from: f, to: t })); setShowMap(false); }}
+            onClose={() => setShowMap(false)} />
+        </Suspense>
       )}
 
-    </div>
+      <style>{`
+        @keyframes feedCardIn {
+          from { opacity: 0; transform: translateY(18px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .feed-card-appear {
+          animation: feedCardIn 0.35s ease both;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.5; transform: scale(1.3); }
+        }
+        @media (max-width: 1024px) {
+          .home-grid { grid-template-columns: 180px 1fr !important; }
+          .home-grid > aside:last-child { display: none !important; }
+        }
+        @media (max-width: 680px) {
+          .home-grid { grid-template-columns: 1fr !important; }
+          .home-grid > aside:first-child { display: none !important; }
+        }
+      `}</style>
     </>
   );
 }

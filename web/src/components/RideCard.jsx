@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, Users, Star, Zap, ArrowRight } from 'lucide-react';
+import { Clock, Users, Star, Zap, ArrowRight, RefreshCw, Navigation } from 'lucide-react';
 
 export default function RideCard({ ride }) {
   const driver = ride.driver || {};
@@ -41,6 +41,25 @@ export default function RideCard({ ride }) {
             {ride.instantBooking && (
               <span className="flex items-center gap-1 text-yellow-400 font-semibold">
                 <Zap size={11} fill="currentColor" /> Instant
+              </span>
+            )}
+            {ride.womenOnly && (
+              <span className="flex items-center gap-1 font-semibold" style={{ color: '#EC4899' }}>
+                <Users size={11} /> Femmes
+              </span>
+            )}
+            {ride.isRecurring && (
+              <span className="flex items-center gap-1 font-semibold" style={{ color: '#3B82F6' }}>
+                <RefreshCw size={11} /> Récurrent
+              </span>
+            )}
+            {(ride.fromDistance > 0 || ride.toDistance > 0) && (
+              <span className="flex items-center gap-1 font-semibold" style={{ color: '#14B8A6' }}
+                title={[
+                  ride.fromDistance > 0 ? `Départ à ~${ride.fromDistance} km` : '',
+                  ride.toDistance   > 0 ? `Arrivée à ~${ride.toDistance} km`  : '',
+                ].filter(Boolean).join(' · ')}>
+                <Navigation size={11} /> À proximité
               </span>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2 } from 'lucide-react';
+import { MapPin, Clock, Users, Star, Zap, MessageSquare, Flag, Heart, Check, X, Share2, Gift, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import SEO from '../components/SEO';
@@ -153,6 +153,9 @@ export default function RideDetail() {
               {ride.instantBooking && (
                 <span className="flex items-center gap-1.5 text-yellow-400"><Zap size={13} fill="currentColor" /> Réservation instantanée</span>
               )}
+              {ride.womenOnly && (
+                <span className="flex items-center gap-1.5 font-semibold" style={{ color: '#EC4899' }}><Users size={13} /> Réservé aux femmes</span>
+              )}
             </div>
 
             {ride.description && (
@@ -253,18 +256,18 @@ export default function RideDetail() {
                       onChange={e => setUseCredits(e.target.checked)}
                       className="accent-yellow-500 w-4 h-4"
                     />
-                    <span className="text-sm font-semibold" style={{ color: '#D4890A' }}>
-                      🎁 Utiliser mes crédits parrainage ({user.referralCredits} DH)
+                    <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: '#D4890A' }}>
+                      <Gift size={15} /> Utiliser mes crédits parrainage ({user.referralCredits} DH)
                     </span>
                   </label>
                 )}
                 {useCredits && user?.referralCredits > 0 && (
-                  <p className="text-xs mb-3 text-center" style={{ color: '#00875A' }}>
-                    ✓ -{Math.min(user.referralCredits, ride.price * seats)} DH appliqué sur ce trajet
+                  <p className="flex items-center justify-center gap-1 text-xs mb-3 text-center" style={{ color: '#00875A' }}>
+                    <Check size={13} /> -{Math.min(user.referralCredits, ride.price * seats)} DH appliqué sur ce trajet
                   </p>
                 )}
-                <button onClick={() => setShowPayment(true)} disabled={booking} className="btn-primary w-full mb-2">
-                  {booking ? 'Réservation...' : ride.instantBooking ? '⚡ Réserver instantanément' : 'Demander à réserver'}
+                <button onClick={() => setShowPayment(true)} disabled={booking} className="btn-primary w-full mb-2 flex items-center justify-center gap-1.5">
+                  {booking ? 'Réservation...' : ride.instantBooking ? <><Zap size={15} /> Réserver instantanément</> : 'Demander à réserver'}
                 </button>
                 {!isOwn && (
                   <button onClick={handleMessage} className="btn-secondary w-full flex items-center justify-center gap-2 text-sm">
@@ -306,7 +309,7 @@ export default function RideDetail() {
                     }}>
                     {joiningWait
                       ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      : inWaitlist ? '✕ Quitter la liste d\'attente' : '🔔 Rejoindre la liste d\'attente'
+                      : inWaitlist ? <><X size={15} /> Quitter la liste d'attente</> : <><Bell size={15} /> Rejoindre la liste d'attente</>
                     }
                   </button>
                 )}

@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Star, TrendingUp, Users, Leaf, Plus, Calendar, MapPin, Copy, Check, Award, BarChart2 } from 'lucide-react';
+import { Car, Star, TrendingUp, Users, Leaf, Plus, Calendar, MapPin, Copy, Check, Award, BarChart2, CheckCircle, Trophy, Accessibility, Medal } from 'lucide-react';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 
 const BADGE_META = {
-  first_trip:   { label: 'Premier trajet',   icon: '🚗', color: '#C1272D' },
-  five_star:    { label: 'Note parfaite',    icon: '⭐', color: '#D4890A' },
-  verified:     { label: 'Vérifié',          icon: '✅', color: '#006233' },
-  top_driver:   { label: 'Top Conducteur',   icon: '🏆', color: '#D4890A' },
-  pmr_friendly: { label: 'Accessible PMR',   icon: '♿', color: '#3B82F6' },
-  referral_5:   { label: '5 Parrainages',    icon: '👥', color: '#8B5CF6' },
+  first_trip:   { label: 'Premier trajet',   Icon: Car,           color: '#C1272D' },
+  five_star:    { label: 'Note parfaite',    Icon: Star,          color: '#D4890A' },
+  verified:     { label: 'Vérifié',          Icon: CheckCircle,   color: '#006233' },
+  top_driver:   { label: 'Top Conducteur',   Icon: Trophy,        color: '#D4890A' },
+  pmr_friendly: { label: 'Accessible PMR',   Icon: Accessibility, color: '#3B82F6' },
+  referral_5:   { label: '5 Parrainages',    Icon: Users,         color: '#8B5CF6' },
 };
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
@@ -140,12 +140,12 @@ export default function DriverDashboard() {
               </h2>
               <div className="flex flex-wrap gap-2">
                 {stats.badges.map(b => {
-                  const m = BADGE_META[b] || { label: b, icon: '🏅', color: '#888' };
+                  const m = BADGE_META[b] || { label: b, Icon: Medal, color: '#888' };
                   return (
                     <div key={b}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
                       style={{ background: `${m.color}18`, color: m.color, border: `1px solid ${m.color}30` }}>
-                      {m.icon} {m.label}
+                      <m.Icon size={13} /> {m.label}
                     </div>
                   );
                 })}

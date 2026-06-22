@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Star, ArrowLeft, Send, Clock, Car, MessageCircle, Sparkles } from 'lucide-react';
+import { Star, ArrowLeft, Send, Clock, Car, MessageCircle, Sparkles, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
@@ -117,7 +117,7 @@ export default function WriteReview() {
             }
             <div>
               <p className="text-white font-bold text-lg">{reviewed.firstName} {reviewed.lastName}</p>
-              <p className="text-slate-400 text-sm">{isDriver ? '🚗 Conducteur' : '🧍 Passager'}</p>
+              <p className="flex items-center gap-1.5 text-slate-400 text-sm">{isDriver ? <><Car size={14} /> Conducteur</> : <><User size={14} /> Passager</>}</p>
               {reviewed.avgRating > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star size={12} className="text-yellow-400 fill-yellow-400" />

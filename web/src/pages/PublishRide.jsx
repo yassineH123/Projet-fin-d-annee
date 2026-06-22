@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, DollarSign, Users, Zap, RefreshCw } from 'lucide-react';
+import { MapPin, Calendar, DollarSign, Users, Zap, RefreshCw, Car, Bike, Bus, Truck, AlertCircle, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import { suggestPrice } from '../utils/geocode';
 
 const TRANSPORT_MODES = [
-  { id: 'voiture',  label: 'Voiture',  emoji: '🚗', desc: 'Berline, SUV, citadine…'   },
-  { id: 'moto',     label: 'Moto',     emoji: '🏍️', desc: 'Moto ou scooter'            },
-  { id: 'minibus',  label: 'Minibus',  emoji: '🚐', desc: 'Van, minibus jusqu\'à 9 places' },
-  { id: 'van',      label: 'Van',      emoji: '🚌', desc: 'Grand van ou bus privé'     },
+  { id: 'voiture',  label: 'Voiture',  Icon: Car,   desc: 'Berline, SUV, citadine…'   },
+  { id: 'moto',     label: 'Moto',     Icon: Bike,  desc: 'Moto ou scooter'            },
+  { id: 'minibus',  label: 'Minibus',  Icon: Bus,   desc: 'Van, minibus jusqu\'à 9 places' },
+  { id: 'van',      label: 'Van',      Icon: Truck, desc: 'Grand van ou bus privé'     },
 ];
 
 const DAYS = [
@@ -28,12 +29,28 @@ export default function PublishRide() {
   const [form, setForm] = useState({
     from: '', to: '', departureDate: '', price: '', seats: 1,
     description: '', instantBooking: false, isRecurring: false, recurringDays: [],
-    transportMode: 'voiture',
+    transportMode: 'voiture', womenOnly: false,
   });
   const [loading, setLoading] = useState(false);
+  const [fErr, setFErr]       = useState({});
 
-  const set = (k) => (e) =>
+  const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
+    if (fErr[k]) setFErr((prev) => ({ ...prev, [k]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.from.trim()) e.from = 'Ville de départ requise';
+    if (!form.to.trim())   e.to   = "Ville d'arrivée requise";
+    if (form.from.trim() && form.to.trim() && form.from.trim().toLowerCase() === form.to.trim().toLowerCase())
+      e.to = 'Doit être différente du départ';
+    if (!form.departureDate) e.departureDate = 'Date requise';
+    else if (new Date(form.departureDate) < new Date()) e.departureDate = 'La date doit être dans le futur';
+    if (form.price === '' || Number(form.price) < 0) e.price = 'Prix invalide';
+    setFErr(e);
+    return Object.keys(e).length === 0;
+  };
 
   const toggleDay = (val) => {
     setForm(f => ({
@@ -46,14 +63,20 @@ export default function PublishRide() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     if (form.isRecurring && form.recurringDays.length === 0) {
       toast.error('Sélectionnez au moins un jour pour le trajet récurrent.');
       return;
     }
     setLoading(true);
     try {
-      await api.post('/rides', form);
-      toast.success('Trajet publié !');
+      const dist = suggestPrice(form.from.trim(), form.to.trim());
+      const { data } = await api.post('/rides', { ...form, distanceKm: dist?.km });
+      toast.success(
+        data.recurringCount > 0
+          ? `Trajet publié + ${data.recurringCount} trajets récurrents créés !`
+          : 'Trajet publié !'
+      );
       navigate('/rides/mine');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur publication');
@@ -63,6 +86,8 @@ export default function PublishRide() {
   };
 
   const minDate = new Date().toISOString().slice(0, 16);
+  // Prix conseillé selon la distance entre les deux villes (si reconnues)
+  const suggestion = suggestPrice(form.from.trim(), form.to.trim());
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -70,13 +95,13 @@ export default function PublishRide() {
       <p className="text-slate-400 mb-8">Partagez votre trajet et réduisez vos frais</p>
 
       <div className="card">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
 
           {/* Transport Mode */}
           <div>
             <label className="text-sm text-slate-400 mb-3 block font-semibold">Moyen de transport</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {TRANSPORT_MODES.map(({ id, label, emoji, desc }) => {
+              {TRANSPORT_MODES.map(({ id, label, Icon, desc }) => {
                 const active = form.transportMode === id;
                 return (
                   <button key={id} type="button" onClick={() => setForm(f => ({ ...f, transportMode: id }))}
@@ -87,7 +112,7 @@ export default function PublishRide() {
                       transform:   active ? 'scale(1.04)' : 'scale(1)',
                       boxShadow:   active ? '0 0 0 3px rgba(193,39,45,0.15)' : 'none',
                     }}>
-                    <span style={{ fontSize: 28 }}>{emoji}</span>
+                    <Icon size={26} style={{ color: active ? '#C1272D' : 'var(--text-secondary)' }} />
                     <span className="font-black text-sm" style={{ color: active ? '#C1272D' : 'var(--text-base)' }}>{label}</span>
                     <span className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>{desc}</span>
                   </button>
@@ -102,16 +127,18 @@ export default function PublishRide() {
                 <MapPin size={14} className="text-primary-400" /> Ville de départ
               </label>
               <input value={form.from} onChange={set('from')} placeholder="ex: Casablanca"
-                className="input" list="from-cities" required />
+                className={`input ${fErr.from ? 'input-error' : ''}`} list="from-cities" />
               <datalist id="from-cities">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+              {fErr.from && <p className="field-error"><AlertCircle size={12} /> {fErr.from}</p>}
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1.5 flex items-center gap-1.5">
                 <MapPin size={14} className="text-green-400" /> Ville d'arrivée
               </label>
               <input value={form.to} onChange={set('to')} placeholder="ex: Rabat"
-                className="input" list="to-cities" required />
+                className={`input ${fErr.to ? 'input-error' : ''}`} list="to-cities" />
               <datalist id="to-cities">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+              {fErr.to && <p className="field-error"><AlertCircle size={12} /> {fErr.to}</p>}
             </div>
           </div>
 
@@ -120,7 +147,8 @@ export default function PublishRide() {
               <Calendar size={14} className="text-primary-400" /> Date et heure de départ
             </label>
             <input type="datetime-local" value={form.departureDate} onChange={set('departureDate')}
-              min={minDate} className="input text-slate-300" required />
+              min={minDate} className={`input text-slate-300 ${fErr.departureDate ? 'input-error' : ''}`} />
+            {fErr.departureDate && <p className="field-error"><AlertCircle size={12} /> {fErr.departureDate}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -129,7 +157,17 @@ export default function PublishRide() {
                 <DollarSign size={14} className="text-primary-400" /> Prix par place (MAD)
               </label>
               <input type="number" value={form.price} onChange={set('price')} placeholder="0"
-                className="input" min="0" step="0.5" required />
+                className={`input ${fErr.price ? 'input-error' : ''}`} min="0" step="0.5" />
+              {fErr.price && <p className="field-error"><AlertCircle size={12} /> {fErr.price}</p>}
+              {suggestion && (
+                <button type="button"
+                  onClick={() => { setForm(f => ({ ...f, price: String(suggestion.price) })); if (fErr.price) setFErr(p => ({ ...p, price: undefined })); }}
+                  title={`~${suggestion.km} km · participation aux frais conseillée`}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all"
+                  style={{ background: 'rgba(0,135,90,0.1)', color: '#00875A', border: '1px solid rgba(0,135,90,0.25)' }}>
+                  <Tag size={12} /> Prix conseillé : {suggestion.price} DH
+                </button>
+              )}
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1.5 flex items-center gap-1.5">
@@ -160,6 +198,21 @@ export default function PublishRide() {
               <p className="text-slate-400 text-xs">Les passagers réservent sans confirmation</p>
             </div>
             <input type="checkbox" checked={form.instantBooking} onChange={set('instantBooking')} className="sr-only" />
+          </label>
+
+          {/* Trajet réservé aux femmes */}
+          <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl transition"
+            style={{ background: 'var(--bg-700)', border: `1px solid ${form.womenOnly ? 'rgba(236,72,153,0.5)' : 'var(--border-color)'}` }}>
+            <div className="w-12 h-6 rounded-full transition-colors relative" style={{ background: form.womenOnly ? '#EC4899' : 'var(--bg-500)' }}>
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${form.womenOnly ? 'translate-x-7' : 'translate-x-1'}`} />
+            </div>
+            <div>
+              <p className="text-white font-medium flex items-center gap-1.5">
+                <Users size={15} style={{ color: '#EC4899' }} /> Réservé aux femmes
+              </p>
+              <p className="text-slate-400 text-xs">Seules les passagères pourront réserver ce trajet</p>
+            </div>
+            <input type="checkbox" checked={form.womenOnly} onChange={set('womenOnly')} className="sr-only" />
           </label>
 
           {/* Trajet récurrent */}

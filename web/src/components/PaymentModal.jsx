@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { CreditCard, Lock, CheckCircle, X } from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, X, Landmark, Banknote, Wallet } from 'lucide-react';
 
 const METHODS = [
-  { id: 'card',    label: 'Carte bancaire',    icon: '💳' },
-  { id: 'cmi',     label: 'CMI / Paiement web', icon: '🏦' },
-  { id: 'cash',    label: 'Cash (en main)',     icon: '💵' },
-  { id: 'wallet',  label: 'Portefeuille AtlasWay', icon: '👛' },
+  { id: 'card',    label: 'Carte bancaire',    Icon: CreditCard },
+  { id: 'cmi',     label: 'CMI / Paiement web', Icon: Landmark },
+  { id: 'cash',    label: 'Cash (en main)',     Icon: Banknote },
+  { id: 'wallet',  label: 'Portefeuille AtlasWay', Icon: Wallet },
 ];
 
 export default function PaymentModal({ amount, rideFrom, rideTo, onConfirm, onClose }) {
@@ -70,7 +70,7 @@ export default function PaymentModal({ amount, rideFrom, rideTo, onConfirm, onCl
                   border: `1.5px solid ${method === m.id ? '#C1272D' : 'var(--border-color)'}`,
                   color: method === m.id ? '#C1272D' : 'var(--text-secondary)',
                 }}>
-                <span>{m.icon}</span> <span className="text-xs">{m.label}</span>
+                <m.Icon size={16} /> <span className="text-xs">{m.label}</span>
               </button>
             ))}
           </div>
@@ -98,18 +98,18 @@ export default function PaymentModal({ amount, rideFrom, rideTo, onConfirm, onCl
           )}
 
           {method === 'cash' && (
-            <div className="rounded-xl p-3 text-sm text-slate-400" style={{ background: 'var(--bg-700)' }}>
-              💵 Vous paierez directement au conducteur lors du trajet.
+            <div className="rounded-xl p-3 text-sm text-slate-400 flex items-center gap-2" style={{ background: 'var(--bg-700)' }}>
+              <Banknote size={16} className="flex-shrink-0" /> Vous paierez directement au conducteur lors du trajet.
             </div>
           )}
           {method === 'wallet' && (
-            <div className="rounded-xl p-3 text-sm text-slate-400" style={{ background: 'var(--bg-700)' }}>
-              👛 Votre solde portefeuille sera débité automatiquement.
+            <div className="rounded-xl p-3 text-sm text-slate-400 flex items-center gap-2" style={{ background: 'var(--bg-700)' }}>
+              <Wallet size={16} className="flex-shrink-0" /> Votre solde portefeuille sera débité automatiquement.
             </div>
           )}
           {method === 'cmi' && (
-            <div className="rounded-xl p-3 text-sm text-slate-400" style={{ background: 'var(--bg-700)' }}>
-              🏦 Vous serez redirigé vers la page de paiement CMI sécurisée.
+            <div className="rounded-xl p-3 text-sm text-slate-400 flex items-center gap-2" style={{ background: 'var(--bg-700)' }}>
+              <Landmark size={16} className="flex-shrink-0" /> Vous serez redirigé vers la page de paiement CMI sécurisée.
             </div>
           )}
 

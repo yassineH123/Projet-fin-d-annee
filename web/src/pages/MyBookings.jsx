@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List } from 'lucide-react';
+import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { SkeletonList } from '../components/SkeletonCard';
@@ -28,9 +28,14 @@ export default function MyBookings() {
   useEffect(() => { fetchBookings(); }, [tab]);
 
   const handleAction = async (id, action) => {
+    if (action === 'cancel' && !window.confirm('Annuler cette réservation ?')) return;
     try {
-      await api.put(`/bookings/${id}/${action}`);
-      toast.success(action === 'accept' ? 'Acceptée !' : action === 'refuse' ? 'Refusée' : 'Annulée');
+      const { data } = await api.put(`/bookings/${id}/${action}`);
+      toast.success(
+        action === 'accept' ? 'Acceptée !'
+          : action === 'refuse' ? 'Refusée'
+          : (data?.message || 'Réservation annulée')
+      );
       fetchBookings();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
@@ -85,7 +90,7 @@ export default function MyBookings() {
 
       {loading ? <SkeletonList count={3} /> : bookings.length === 0 ? (
         <EmptyState
-          emoji={tab === 'passenger' ? '🎫' : '🚗'}
+          icon={tab === 'passenger' ? <Ticket size={28} style={{ color: 'var(--text-muted)' }} /> : <Car size={28} style={{ color: 'var(--text-muted)' }} />}
           title="Aucune réservation"
           description={tab === 'passenger'
             ? "Vous n'avez pas encore réservé de trajet. Trouvez votre prochain voyage !"

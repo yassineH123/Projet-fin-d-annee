@@ -7,6 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // On fournit notre propre service worker (public/sw.js) qui gère le cache
+      // ET les notifications push. injectionPoint: undefined => VitePWA ne génère
+      // pas de SW Workbox et n'écrase plus notre sw.js.
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw.js',
+      injectManifest: { injectionPoint: undefined },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'og-image.png'],
       manifest: {
         name: 'AtlasWay — Covoiturage Maroc',
@@ -21,25 +28,20 @@ export default defineConfig({
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
-      workbox: {
-        // Cache API responses for offline-first
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
-          },
-          {
-            urlPattern: /\/api\/rides\/search/,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'api-rides', expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 } },
-          },
-        ],
-      },
     }),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
+  },
+  // Pré-bundle toutes les deps dès le démarrage (y compris celles des routes lazy)
+  // pour éviter une ré-optimisation en cours de session, qui ferait cohabiter
+  // deux instances de React (erreur "Cannot read properties of null (useContext)").
+  optimizeDeps: {
+    include: [
+      'react', 'react-dom', 'react-router-dom', 'axios',
+      'react-helmet-async', 'react-hot-toast', 'lucide-react',
+      'recharts', 'leaflet', 'react-leaflet', 'socket.io-client', 'qrcode.react',
+    ],
   },
   server: {
     port: 5173,

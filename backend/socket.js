@@ -1,6 +1,8 @@
 const { Server } = require('socket.io');
 
 let io;
+// Présence : userId -> ensemble des socketIds connectés pour cet utilisateur
+const onlineUsers = new Map();
 
 function init(httpServer) {
   io = new Server(httpServer, {
@@ -9,7 +11,28 @@ function init(httpServer) {
 
   io.on('connection', (socket) => {
     const userId = socket.handshake.query.userId;
-    if (userId) socket.join(`user:${userId}`);
+    if (userId) {
+      socket.join(`user:${userId}`);
+      // Présence : premier socket de cet utilisateur → il passe « en ligne »
+      if (!onlineUsers.has(userId)) {
+        onlineUsers.set(userId, new Set());
+        io.emit('presence_update', { userId, online: true });
+      }
+      onlineUsers.get(userId).add(socket.id);
+      // Liste des utilisateurs en ligne envoyée au nouveau connecté
+      socket.emit('online_users', [...onlineUsers.keys()]);
+    }
+
+    socket.on('disconnect', () => {
+      if (userId && onlineUsers.has(userId)) {
+        const set = onlineUsers.get(userId);
+        set.delete(socket.id);
+        if (set.size === 0) {
+          onlineUsers.delete(userId);
+          io.emit('presence_update', { userId, online: false });
+        }
+      }
+    });
 
     socket.join('feed');
     socket.on('join_conversation',  (id) => socket.join(`conv:${id}`));

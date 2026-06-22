@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Star, MapPin, Leaf, DollarSign, Car, Trophy, Award } from 'lucide-react';
+import { TrendingUp, Star, MapPin, Leaf, DollarSign, Car, Trophy, Award, Percent } from 'lucide-react';
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Cell,
+} from 'recharts';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+
+const CHART_TOOLTIP = {
+  contentStyle: { background: '#11151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 },
+  labelStyle: { color: '#fff' },
+};
+const DEST_COLORS = ['#C1272D', '#D4890A', '#10B981', '#3B82F6', '#8B5CF6'];
 
 const LEVEL_META = {
   bronze:  { color: '#CD7F32', label: 'Bronze',  next: 'Argent',  target: 10  },
@@ -41,7 +51,7 @@ export default function DriverAnalytics() {
   const progress = lm.target ? Math.min(100, Math.round((stats.totalTrips / lm.target) * 100)) : 100;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+    <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
       <h1 className="text-2xl font-black text-white flex items-center gap-2">
         <TrendingUp size={22} className="text-primary-400" /> Mes statistiques
       </h1>
@@ -72,8 +82,69 @@ export default function DriverAnalytics() {
         <StatCard icon={MapPin}    label="Km parcourus"    value={`${stats.totalKm} km`}    sub="au total"            color="#3B82F6" />
         <StatCard icon={Leaf}      label="CO₂ économisé"   value={`${stats.co2Saved} kg`}   sub="vs trajets solo"     color="#10B981" />
         <StatCard icon={Star}      label="Note moyenne"    value={stats.avgRating?.toFixed(1) || '–'} sub="/ 5"       color="#FBBF24" />
-        <StatCard icon={Car}       label="Trajets actifs"  value={stats.activeRides}         sub="en ce moment"       color="#8B5CF6" />
+        <StatCard icon={Percent}   label="Taux de remplissage" value={`${stats.fillRate ?? 0} %`} sub="places vendues"  color="#D4890A" />
       </div>
+
+      {/* ── Graphiques ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenus par mois */}
+        <div className="card">
+          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
+            <DollarSign size={16} className="text-green-400" /> Revenus (6 derniers mois)
+          </h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={stats.monthlyEarnings || []} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="earnGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+              <Tooltip {...CHART_TOOLTIP} formatter={(v) => [`${v} DH`, 'Revenus']} />
+              <Area type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} fill="url(#earnGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Trajets par mois */}
+        <div className="card">
+          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
+            <Car size={16} className="text-primary-400" /> Trajets publiés (6 derniers mois)
+          </h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={stats.monthlyTrips || []} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+              <Tooltip {...CHART_TOOLTIP} formatter={(v) => [v, 'Trajets']} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+              <Bar dataKey="trips" fill="#C1272D" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Top destinations */}
+      {stats.topDestinations?.length > 0 && (
+        <div className="card">
+          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
+            <MapPin size={16} className="text-blue-400" /> Destinations les plus populaires
+          </h2>
+          <ResponsiveContainer width="100%" height={Math.max(140, stats.topDestinations.length * 42)}>
+            <BarChart data={stats.topDestinations} layout="vertical" margin={{ top: 0, right: 16, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+              <YAxis type="category" dataKey="city" width={90} tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+              <Tooltip {...CHART_TOOLTIP} formatter={(v) => [v, 'Trajets']} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+              <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                {stats.topDestinations.map((d, i) => <Cell key={d.city} fill={DEST_COLORS[i % DEST_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Badges */}
       {stats.badges?.length > 0 && (

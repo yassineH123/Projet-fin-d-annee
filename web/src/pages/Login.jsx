@@ -13,14 +13,25 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+  const [fErr, setFErr]       = useState({});
 
   const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.value });
     if (error) setError('');
+    if (fErr[k]) setFErr((prev) => ({ ...prev, [k]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Adresse email invalide';
+    if (!form.password) e.password = 'Mot de passe requis';
+    setFErr(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     setError('');
     try {
@@ -60,25 +71,25 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
             {/* Email */}
             <div>
-              <label className="text-sm font-medium text-slate-300 mb-1.5 block">Adresse email</label>
+              <label className="field-label">Adresse email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={set('email')}
                 placeholder="vous@example.com"
-                className="input"
-                required
+                className={`input ${fErr.email ? 'input-error' : ''}`}
                 autoComplete="email"
               />
+              {fErr.email && <p className="field-error"><AlertCircle size={12} /> {fErr.email}</p>}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-slate-300">Mot de passe</label>
+                <label className="text-sm font-semibold text-slate-300">Mot de passe</label>
                 <Link to="/forgot-password" className="text-xs text-primary-400 hover:underline">Mot de passe oublié ?</Link>
               </div>
               <div className="relative">
@@ -87,8 +98,7 @@ export default function Login() {
                   value={form.password}
                   onChange={set('password')}
                   placeholder="••••••••"
-                  className={`input pr-11 ${error ? 'border-red-500/60 focus:border-red-500 focus:ring-red-500/30' : ''}`}
-                  required
+                  className={`input pr-11 ${(fErr.password || error) ? 'input-error' : ''}`}
                   autoComplete="current-password"
                 />
                 <button
@@ -99,6 +109,7 @@ export default function Login() {
                   {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {fErr.password && <p className="field-error"><AlertCircle size={12} /> {fErr.password}</p>}
             </div>
 
             <button

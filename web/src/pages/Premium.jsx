@@ -6,7 +6,7 @@ import Spinner from '../components/Spinner';
 
 const PERKS = [
   { icon: Zap,         label: 'Réservation prioritaire — avant les autres' },
-  { icon: Star,        label: 'Badge Premium 👑 visible sur votre profil' },
+  { icon: Star,        label: 'Badge Premium visible sur votre profil' },
   { icon: Shield,      label: 'Vérification accélérée de votre profil' },
   { icon: Headphones,  label: 'Support prioritaire 24h/24' },
   { icon: Check,       label: 'Annonces sponsorisées dans la recherche' },
@@ -61,7 +61,7 @@ export default function Premium() {
           style={{ background: 'linear-gradient(135deg,rgba(212,137,10,0.15),rgba(251,191,36,0.08))', border: '1px solid rgba(212,137,10,0.3)' }}>
           <Crown size={20} className="text-yellow-400 shrink-0" />
           <div>
-            <p className="font-bold text-yellow-300">Abonnement actif ✓</p>
+            <p className="flex items-center gap-1 font-bold text-yellow-300"><Check size={14} /> Abonnement actif</p>
             <p className="text-xs text-yellow-400/70">
               Expire le {new Date(status.premium.endDate).toLocaleDateString('fr-FR')}
             </p>

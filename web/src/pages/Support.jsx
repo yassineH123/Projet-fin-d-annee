@@ -5,11 +5,11 @@ import api from '../services/api';
 import Spinner from '../components/Spinner';
 
 const CATEGORIES = [
-  { id: 'bug',      label: '🐛 Bug / Problème technique' },
-  { id: 'paiement', label: '💳 Paiement / Portefeuille'  },
-  { id: 'compte',   label: '👤 Compte / Profil'           },
-  { id: 'trajet',   label: '🚗 Trajet / Réservation'      },
-  { id: 'autre',    label: '📋 Autre'                     },
+  { id: 'bug',      label: 'Bug / Problème technique' },
+  { id: 'paiement', label: 'Paiement / Portefeuille'  },
+  { id: 'compte',   label: 'Compte / Profil'           },
+  { id: 'trajet',   label: 'Trajet / Réservation'      },
+  { id: 'autre',    label: 'Autre'                     },
 ];
 
 const STATUS_META = {

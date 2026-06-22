@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import {
   Camera, Save, Lock, MapPin, Clock, Star, ChevronRight,
   Car, FileText, Shield, ShieldCheck, Accessibility,
-  Music, Cigarette, PawPrint, MessageCircle, Upload, CheckCircle, AlertCircle, MessageSquare
+  Music, Cigarette, PawPrint, MessageCircle, Upload, CheckCircle, AlertCircle, MessageSquare, Flag, Globe
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -83,6 +83,8 @@ export default function Profile() {
   const [profile,  setProfile]  = useState(null);
   const [rides,    setRides]    = useState([]);
   const [reviews,  setReviews]  = useState([]);
+  const [respondingId, setRespondingId] = useState(null);
+  const [responseText, setResponseText] = useState('');
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [showPwd,  setShowPwd]  = useState(false);
@@ -98,11 +100,38 @@ export default function Profile() {
   const [isHandicapped, setIsHandicapped]     = useState(false);
   const [handicapAccessible, setHandicapAccessible] = useState(false);
   const [nationality, setNationality] = useState('moroccan');
+  const [gender, setGender] = useState('');
   const [country, setCountry] = useState('');
   const [birthDate, setBirthDate] = useState('');
 
   const [pwdForm,   setPwdForm]   = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [pwdSaving, setPwdSaving] = useState(false);
+
+  // ── Vérification d'identité (KYC) ──
+  const [kycSelfie, setKycSelfie] = useState(null);
+  const [kycCin,    setKycCin]    = useState(null);
+  const [kycSaving, setKycSaving] = useState(false);
+
+  const submitKyc = async () => {
+    if (!kycSelfie || (!kycCin && !profile?.cinDoc)) {
+      toast.error('Selfie et photo de la CIN requis.');
+      return;
+    }
+    setKycSaving(true);
+    try {
+      const fd = new FormData();
+      if (kycSelfie) fd.append('kycSelfie', kycSelfie);
+      if (kycCin)    fd.append('cinDoc', kycCin);
+      const { data } = await api.post('/users/kyc', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success('Vérification d\'identité soumise !');
+      setProfile(p => ({ ...p, kycStatus: data.kycStatus }));
+      setKycSelfie(null); setKycCin(null);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur lors de la soumission.');
+    } finally {
+      setKycSaving(false);
+    }
+  };
 
   useEffect(() => {
     const url = isMe ? '/users/me' : `/users/${id}`;
@@ -127,6 +156,7 @@ export default function Profile() {
         setIsHandicapped(u.isHandicapped       || false);
         setHandicapAccessible(u.handicapAccessible || false);
         setNationality(u.nationality || 'moroccan');
+        setGender(u.gender || '');
         setCountry(u.country || '');
         setBirthDate(u.birthDate ? u.birthDate.slice(0, 10) : '');
       }
@@ -144,6 +174,7 @@ export default function Profile() {
       fd.append('isHandicapped',     isHandicapped);
       fd.append('handicapAccessible', handicapAccessible);
       fd.append('nationality', nationality);
+      fd.append('gender', gender);
       fd.append('country', country);
       fd.append('birthDate', birthDate);
       Object.entries(docFiles).forEach(([k, f]) => fd.append(k, f));
@@ -206,6 +237,31 @@ export default function Profile() {
   };
   const verifBadge = verifStatus();
 
+  // Moyennes par critère (sur les avis qui les renseignent)
+  const REVIEW_CRITERIA = [
+    { key: 'punctuality',   label: 'Ponctualité' },
+    { key: 'driving',       label: 'Conduite' },
+    { key: 'communication', label: 'Communication' },
+    { key: 'cleanliness',   label: 'Propreté' },
+  ];
+  const criteriaAverages = REVIEW_CRITERIA.map(c => {
+    const vals = reviews.map(r => r[c.key]).filter(v => v != null && v > 0);
+    return { ...c, avg: vals.length ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : null };
+  }).filter(c => c.avg != null);
+
+  const submitResponse = async (reviewId) => {
+    if (!responseText.trim()) return;
+    try {
+      const { data } = await api.post(`/reviews/${reviewId}/respond`, { response: responseText.trim() });
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, response: data.review.response } : r));
+      setRespondingId(null);
+      setResponseText('');
+      toast.success('Réponse publiée');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur');
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
 
@@ -236,18 +292,23 @@ export default function Profile() {
                 </span>
               )}
               {profile.nationality === 'foreign' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
-                  🌍 {profile.country || 'Étranger'}
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
+                  <Globe size={11} /> {profile.country || 'Étranger'}
                 </span>
               )}
               {profile.nationality === 'moroccan' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
-                  🇲🇦 Marocain
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300">
+                  <Flag size={11} /> Marocain
                 </span>
               )}
               {verifBadge && (
                 <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${verifBadge.bg} ${verifBadge.color}`}>
                   <verifBadge.icon size={11} /> {verifBadge.label}
+                </span>
+              )}
+              {profile.kycStatus === 'approved' && (
+                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/30 text-blue-400">
+                  <ShieldCheck size={11} /> Identité vérifiée
                 </span>
               )}
             </div>
@@ -302,6 +363,55 @@ export default function Profile() {
 
       {isMe ? (
         <>
+          {/* ── VÉRIFICATION D'IDENTITÉ (KYC) ── */}
+          <div className="card mt-6">
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck size={18} className="text-blue-400" />
+              <h2 className="font-bold text-white">Vérification d'identité</h2>
+            </div>
+            <p className="text-slate-400 text-sm mb-4">
+              Vérifiez votre identité (selfie + CIN) pour obtenir un badge de confiance et rassurer les autres membres.
+            </p>
+
+            {profile.kycStatus === 'approved' ? (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-sm font-semibold">
+                <CheckCircle size={16} /> Votre identité est vérifiée.
+              </div>
+            ) : profile.kycStatus === 'pending' ? (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm font-semibold">
+                <Clock size={16} /> Vérification en attente de validation par un administrateur.
+              </div>
+            ) : (
+              <>
+                {profile.kycStatus === 'rejected' && (
+                  <div className="flex items-center gap-2 p-3 mb-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold">
+                    <AlertCircle size={16} /> Vérification refusée. Merci de soumettre des documents valides.
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
+                    style={{ borderColor: kycSelfie ? '#3B82F6' : 'var(--border-color)', background: 'var(--bg-700)' }}>
+                    <Camera size={20} className="text-blue-400" />
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-base)' }}>{kycSelfie ? kycSelfie.name.slice(0, 20) : 'Selfie'}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Photo de votre visage</span>
+                    <input type="file" accept="image/*" capture="user" className="sr-only" onChange={e => setKycSelfie(e.target.files[0] || null)} />
+                  </label>
+                  <label className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
+                    style={{ borderColor: (kycCin || profile.cinDoc) ? '#3B82F6' : 'var(--border-color)', background: 'var(--bg-700)' }}>
+                    <FileText size={20} className="text-blue-400" />
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-base)' }}>{kycCin ? kycCin.name.slice(0, 20) : (profile.cinDoc ? 'CIN déjà fournie' : 'CIN')}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Carte d'identité nationale</span>
+                    <input type="file" accept="image/*,application/pdf" className="sr-only" onChange={e => setKycCin(e.target.files[0] || null)} />
+                  </label>
+                </div>
+                <button type="button" onClick={submitKyc} disabled={kycSaving}
+                  className="btn-primary mt-4 w-full flex items-center justify-center gap-2">
+                  {kycSaving ? 'Envoi…' : <><Upload size={15} /> Soumettre pour vérification</>}
+                </button>
+              </>
+            )}
+          </div>
+
           {/* ── FORMULAIRE EDITION ── */}
           <form onSubmit={handleSave} className="flex flex-col gap-6">
 
@@ -352,13 +462,37 @@ export default function Profile() {
                   <p className="text-slate-600 text-xs mt-1 text-right">{form.bio.length}/300</p>
                 </div>
 
+                {/* Genre */}
+                <div>
+                  <label className="text-sm text-slate-400 mb-2 block">
+                    Genre <span className="text-slate-500 text-xs">(requis pour réserver les trajets « femmes uniquement »)</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'femme', label: 'Femme' },
+                      { value: 'homme', label: 'Homme' },
+                      { value: '',      label: 'Non spécifié' },
+                    ].map(opt => (
+                      <button key={opt.value || 'none'} type="button" onClick={() => setGender(opt.value)}
+                        className="flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all"
+                        style={{
+                          background: gender === opt.value ? 'rgba(193,39,45,0.1)' : 'var(--bg-700)',
+                          border: `1.5px solid ${gender === opt.value ? '#C1272D' : 'var(--border-color)'}`,
+                          color: gender === opt.value ? '#C1272D' : 'var(--text-secondary)',
+                        }}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Nationalité */}
                 <div>
                   <label className="text-sm text-slate-400 mb-2 block">Nationalité</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { value: 'moroccan', emoji: '🇲🇦', label: 'Marocain(e)' },
-                      { value: 'foreign',  emoji: '🌍', label: 'Étranger(ère)' },
+                      { value: 'moroccan', Icon: Flag,  label: 'Marocain(e)' },
+                      { value: 'foreign',  Icon: Globe, label: 'Étranger(ère)' },
                     ].map(opt => (
                       <button key={opt.value} type="button" onClick={() => setNationality(opt.value)}
                         className="flex items-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all"
@@ -367,7 +501,7 @@ export default function Profile() {
                           border: `1.5px solid ${nationality === opt.value ? '#C1272D' : 'var(--border-color)'}`,
                           color: nationality === opt.value ? '#C1272D' : 'var(--text-secondary)',
                         }}>
-                        <span className="text-base">{opt.emoji}</span> {opt.label}
+                        <opt.Icon size={16} /> {opt.label}
                       </button>
                     ))}
                   </div>
@@ -606,38 +740,93 @@ export default function Profile() {
             </div>
           )}
 
-          {/* Avis */}
-          {reviews.length > 0 && (
-            <div className="card">
-              <h2 className="font-bold text-white mb-4">Avis reçus</h2>
-              <div className="flex flex-col gap-4">
-                {reviews.map(r => (
-                  <div key={r.id} className="border-b border-dark-500 pb-4 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      {r.reviewer?.photo
-                        ? <img src={r.reviewer.photo} alt="" className="w-8 h-8 rounded-full object-cover" />
-                        : <div className="w-8 h-8 rounded-full bg-dark-600 flex items-center justify-center text-sm font-bold text-white">{r.reviewer?.firstName?.[0]}</div>
-                      }
-                      <div>
-                        <p className="text-sm font-semibold text-white">{r.reviewer?.firstName} {r.reviewer?.lastName}</p>
-                        <div className="flex gap-0.5 mt-0.5">
-                          {[1,2,3,4,5].map(s => <Star key={s} size={11} className={s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />)}
-                        </div>
-                      </div>
-                    </div>
-                    {r.comment && <p className="text-slate-400 text-sm">{r.comment}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {rides.length === 0 && reviews.length === 0 && (
             <div className="card text-center py-8">
               <p className="text-slate-500 text-sm">Aucun trajet ni avis pour le moment.</p>
             </div>
           )}
         </>
+      )}
+
+      {/* ── AVIS REÇUS (commun : son propre profil + celui des autres) ── */}
+      {reviews.length > 0 && (
+        <div className="card">
+          <h2 className="font-bold text-white mb-4">Avis reçus ({reviews.length})</h2>
+
+          {/* Moyennes par critère */}
+          {criteriaAverages.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 pb-5 border-b border-dark-500">
+              {criteriaAverages.map(c => (
+                <div key={c.key} className="text-center p-2 rounded-xl" style={{ background: 'var(--bg-700)' }}>
+                  <div className="flex items-center justify-center gap-1">
+                    <Star size={13} className="text-yellow-400 fill-yellow-400" />
+                    <span className="font-black text-white text-sm">{c.avg}</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{c.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {reviews.map(r => {
+              const crit = REVIEW_CRITERIA.filter(c => r[c.key] != null && r[c.key] > 0);
+              return (
+              <div key={r.id} className="border-b border-dark-500 pb-4 last:border-0 last:pb-0">
+                <div className="flex items-center gap-3 mb-2">
+                  {r.reviewer?.photo
+                    ? <img src={r.reviewer.photo} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    : <div className="w-8 h-8 rounded-full bg-dark-600 flex items-center justify-center text-sm font-bold text-white">{r.reviewer?.firstName?.[0]}</div>
+                  }
+                  <div>
+                    <p className="text-sm font-semibold text-white">{r.reviewer?.firstName} {r.reviewer?.lastName}</p>
+                    <div className="flex gap-0.5 mt-0.5">
+                      {[1,2,3,4,5].map(s => <Star key={s} size={11} className={s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'} />)}
+                    </div>
+                  </div>
+                </div>
+                {r.comment && <p className="text-slate-400 text-sm">{r.comment}</p>}
+
+                {/* Critères de cet avis */}
+                {crit.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {crit.map(c => (
+                      <span key={c.key} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--bg-700)', color: 'var(--text-secondary)' }}>
+                        {c.label} <Star size={9} className="text-yellow-400 fill-yellow-400" /> {r[c.key]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Réponse de l'utilisateur noté */}
+                {r.response && (
+                  <div className="mt-2 ml-3 pl-3 border-l-2 border-primary-500/40">
+                    <p className="text-xs font-semibold text-primary-400 mb-0.5">Réponse de {profile.firstName}</p>
+                    <p className="text-slate-400 text-sm">{r.response}</p>
+                  </div>
+                )}
+
+                {/* Répondre (seulement l'utilisateur noté, si pas déjà répondu) */}
+                {isMe && !r.response && (
+                  respondingId === r.id ? (
+                    <div className="flex gap-2 mt-2">
+                      <input value={responseText} onChange={e => setResponseText(e.target.value)}
+                        placeholder="Votre réponse…" className="input text-sm flex-1" />
+                      <button onClick={() => submitResponse(r.id)} className="btn-primary btn-sm">Publier</button>
+                      <button onClick={() => { setRespondingId(null); setResponseText(''); }} className="btn-ghost btn-sm">Annuler</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setRespondingId(r.id); setResponseText(''); }}
+                      className="text-xs font-semibold text-primary-400 hover:underline mt-2">
+                      Répondre
+                    </button>
+                  )
+                )}
+              </div>
+            )})}
+          </div>
+        </div>
       )}
     </div>
   );

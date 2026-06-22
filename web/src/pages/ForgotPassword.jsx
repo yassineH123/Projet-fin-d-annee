@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Eye, EyeOff } from 'lucide-react';
+import { Car, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
@@ -12,9 +12,15 @@ export default function ForgotPassword() {
   const [newPassword, setNew]   = useState('');
   const [showPwd, setShowPwd]   = useState(false);
   const [loading, setLoading]   = useState(false);
+  const [fErr, setFErr]         = useState({});
 
   const handleSendCode = async (e) => {
     e.preventDefault();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFErr({ email: 'Adresse email invalide' });
+      return;
+    }
+    setFErr({});
     setLoading(true);
     try {
       await api.post('/auth/forgot-password', { email });
@@ -29,6 +35,11 @@ export default function ForgotPassword() {
 
   const handleReset = async (e) => {
     e.preventDefault();
+    if (newPassword.length < 8) {
+      setFErr({ newPassword: 'Au moins 8 caractères' });
+      return;
+    }
+    setFErr({});
     setLoading(true);
     try {
       await api.post('/auth/reset-password', { email, code, newPassword });
@@ -58,17 +69,17 @@ export default function ForgotPassword() {
 
         <div className="card p-6">
           {step === 1 ? (
-            <form onSubmit={handleSendCode} className="flex flex-col gap-4">
+            <form onSubmit={handleSendCode} noValidate className="flex flex-col gap-4">
               <div>
-                <label className="text-sm font-medium text-slate-300 mb-1.5 block">Adresse email</label>
+                <label className="field-label">Adresse email</label>
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); if (fErr.email) setFErr({}); }}
                   placeholder="vous@example.com"
-                  className="input"
-                  required
+                  className={`input ${fErr.email ? 'input-error' : ''}`}
                 />
+                {fErr.email && <p className="field-error"><AlertCircle size={12} /> {fErr.email}</p>}
               </div>
               <button type="submit" disabled={loading} className="btn-primary h-12 mt-1">
                 {loading ? <span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5 inline-block" /> : 'Envoyer le code'}
@@ -88,21 +99,21 @@ export default function ForgotPassword() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-300 mb-1.5 block">Nouveau mot de passe</label>
+                <label className="field-label">Nouveau mot de passe</label>
                 <div className="relative">
                   <input
                     type={showPwd ? 'text' : 'password'}
                     value={newPassword}
-                    onChange={(e) => setNew(e.target.value)}
+                    onChange={(e) => { setNew(e.target.value); if (fErr.newPassword) setFErr({}); }}
                     placeholder="Min. 8 caractères"
-                    className="input pr-11"
-                    required
+                    className={`input pr-11 ${fErr.newPassword ? 'input-error' : ''}`}
                     minLength={8}
                   />
                   <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {fErr.newPassword && <p className="field-error"><AlertCircle size={12} /> {fErr.newPassword}</p>}
               </div>
               <button type="submit" disabled={loading || code.length !== 6} className="btn-primary h-12 mt-1">
                 {loading ? <span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5 inline-block" /> : 'Réinitialiser'}

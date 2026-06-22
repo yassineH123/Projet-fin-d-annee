@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Share2, ArrowRight, Send, Trash2,
   Car, HelpCircle, FileText, Image, X as XIcon, Play,
-  Bookmark, BookmarkCheck, Pin, Filter, Hash, ChevronDown
+  Bookmark, BookmarkCheck, Pin, Filter, Hash, ChevronDown, MapPin, Map
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -428,7 +428,7 @@ function FilterBar({ filters, onChange }) {
       <div style={{ position: 'relative' }}>
         <button onClick={() => setShowCities(s => !s)}
           style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', borderRadius: 20, border: `1.5px solid ${filters.city ? '#D4890A' : 'var(--border-color)'}`, background: filters.city ? 'rgba(212,137,10,0.08)' : 'transparent', color: filters.city ? '#D4890A' : 'var(--text-muted)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-          📍 {filters.city || 'Ville'} <ChevronDown size={11} />
+          <MapPin size={12} /> {filters.city || 'Ville'} <ChevronDown size={11} />
         </button>
         {showCities && (
           <div style={{ position: 'absolute', top: '110%', left: 0, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 6, zIndex: 20, minWidth: 150, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
@@ -581,7 +581,7 @@ export default function Feed() {
           </div>
         ) : posts.length === 0 ? (
           <div className="card" style={{ padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🗺️</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><Map size={40} style={{ color: 'var(--text-muted)' }} /></div>
             <p style={{ fontWeight: 700, color: 'var(--text-base)', marginBottom: 6 }}>Aucun post pour l'instant</p>
             <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
               {filters.saved ? 'Aucun post sauvegardé' : filters.tag ? `Aucun post avec #${filters.tag}` : 'Soyez le premier à partager !'}

@@ -108,6 +108,10 @@ const User = sequelize.define('User', {
     defaultValue: 'moroccan',
     allowNull: false,
   },
+  gender: {
+    type: DataTypes.ENUM('femme', 'homme'),
+    allowNull: true,
+  },
   country: {
     type: DataTypes.STRING(100),
     allowNull: true,
@@ -184,6 +188,10 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'),
     defaultValue: 'none',
     allowNull: false,
+  },
+  kycSelfie: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   timestamps: true,

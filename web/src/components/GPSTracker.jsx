@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Navigation, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { Navigation, MapPin, Wifi, WifiOff, CheckCircle } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 export default function GPSTracker({ rideId, isDriver }) {
@@ -95,7 +95,7 @@ export default function GPSTracker({ rideId, isDriver }) {
             </button>
           )}
           {status === 'ended' && (
-            <p className="text-xs text-green-400 font-semibold">✓ Trajet terminé</p>
+            <p className="flex items-center gap-1 text-xs text-green-400 font-semibold"><CheckCircle size={13} /> Trajet terminé</p>
           )}
         </div>
       )}
@@ -119,8 +119,8 @@ export default function GPSTracker({ rideId, isDriver }) {
       )}
 
       {!isDriver && status === 'ended' && (
-        <p className="text-xs text-center font-semibold" style={{ color: '#10B981' }}>
-          ✓ Le conducteur a terminé le trajet
+        <p className="flex items-center justify-center gap-1 text-xs text-center font-semibold" style={{ color: '#10B981' }}>
+          <CheckCircle size={13} /> Le conducteur a terminé le trajet
         </p>
       )}
     </div>

@@ -1,9 +1,41 @@
 const express = require('express');
-const { Notification } = require('../models');
+const { Notification, PushSubscription } = require('../models');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { vapidPublicKey } = require('../services/pushService');
 
 const router = express.Router();
 router.use(authenticateToken);
+
+// Clé publique VAPID (pour s'abonner côté navigateur)
+router.get('/vapid-public-key', (req, res) => {
+  return res.json({ key: vapidPublicKey || null });
+});
+
+// Enregistre l'abonnement push du navigateur courant
+router.post('/subscribe', async (req, res, next) => {
+  try {
+    const { endpoint, keys } = req.body || {};
+    if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      return res.status(400).json({ message: 'Abonnement invalide.' });
+    }
+    const [sub] = await PushSubscription.findOrCreate({
+      where: { endpoint },
+      defaults: { userId: req.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+    });
+    // Réassigne au cas où l'endpoint change d'utilisateur ou de clés
+    await sub.update({ userId: req.user.id, p256dh: keys.p256dh, auth: keys.auth });
+    return res.status(201).json({ ok: true });
+  } catch (err) { return next(err); }
+});
+
+// Désabonnement
+router.post('/unsubscribe', async (req, res, next) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (endpoint) await PushSubscription.destroy({ where: { endpoint } });
+    return res.json({ ok: true });
+  } catch (err) { return next(err); }
+});
 
 router.get('/', async (req, res, next) => {
   try {

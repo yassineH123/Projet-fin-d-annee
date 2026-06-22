@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { X, Flag, AlertTriangle, ChevronDown } from 'lucide-react';
+import { X, Flag, AlertTriangle, ChevronDown, Frown, Ban, Banknote, DollarSign, ShieldAlert, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
 const REASONS = [
-  { id: 'conduite_dangereuse', label: 'Conduite dangereuse',  emoji: '⚠️', desc: 'Vitesse excessive, manœuvres risquées…' },
-  { id: 'impolitesse',         label: 'Impolitesse / agressivité', emoji: '😠', desc: 'Comportement irrespectueux' },
-  { id: 'no_show',             label: 'No-show',              emoji: '🚫', desc: 'N\'est pas venu au point de rendez-vous' },
-  { id: 'escroquerie',         label: 'Escroquerie',          emoji: '💸', desc: 'Prix différent, fausse annonce' },
-  { id: 'arnaque_prix',        label: 'Arnaque sur le prix',  emoji: '💰', desc: 'Surcharge imposée au moment du trajet' },
-  { id: 'harcelement',         label: 'Harcèlement',          emoji: '🔴', desc: 'Propos ou gestes déplacés' },
-  { id: 'autre',               label: 'Autre',                emoji: '📋', desc: 'Autre problème non listé' },
+  { id: 'conduite_dangereuse', label: 'Conduite dangereuse',  Icon: AlertTriangle, desc: 'Vitesse excessive, manœuvres risquées…' },
+  { id: 'impolitesse',         label: 'Impolitesse / agressivité', Icon: Frown, desc: 'Comportement irrespectueux' },
+  { id: 'no_show',             label: 'No-show',              Icon: Ban, desc: 'N\'est pas venu au point de rendez-vous' },
+  { id: 'escroquerie',         label: 'Escroquerie',          Icon: Banknote, desc: 'Prix différent, fausse annonce' },
+  { id: 'arnaque_prix',        label: 'Arnaque sur le prix',  Icon: DollarSign, desc: 'Surcharge imposée au moment du trajet' },
+  { id: 'harcelement',         label: 'Harcèlement',          Icon: ShieldAlert, desc: 'Propos ou gestes déplacés' },
+  { id: 'autre',               label: 'Autre',                Icon: FileText, desc: 'Autre problème non listé' },
 ];
 
 export default function ReportModal({ reportedId, reportedName, rideId, onClose }) {
@@ -74,7 +74,7 @@ export default function ReportModal({ reportedId, reportedName, rideId, onClose 
               Motif du signalement *
             </label>
             <div className="flex flex-col gap-2">
-              {REASONS.map(({ id, label, emoji, desc }) => (
+              {REASONS.map(({ id, label, Icon, desc }) => (
                 <label key={id}
                   className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
                   style={{
@@ -83,7 +83,7 @@ export default function ReportModal({ reportedId, reportedName, rideId, onClose 
                   }}>
                   <input type="radio" name="reason" value={id}
                     checked={reason === id} onChange={() => setReason(id)} className="sr-only" />
-                  <span className="text-lg">{emoji}</span>
+                  <Icon size={18} style={{ color: reason === id ? '#EF4444' : 'var(--text-muted)', flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold" style={{ color: reason === id ? '#FCA5A5' : 'var(--text-base)' }}>
                       {label}

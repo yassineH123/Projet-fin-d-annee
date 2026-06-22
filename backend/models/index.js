@@ -23,6 +23,7 @@ const WaitlistEntry = require('./WaitlistEntry');
 const Transaction = require('./Transaction');
 const LoginHistory = require('./LoginHistory');
 const AuditLog = require('./AuditLog');
+const PushSubscription = require('./PushSubscription');
 
 // User → Rides (conducteur)
 User.hasMany(Ride, { foreignKey: 'driverId', as: 'rides' });
@@ -81,5 +82,5 @@ module.exports = {
   Conversation, ConversationMember, Message, VerificationCode, Notification, Friendship,
   FavoriteRide, RideAlert, PromoCode, SupportTicket, EmergencyContact,
   Story, Group, GroupMember, Event, Premium,
-  WaitlistEntry, Transaction, LoginHistory, AuditLog,
+  WaitlistEntry, Transaction, LoginHistory, AuditLog, PushSubscription,
 };

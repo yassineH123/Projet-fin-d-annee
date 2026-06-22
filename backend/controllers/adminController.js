@@ -153,4 +153,47 @@ async function rejectDriver(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-module.exports = { getDashboard, listUsers, listRides, blockUser, unblockUser, deleteUser, cancelRide, listPendingDrivers, approveDriver, rejectDriver };
+// ── Vérification d'identité (KYC) ──
+async function listPendingKyc(req, res, next) {
+  try {
+    const users = await User.findAll({
+      where: { kycStatus: 'pending' },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'kycSelfie', 'cinDoc', 'kycStatus', 'createdAt'],
+      order: [['updatedAt', 'DESC']],
+    });
+    return res.json({ users });
+  } catch (err) { return next(err); }
+}
+
+async function approveKyc(req, res, next) {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    await user.update({ kycStatus: 'approved' });
+    createNotification(user.id, {
+      type: 'system',
+      title: 'Identité vérifiée',
+      message: 'Votre identité a été vérifiée avec succès. Un badge de confiance apparaît désormais sur votre profil.',
+      link: '/profile',
+    });
+    return res.json({ message: 'Identité approuvée.' });
+  } catch (err) { return next(err); }
+}
+
+async function rejectKyc(req, res, next) {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    const { reason } = req.body;
+    await user.update({ kycStatus: 'rejected', kycSelfie: null });
+    createNotification(user.id, {
+      type: 'system',
+      title: 'Vérification d\'identité refusée',
+      message: reason || 'Votre vérification d\'identité a été refusée. Veuillez soumettre des documents valides et lisibles.',
+      link: '/profile',
+    });
+    return res.json({ message: 'Identité refusée.' });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { getDashboard, listUsers, listRides, blockUser, unblockUser, deleteUser, cancelRide, listPendingDrivers, approveDriver, rejectDriver, listPendingKyc, approveKyc, rejectKyc };

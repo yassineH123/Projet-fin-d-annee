@@ -29,6 +29,12 @@ async function create(req, res, next) {
     if (exists) return res.status(409).json({ message: 'Vous avez déjà une réservation pour ce trajet.' });
 
     const passenger = await User.findByPk(req.user.id);
+
+    // Trajet réservé aux femmes : seules les passagères peuvent réserver
+    if (ride.womenOnly && passenger.gender !== 'femme') {
+      return res.status(403).json({ message: 'Ce trajet est réservé aux femmes.' });
+    }
+
     let creditsUsed = 0;
     if (useCredits && passenger.referralCredits > 0) {
       const totalPrice = ride.price * seats;

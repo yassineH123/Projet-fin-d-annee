@@ -2,12 +2,15 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
-  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff
+  Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff,
+  Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, LANGS } from '../context/LanguageContext';
+import { pushSupported, pushPermission, enablePush } from '../utils/push';
 
 const NOTIF_TYPE_META = {
   booking: { icon: CheckCircle,   color: '#006233' },
@@ -163,25 +166,38 @@ export default function Navbar() {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
+  // ── Notifications push ──
+  const [pushReady, setPushReady] = useState(false);
+  useEffect(() => { setPushReady(pushSupported() && pushPermission() !== 'granted'); }, []);
+  const handleEnablePush = async () => {
+    try {
+      await enablePush();
+      setPushReady(false);
+      toast.success('Notifications push activées !');
+    } catch (e) {
+      toast.error(e.message || "Impossible d'activer les notifications.");
+    }
+  };
+
   const profileMenuItems = [
     { to: '/profile',             icon: User,          label: t.profileMenu.profile },
     { to: '/friends',             icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
     { to: '/driver-dashboard',    icon: BarChart2,     label: t.profileMenu.dashboard },
     { to: '/analytics/driver',    icon: BarChart2,     label: 'Mes statistiques' },
-    { to: '/wallet',              icon: Star,          label: 'Portefeuille 💰' },
-    { to: '/leaderboard',         icon: Star,          label: 'Classement 🏆' },
-    { to: '/premium',             icon: Star,          label: 'Premium 👑' },
-    { to: '/stories',             icon: Rss,           label: 'Stories 📸' },
-    { to: '/groups',              icon: Users,         label: 'Groupes 🚗' },
-    { to: '/events',              icon: Globe,         label: 'Événements 🗓️' },
-    { to: '/ride-alerts',         icon: Bell,          label: 'Alertes trajets 🔔' },
-    { to: '/emergency-contacts',  icon: Shield,        label: 'Contacts SOS 🆘' },
-    { to: '/support',             icon: MessageSquare, label: 'Support & Aide' },
+    { to: '/wallet',              icon: Wallet,        label: 'Portefeuille' },
+    { to: '/leaderboard',         icon: Trophy,        label: 'Classement' },
+    { to: '/premium',             icon: Crown,         label: 'Premium' },
+    { to: '/stories',             icon: Camera,        label: 'Stories' },
+    { to: '/groups',              icon: Users,         label: 'Groupes' },
+    { to: '/events',              icon: CalendarDays,  label: 'Événements' },
+    { to: '/ride-alerts',         icon: Bell,          label: 'Alertes trajets' },
+    { to: '/emergency-contacts',  icon: LifeBuoy,      label: 'Contacts SOS' },
+    { to: '/support',             icon: Headphones,    label: 'Support & Aide' },
     { to: '/rides/publish',       icon: Plus,          label: t.profileMenu.publish },
     { to: '/rides/mine',          icon: Car,           label: t.profileMenu.rides },
     { to: '/bookings',            icon: BookOpen,      label: t.profileMenu.bookings },
     { to: '/messages',            icon: MessageSquare, label: t.profileMenu.messages },
-    { to: '/login-history',       icon: Globe,         label: 'Historique connexions' },
+    { to: '/login-history',       icon: History,       label: 'Historique connexions' },
   ];
 
   return (
@@ -253,7 +269,7 @@ export default function Navbar() {
                       onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-base)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                     >
-                      <span style={{ fontSize: 16 }}>📍</span>
+                      <MapPin size={16} style={{ color: '#C1272D', flexShrink: 0 }} />
                       <span>{city}</span>
                       <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D' }}>Trajet</span>
                     </button>
@@ -285,14 +301,16 @@ export default function Navbar() {
                           </div>
                       }
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm leading-tight" style={{ color: 'var(--text-base)' }}>
+                        <p className="font-bold text-sm leading-tight flex items-center gap-1" style={{ color: 'var(--text-base)' }}>
                           {u.firstName} {u.lastName}
-                          {u.driverVerified && <span className="ml-1 text-[10px]" style={{ color: '#00875A' }}>✓</span>}
+                          {u.driverVerified && <CheckCircle size={12} style={{ color: '#00875A', flexShrink: 0 }} />}
                         </p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          {u.isDriver ? '🚗 Conducteur' : '👤 Passager'}
-                          {u.avgRating > 0 && ` · ⭐ ${Number(u.avgRating).toFixed(1)}`}
-                          {u.totalTrips > 0 && ` · ${u.totalTrips} trajets`}
+                        <p className="text-[11px] flex items-center gap-1 flex-wrap" style={{ color: 'var(--text-muted)' }}>
+                          {u.isDriver
+                            ? <span className="inline-flex items-center gap-1"><Car size={11} /> Conducteur</span>
+                            : <span className="inline-flex items-center gap-1"><User size={11} /> Passager</span>}
+                          {u.avgRating > 0 && <span className="inline-flex items-center gap-0.5">· <Star size={11} className="fill-current" style={{ color: '#D4890A' }} /> {Number(u.avgRating).toFixed(1)}</span>}
+                          {u.totalTrips > 0 && <span>· {u.totalTrips} trajets</span>}
                         </p>
                       </div>
                       <ArrowRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -331,7 +349,7 @@ export default function Navbar() {
               >
                 {({ isActive }) => (
                   <>
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>🗺️</span>
+                    <Map size={20} style={{ color: isActive ? '#00BCD4' : 'var(--text-secondary)' }} />
                     <span className="text-[10px] font-semibold" style={{ color: isActive ? '#00BCD4' : 'var(--text-muted)' }}>{t.nav.compare}</span>
                   </>
                 )}
@@ -437,6 +455,13 @@ export default function Navbar() {
                         </button>
                       )}
                     </div>
+                    {pushReady && (
+                      <button onClick={handleEnablePush}
+                        className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-all"
+                        style={{ color: '#C1272D', background: 'rgba(193,39,45,0.05)', borderBottom: '1px solid var(--border-color)' }}>
+                        <Bell size={15} /> Activer les notifications push
+                      </button>
+                    )}
                     <div className="max-h-80 overflow-y-auto">
                       {notifs.length === 0 ? (
                         <div className="text-center py-8 text-slate-500 text-sm">{t.nav.noNotifs}</div>
@@ -639,7 +664,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden px-4 py-4 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
           <MobileLink to="/rides/search"  icon={<Search size={16} />}       label={t.mobile.search} />
-          <MobileLink to="/compare"       icon={<span>🗺️</span>}             label={t.mobile.compare} />
+          <MobileLink to="/compare"       icon={<Map size={16} />}           label={t.mobile.compare} />
           <MobileLink to="/feed"          icon={<Rss size={16} />}           label={t.mobile.feed} />
           {user ? (
             <>

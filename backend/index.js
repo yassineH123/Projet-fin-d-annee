@@ -121,7 +121,7 @@ app.use('/users',          apiLimiter,  require('./routes/userRoutes'));
 app.use('/uploads',        require('express').static(require('path').join(__dirname, 'uploads')));
 app.use('/trips',          require('./routes/trips')());
 app.use('/privacy',        require('./routes/privacy')());
-app.use('/admin',          require('./routes/admin')());
+app.use('/admin',          require('./routes/adminRoutes'));
 app.use('/superadmin',     require('./routes/superadmin')());
 app.use('/posts',          apiLimiter, require('./routes/postRoutes'));
 app.use('/notifications',  apiLimiter, require('./routes/notificationRoutes'));
@@ -163,7 +163,11 @@ const PORT = process.env.PORT || 4000;
   try {
     await sequelize.authenticate();
     console.log('Database connected ✓');
-    await sequelize.sync({ alter: true });
+    // NB : sync() simple (sans alter) — `alter: true` ré-ajoutait un index unique
+    // à chaque démarrage et saturait la limite MySQL de 64 index (table promo_codes).
+    // Les colonnes sont déjà en place ; pour un futur changement de schéma,
+    // relancer ponctuellement avec { alter: true } puis revenir à sync().
+    await sequelize.sync();
     console.log('Database synced ✓');
 
     await User.findOrCreate({

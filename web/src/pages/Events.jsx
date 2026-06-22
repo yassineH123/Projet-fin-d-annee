@@ -6,9 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 
 const CATEGORIES = [
-  { id: 'concert', label: 'Concert 🎵' }, { id: 'sport', label: 'Sport ⚽' },
-  { id: 'festival', label: 'Festival 🎉' }, { id: 'conference', label: 'Conférence 💼' },
-  { id: 'autre', label: 'Autre 📌' },
+  { id: 'concert', label: 'Concert' }, { id: 'sport', label: 'Sport' },
+  { id: 'festival', label: 'Festival' }, { id: 'conference', label: 'Conférence' },
+  { id: 'autre', label: 'Autre' },
 ];
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès'];
 

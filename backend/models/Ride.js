@@ -68,6 +68,10 @@ const Ride = sequelize.define('Ride', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  womenOnly: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 }, {
   tableName: 'rides',
   timestamps: true,

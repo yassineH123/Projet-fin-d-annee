@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Car, Eye, EyeOff, Gift } from 'lucide-react';
+import { Car, Eye, EyeOff, Gift, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -15,11 +15,27 @@ export default function Register() {
   const [otp, setOtp]         = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors]   = useState({});
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const set = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value });
+    if (errors[k]) setErrors((prev) => ({ ...prev, [k]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.firstName.trim()) e.firstName = 'Prénom requis';
+    if (!form.lastName.trim())  e.lastName  = 'Nom requis';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Adresse email invalide';
+    if (form.password.length < 8) e.password = 'Au moins 8 caractères';
+    if (form.phone && !/^\+?\d{8,15}$/.test(form.phone.replace(/\s/g, ''))) e.phone = 'Numéro de téléphone invalide';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     try {
       await api.post('/auth/register', form);
@@ -63,33 +79,38 @@ export default function Register() {
 
         <div className="card">
           {step === 1 ? (
-            <form onSubmit={handleRegister} className="flex flex-col gap-4">
+            <form onSubmit={handleRegister} noValidate className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Prénom</label>
-                  <input value={form.firstName} onChange={set('firstName')} placeholder="Yassine" className="input" required />
+                  <label className="field-label">Prénom</label>
+                  <input value={form.firstName} onChange={set('firstName')} placeholder="Yassine" className={`input ${errors.firstName ? 'input-error' : ''}`} />
+                  {errors.firstName && <p className="field-error"><AlertCircle size={12} /> {errors.firstName}</p>}
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Nom</label>
-                  <input value={form.lastName} onChange={set('lastName')} placeholder="Benali" className="input" required />
+                  <label className="field-label">Nom</label>
+                  <input value={form.lastName} onChange={set('lastName')} placeholder="Benali" className={`input ${errors.lastName ? 'input-error' : ''}`} />
+                  {errors.lastName && <p className="field-error"><AlertCircle size={12} /> {errors.lastName}</p>}
                 </div>
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">Email</label>
-                <input type="email" value={form.email} onChange={set('email')} placeholder="vous@example.com" className="input" required />
+                <label className="field-label">Email</label>
+                <input type="email" value={form.email} onChange={set('email')} placeholder="vous@example.com" className={`input ${errors.email ? 'input-error' : ''}`} />
+                {errors.email && <p className="field-error"><AlertCircle size={12} /> {errors.email}</p>}
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">Téléphone <span className="text-slate-500">(optionnel — pour recevoir le code par SMS)</span></label>
-                <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+212600000000" className="input" />
+                <label className="field-label">Téléphone <span className="text-slate-500 font-normal">(optionnel — pour recevoir le code par SMS)</span></label>
+                <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+212600000000" className={`input ${errors.phone ? 'input-error' : ''}`} />
+                {errors.phone && <p className="field-error"><AlertCircle size={12} /> {errors.phone}</p>}
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">Mot de passe</label>
+                <label className="field-label">Mot de passe</label>
                 <div className="relative">
-                  <input type={showPwd ? 'text' : 'password'} value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" className="input pr-11" required minLength={8} />
+                  <input type={showPwd ? 'text' : 'password'} value={form.password} onChange={set('password')} placeholder="Min. 8 caractères" className={`input pr-11 ${errors.password ? 'input-error' : ''}`} minLength={8} />
                   <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
                     {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {errors.password && <p className="field-error"><AlertCircle size={12} /> {errors.password}</p>}
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1.5 block">

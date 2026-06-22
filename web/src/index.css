@@ -6,31 +6,9 @@
    VARIABLES DE THÈME
    ═══════════════════════════════════════ */
 
-/* ── Mode sombre : "Nuit de Marrakech" ──
-   Bois de cèdre • Cuir de Fès • Lumière de lanterne
-   ──────────────────────────────────────── */
-:root {
-  /* Fonds chaleureux (bois de cèdre sombre / cuir rouge profond) */
-  --bg-900: #0F0804;   /* fond principal — presque noir mais très chaud */
-  --bg-800: #1C1008;   /* surface — bois de cèdre sombre */
-  --bg-700: #281608;   /* fond élevé */
-  --bg-600: #3A1E0C;   /* cartes */
-  --bg-500: #562C12;   /* bordures */
-  --bg-400: #7A4020;   /* éléments atténués */
-
-  /* Texte crème chaud — lumière de lanterne marocaine */
-  --text-base:       #F7E8C0;
-  --text-secondary:  rgba(247,232,192,0.62);
-  --text-muted:      rgba(247,232,192,0.35);
-
-  --border-color:    #3A1E0C;
-  --border-muted:    #562C12;
-  --scrollbar-thumb: #9e1f24;
-
-  --card-bg:         #1C1008;
-  --input-bg:        #22120A;
-  --input-placeholder: #7A4020;
-}
+/* NB : le thème sombre par défaut est défini plus bas dans le bloc
+   ":root" « Neo-Marocain — Midnight Navy » (source de vérité unique).
+   L'ancien thème "Nuit de Marrakech" était entièrement écrasé → retiré. */
 
 /* Mode clair — blanc propre, texte noir, accents rouge & vert marocain */
 html.light {
@@ -59,11 +37,16 @@ html.light {
 @layer base {
   * { box-sizing: border-box; }
 
+  /* Défilement fluide pour les ancres / navigation */
+  html { scroll-behavior: smooth; }
+
   body {
     background-color: var(--bg-900);
     color: var(--text-base);
     font-family: 'Cairo', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     min-height: 100vh;
     transition: background-color 0.35s ease, color 0.35s ease;
     /* Zellige marocain enrichi — losanges + étoiles à 8 branches */
@@ -72,25 +55,69 @@ html.light {
 
   h1, h2, h3 { letter-spacing: 0.025em; }
 
+  /* Sélection de texte aux couleurs de la marque */
+  ::selection { background: rgba(193, 39, 45, 0.28); color: #fff; }
+
+  /* Focus clavier visible et cohérent sur liens & champs (accessibilité) */
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgba(193, 39, 45, 0.55);
+    outline-offset: 2px;
+  }
+
+  /* Médias toujours responsives par défaut */
+  img, svg, video { max-width: 100%; }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-800); }
-  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #9e1f24); border-radius: 9999px; }
 }
 
 /* ═══════════════════════════════════════
    COMPOSANTS
    ═══════════════════════════════════════ */
 @layer components {
-  /* ── Boutons ── */
-  .btn-primary {
-    @apply bg-[#C1272D] hover:bg-[#9e1f24] active:bg-[#7e181d]
-           text-white font-semibold px-5 py-2.5 rounded-xl
+  /* ── Boutons ──
+     Base partagée : alignement icône+texte, focus accessible,
+     état pressé subtil, désactivé cohérent sur toutes les variantes. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-gold,
+  .btn-danger,
+  .btn-outline,
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           font-semibold px-5 py-2.5 rounded-xl
            transition-all duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+  /* Anneau de focus clavier (accessibilité) */
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible,
+  .btn-gold:focus-visible,
+  .btn-danger:focus-visible,
+  .btn-outline:focus-visible,
+  .btn-ghost:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(193, 39, 45, 0.35);
+  }
+  /* Léger enfoncement au clic */
+  .btn-primary:active:not(:disabled),
+  .btn-secondary:active:not(:disabled),
+  .btn-gold:active:not(:disabled),
+  .btn-danger:active:not(:disabled),
+  .btn-outline:active:not(:disabled),
+  .btn-ghost:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    @apply bg-[#C1272D] hover:bg-[#9e1f24] active:bg-[#7e181d] text-white;
     box-shadow: 0 4px 20px rgba(193, 39, 45, 0.18);
   }
   .btn-secondary {
-    @apply font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
     background-color: var(--bg-600);
     border: 1px solid var(--border-muted);
     color: var(--text-base);
@@ -98,15 +125,35 @@ html.light {
   .btn-secondary:hover { background-color: var(--bg-500); }
 
   .btn-gold {
-    @apply text-[#0d0705] font-bold px-5 py-2.5 rounded-xl transition-all duration-200;
+    @apply text-[#0d0705] font-bold;
     background-color: #D4890A;
     box-shadow: 0 4px 20px rgba(212, 137, 10, 0.2);
   }
   .btn-gold:hover { background-color: #a86508; }
 
   .btn-danger {
-    @apply bg-red-700 hover:bg-red-800 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
+    @apply bg-red-700 hover:bg-red-800 text-white;
   }
+
+  /* Variante contour (action secondaire marquée) */
+  .btn-outline {
+    background-color: transparent;
+    border: 1.5px solid #C1272D;
+    color: #C1272D;
+  }
+  .btn-outline:hover { background-color: rgba(193, 39, 45, 0.08); }
+
+  /* Variante fantôme (action discrète) */
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover { background-color: var(--bg-700); color: var(--text-base); }
+
+  /* Tailles */
+  .btn-sm { @apply px-3.5 py-1.5 text-sm rounded-lg gap-1.5; }
+  .btn-lg { @apply px-7 py-3.5 text-base rounded-2xl; }
+  .btn-block { @apply w-full; }
 
   /* ── Inputs ── */
   .input {
@@ -120,6 +167,22 @@ html.light {
     border-color: #C1272D;
     box-shadow: 0 0 0 1px rgba(193, 39, 45, 0.35);
   }
+  .input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* États de validation des champs */
+  .input-error {
+    border-color: #EF4444 !important;
+  }
+  .input-error:focus { box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45) !important; }
+  .input-success {
+    border-color: #10B981 !important;
+  }
+  .input-success:focus { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.45) !important; }
+
+  /* Libellé de champ + message d'aide / d'erreur */
+  .field-label { @apply block text-sm font-semibold mb-1.5; color: var(--text-secondary); }
+  .field-hint  { @apply text-xs mt-1; color: var(--text-muted); }
+  .field-error { @apply flex items-center gap-1 text-xs mt-1; color: #F87171; }
 
   /* ── Cards ── */
   .card {
@@ -134,6 +197,19 @@ html.light {
     border-top-color: rgba(193,39,45,0.6);
     box-shadow: 0 6px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(212,137,10,0.12);
   }
+
+  /* Variantes de cartes */
+  .card-sm { @apply p-3.5 rounded-xl; }
+  .card-lg { @apply p-7; }
+  /* Carte cliquable : curseur + focus clavier accessible */
+  .card-interactive { @apply cursor-pointer; }
+  .card-interactive:focus-visible {
+    outline: none;
+    border-color: #C1272D;
+    box-shadow: 0 0 0 3px rgba(193, 39, 45, 0.3);
+  }
+  /* Carte sobre sans liseré rouge en tête */
+  .card-flat { border-top-color: var(--border-color); }
 
   /* ── Badges booking ── */
   .badge-pending   { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(212,137,10,0.18); color: #D4890A; }
@@ -598,24 +674,7 @@ html.light .card-moroccan::after { border-color: rgba(168,101,8,0.25); }
   to { transform: translateY(-50%) rotate(360deg); }
 }
 
-/* ═══════════════════════════════════════
-   SKELETON SHIMMER
-   ═══════════════════════════════════════ */
-@keyframes shimmer {
-  0%   { background-position: -600px 0; }
-  100% { background-position: 600px 0; }
-}
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-700) 25%,
-    var(--bg-600) 50%,
-    var(--bg-700) 75%
-  );
-  background-size: 1200px 100%;
-  animation: shimmer 1.8s infinite linear;
-  border-radius: 8px;
-}
+/* (Ancien bloc .skeleton retiré — redéfini plus bas avec shimmerLoad) */
 
 /* ═══════════════════════════════════════
    SCROLL ANIMATIONS (useInView)

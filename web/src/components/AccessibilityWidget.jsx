@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, X, Type, Contrast, Globe } from 'lucide-react';
+import { Settings, X, Type, Contrast, Globe, Check } from 'lucide-react';
 import { useLanguage, LANGS } from '../context/LanguageContext';
 
 const FONT_SIZES = [
@@ -122,8 +122,8 @@ export default function AccessibilityWidget() {
                   border: `1.5px solid ${highContrast ? '#fff' : 'var(--border-color)'}`,
                 }}
               >
-                <span className="text-sm font-semibold" style={{ color: highContrast ? '#fff' : 'var(--text-secondary)' }}>
-                  {highContrast ? '✓ Activé' : 'Désactivé'}
+                <span className="flex items-center gap-1 text-sm font-semibold" style={{ color: highContrast ? '#fff' : 'var(--text-secondary)' }}>
+                  {highContrast ? <><Check size={13} /> Activé</> : 'Désactivé'}
                 </span>
                 <div className={`w-10 h-5 rounded-full relative transition-colors ${highContrast ? 'bg-white' : 'bg-dark-500'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${highContrast ? 'translate-x-5 bg-black' : 'translate-x-0.5 bg-white'}`} />

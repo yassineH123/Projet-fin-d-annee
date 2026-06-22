@@ -20,4 +20,9 @@ router.get('/drivers/pending',         adminController.listPendingDrivers);
 router.patch('/drivers/:id/approve',   adminController.approveDriver);
 router.patch('/drivers/:id/reject',    adminController.rejectDriver);
 
+// KYC (vérification d'identité)
+router.get('/kyc/pending',             adminController.listPendingKyc);
+router.patch('/kyc/:id/approve',       adminController.approveKyc);
+router.patch('/kyc/:id/reject',        adminController.rejectKyc);
+
 module.exports = router;
