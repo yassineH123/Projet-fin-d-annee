@@ -339,12 +339,12 @@ function LeftSidebar({ user }) {
       <Link to="/rides/publish" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         padding: '11px 16px', borderRadius: 10,
-        background: 'linear-gradient(135deg, #D4890A, #a86508)',
+        background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
         color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13,
-        boxShadow: '0 4px 16px rgba(212,137,10,0.3)', transition: 'transform 0.2s, box-shadow 0.2s',
+        boxShadow: '0 4px 16px rgba(193,39,45,0.35)', transition: 'transform 0.2s, box-shadow 0.2s',
       }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(212,137,10,0.4)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(212,137,10,0.3)'; }}>
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(193,39,45,0.5)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(193,39,45,0.35)'; }}>
         <Car size={15} /> Proposer un trajet
       </Link>
 
@@ -478,73 +478,94 @@ function RideFeedCard({ trip, initialFav = false, index = 0 }) {
 
   return (
     <article className="feed-card-appear" style={{
-      background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+      background: 'var(--card-bg)',
       borderRadius: 14, overflow: 'hidden', marginBottom: 10,
-      transition: 'box-shadow 0.2s, transform 0.2s',
+      transition: 'box-shadow 0.2s, transform 0.2s, border-color 0.2s',
       animationDelay: `${index * 0.07}s`,
+      border: '1px solid var(--border-color)',
+      borderLeft: '3px solid #C1272D',
     }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 28px rgba(0,0,0,0.13)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-
-      <ZelligeStripe />
+      onMouseEnter={e => {
+        e.currentTarget.style.boxShadow = '0 8px 32px rgba(193,39,45,0.12)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.borderColor = 'rgba(193,39,45,0.35)';
+        e.currentTarget.style.borderLeft = '3px solid #D4890A';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.borderColor = 'var(--border-color)';
+        e.currentTarget.style.borderLeft = '3px solid #C1272D';
+      }}>
 
       {/* Header */}
-      <div style={{ padding: '12px 14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14, border: '2px solid rgba(212,137,10,0.3)' }}>
+      <div style={{ padding: '13px 14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, boxShadow: '0 4px 12px rgba(193,39,45,0.3)' }}>
           {trip.avatar}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--text-base)', lineHeight: 1.2 }}>{trip.driver}</p>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 99, background: 'rgba(0,98,51,0.1)', color: '#006233', border: '1px solid rgba(0,98,51,0.2)' }}>✓ VÉRIFIÉ</span>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-base)', lineHeight: 1.2 }}>{trip.driver}</p>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 7px', borderRadius: 99, background: 'rgba(0,98,51,0.12)', color: '#00875A', border: '1px solid rgba(0,135,90,0.25)' }}>✓ VÉRIFIÉ</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
             <Stars n={Math.round(trip.rating)} />
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{trip.rating}</span>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>·</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{trip.rating}</span>
+            <span style={{ fontSize: 10, color: 'var(--border-muted)' }}>·</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)' }}>
               <Clock size={10} /> {trip.ago || trip.date}
             </span>
           </div>
         </div>
-        <div style={{ padding: '6px 12px', borderRadius: 99, background: 'linear-gradient(135deg, rgba(193,39,45,0.12), rgba(193,39,45,0.06))', border: '1px solid rgba(193,39,45,0.25)' }}>
-          <span style={{ fontWeight: 900, fontSize: 16, color: '#C1272D' }}>{trip.price}</span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 2 }}>DH</span>
+        {/* Price badge — bigger and bolder */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '8px 14px', borderRadius: 12,
+          background: 'linear-gradient(135deg, #C1272D 0%, #9e1f24 100%)',
+          boxShadow: '0 4px 16px rgba(193,39,45,0.35)',
+        }}>
+          <span style={{ fontWeight: 900, fontSize: 20, color: '#fff', lineHeight: 1 }}>{trip.price}</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '0.05em' }}>DH</span>
         </div>
       </div>
 
       {/* Route */}
       <div style={{ padding: '12px 14px' }}>
-        <div style={{ background: 'var(--bg-800)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontFamily: "'Amiri', serif", fontSize: 28, color: 'rgba(212,137,10,0.07)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700 }}>رحلة</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'relative', zIndex: 1 }}>
+        <div style={{ background: 'var(--bg-800)', borderRadius: 10, padding: '13px 16px', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontFamily: "'Amiri', serif", fontSize: 32, color: 'rgba(212,137,10,0.06)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700 }}>رحلة</div>
+          <div style={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+            {/* Departure */}
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#006233', boxShadow: '0 0 5px rgba(0,135,90,0.5)', flexShrink: 0 }} />
-                <span style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-base)' }}>{trip.from}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#006233', boxShadow: '0 0 6px rgba(0,135,90,0.6)', flexShrink: 0 }} />
+                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-base)' }}>{trip.from}</span>
               </div>
-              {arabicFrom && <p style={{ margin: 0, fontSize: 10, color: 'rgba(212,137,10,0.55)', fontFamily: "'Amiri', serif", marginLeft: 15 }}>{arabicFrom}</p>}
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginLeft: 15 }}>{trip.depTime}</p>
+              {arabicFrom && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(212,137,10,0.7)', fontFamily: "'Amiri', serif", marginLeft: 17 }}>{arabicFrom}</p>}
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginLeft: 17 }}>{trip.depTime}</p>
             </div>
-            <div style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-              <div style={{ width: 36, height: 1, background: 'linear-gradient(to right, #006233, #D4890A, #C1272D)' }} />
-              <ArrowRight size={13} style={{ color: '#D4890A' }} />
+            {/* Arrow */}
+            <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+              <div style={{ width: 40, height: 2, borderRadius: 2, background: 'linear-gradient(to right, #006233, #D4890A, #C1272D)' }} />
+              <ArrowRight size={14} style={{ color: '#D4890A' }} />
             </div>
+            {/* Arrival */}
             <div style={{ flex: 1, textAlign: 'right' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 2 }}>
-                <span style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-base)' }}>{trip.to}</span>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#C1272D', boxShadow: '0 0 5px rgba(193,39,45,0.5)', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 7 }}>
+                <span style={{ fontWeight: 900, fontSize: 16, color: 'var(--text-base)' }}>{trip.to}</span>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#C1272D', boxShadow: '0 0 6px rgba(193,39,45,0.6)', flexShrink: 0 }} />
               </div>
-              {arabicTo && <p style={{ margin: 0, fontSize: 10, color: 'rgba(212,137,10,0.55)', fontFamily: "'Amiri', serif", marginRight: 15 }}>{arabicTo}</p>}
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginRight: 15 }}>{trip.date}</p>
+              {arabicTo && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(212,137,10,0.7)', fontFamily: "'Amiri', serif", marginRight: 17 }}>{arabicTo}</p>}
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', marginRight: 17 }}>{trip.date}</p>
             </div>
           </div>
         </div>
+
+        {/* Seats + quick badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
           <Users size={11} style={{ color: 'var(--text-muted)' }} />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{trip.seats} place{trip.seats > 1 ? 's' : ''} disponible{trip.seats > 1 ? 's' : ''}</span>
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#D4890A' }}>
-            <Zap size={10} /> Réservation rapide
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#D4890A', padding: '2px 8px', borderRadius: 99, background: 'rgba(212,137,10,0.08)', border: '1px solid rgba(212,137,10,0.18)' }}>
+            <Zap size={10} /> Rapide
           </span>
         </div>
       </div>
@@ -553,37 +574,41 @@ function RideFeedCard({ trip, initialFav = false, index = 0 }) {
       <div style={{ height: 1, background: 'var(--border-color)', margin: '0 14px' }} />
 
       {/* Actions */}
-      <div style={{ display: 'flex', padding: '4px 6px' }}>
+      <div style={{ display: 'flex', padding: '4px 8px', gap: 2 }}>
         <button onClick={handleLike} disabled={liking} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           padding: '8px 0', borderRadius: 8, border: 'none', cursor: liking ? 'default' : 'pointer',
           fontSize: 12, fontWeight: 600, background: 'transparent',
           color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.15s',
         }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.06)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-          <Heart size={15} style={{ fill: liked ? '#C1272D' : 'none', color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.2s' }} />
+          <Heart size={14} style={{ fill: liked ? '#C1272D' : 'none', color: liked ? '#C1272D' : 'var(--text-muted)', transition: 'all 0.2s' }} />
           {liked ? 'Aimé' : "J'aime"}
         </button>
         <button onClick={() => { setSaved(s => !s); if (!saved) toast.success('🔖 Sauvegardé'); }} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
           fontSize: 12, fontWeight: 600, background: 'transparent',
           color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.15s',
         }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,137,10,0.06)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-          <Bookmark size={15} style={{ fill: saved ? '#D4890A' : 'none', color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.2s' }} />
+          <Bookmark size={14} style={{ fill: saved ? '#D4890A' : 'none', color: saved ? '#D4890A' : 'var(--text-muted)', transition: 'all 0.2s' }} />
           {saved ? 'Sauvegardé' : 'Sauvegarder'}
         </button>
+        {/* Réserver — rouge prominent */}
         <button onClick={() => navigate(trip.id ? `/rides/${trip.id}` : `/rides/search?from=${trip.from}&to=${trip.to}`)} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-          fontSize: 12, fontWeight: 700, background: 'transparent', color: '#006233', transition: 'all 0.15s',
+          fontSize: 12, fontWeight: 700,
+          background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
+          color: '#fff', transition: 'all 0.15s',
+          boxShadow: '0 2px 8px rgba(193,39,45,0.2)',
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,98,51,0.06)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-          <Car size={15} /> Réserver
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(193,39,45,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(193,39,45,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+          <Car size={14} /> Réserver
         </button>
       </div>
     </article>
@@ -621,21 +646,81 @@ function CompactSearchBar({ user }) {
 /* ─── HERO BANNER (non-auth) ─────────────────────── */
 function HeroBanner() {
   return (
-    <div style={{ background: 'linear-gradient(135deg, rgba(193,39,45,0.08) 0%, rgba(212,137,10,0.06) 50%, rgba(0,98,51,0.08) 100%)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden', marginBottom: 10, position: 'relative' }}>
-      <div style={{ position: 'absolute', top: '-30%', right: '-5%', fontFamily: "'Amiri', serif", fontSize: 90, color: 'rgba(212,137,10,0.05)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700, lineHeight: 1 }}>المغرب</div>
-      <ZelligeStripe />
-      <div style={{ padding: '18px 20px' }}>
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', color: '#C1272D', marginBottom: 8, textTransform: 'uppercase' }}>✦ LA PLATEFORME #1 AU MAROC</p>
-        <h1 style={{ margin: '0 0 8px', fontWeight: 900, fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: 'var(--text-base)', lineHeight: 1.15 }}>
+    <div style={{
+      borderRadius: 16, overflow: 'hidden', marginBottom: 10, position: 'relative',
+      background: 'linear-gradient(145deg, #0f0500 0%, #1a0800 40%, #0a0f05 100%)',
+      border: '1px solid rgba(212,137,10,0.18)',
+      boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
+    }}>
+      {/* Zellige SVG pattern overlay */}
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.04, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="zel" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+            <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" fill="none" stroke="#D4890A" strokeWidth="1"/>
+            <polygon points="20,8 32,14 32,26 20,32 8,26 8,14" fill="none" stroke="#C1272D" strokeWidth="0.5"/>
+            <line x1="20" y1="2" x2="20" y2="38" stroke="#006233" strokeWidth="0.3"/>
+            <line x1="2" y1="20" x2="38" y2="20" stroke="#006233" strokeWidth="0.3"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#zel)"/>
+      </svg>
+
+      {/* Glow spots */}
+      <div style={{ position: 'absolute', top: '-20px', right: '15%', width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(193,39,45,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-30px', left: '10%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,137,10,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+      {/* Arabic watermark */}
+      <div style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', fontFamily: "'Amiri', serif", fontSize: 72, color: 'rgba(212,137,10,0.06)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700, lineHeight: 1 }}>المغرب</div>
+
+      {/* Tricolor top bar */}
+      <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 33%, #D4890A 50%, #006233 67%)' }} />
+
+      <div style={{ padding: '20px 22px 22px', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', color: '#D4890A', textTransform: 'uppercase', marginBottom: 10, padding: '3px 10px', borderRadius: 99, background: 'rgba(212,137,10,0.1)', border: '1px solid rgba(212,137,10,0.2)' }}>
+          ✦ LA PLATEFORME #1 AU MAROC
+        </div>
+
+        <h1 style={{ margin: '0 0 10px', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', lineHeight: 1.1, color: '#fff' }}>
           Voyagez partout au Maroc<br />
-          <span style={{ background: 'linear-gradient(135deg, #C1272D, #D4890A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>pour moins cher.</span>
+          <span style={{ background: 'linear-gradient(135deg, #C1272D 0%, #D4890A 60%, #e8a820 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>pour moins cher.</span>
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>Covoiturage simple, économique et sécurisé. Économisez jusqu'à <strong style={{ color: '#D4890A' }}>60%</strong> par rapport au taxi.</p>
+
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginBottom: 18, lineHeight: 1.6 }}>
+          Covoiturage simple, économique et sécurisé.<br/>
+          Économisez jusqu'à <strong style={{ color: '#D4890A' }}>60 %</strong> par rapport au taxi.
+        </p>
+
+        {/* Stats bar */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 18 }}>
+          {[
+            { val: '50 000+', label: 'utilisateurs' },
+            { val: '200+',    label: 'trajets/jour' },
+            { val: '4.9 ★',   label: 'note moyenne' },
+          ].map(({ val, label }) => (
+            <div key={label}>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{val}</p>
+              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{label}</p>
+            </div>
+          ))}
+        </div>
+
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Link to="/rides/search" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: 'linear-gradient(135deg, #C1272D, #9e1f24)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none', boxShadow: '0 4px 16px rgba(193,39,45,0.3)' }}>
+          <Link to="/rides/search" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+            borderRadius: 10, background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
+            color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none',
+            boxShadow: '0 6px 24px rgba(193,39,45,0.45)', transition: 'transform 0.15s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
             Voir les trajets <ArrowRight size={14} />
           </Link>
-          <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: 'var(--bg-800)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+          <Link to="/register" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+            borderRadius: 10, background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)',
+            fontWeight: 600, fontSize: 13, textDecoration: 'none',
+          }}>
             S'inscrire gratuitement
           </Link>
         </div>
