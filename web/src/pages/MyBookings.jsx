@@ -383,14 +383,20 @@ export default function MyBookings() {
       <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)', marginBottom: 20 }}>
         <ZelligeStripe />
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Réservations</p>
-            {!loading && counts.total > 0 && (
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                {counts.total} au total · {counts.accepted} confirmée{counts.accepted > 1 ? 's' : ''}
-                {counts.pending > 0 && ` · ${counts.pending} en attente`}
-              </p>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Ticket size={20} style={{ color: '#C1272D' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+              <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Réservations</p>
+              {!loading && counts.total > 0 && (
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  {counts.total} au total · {counts.accepted} confirmée{counts.accepted > 1 ? 's' : ''}
+                  {counts.pending > 0 && ` · ${counts.pending} en attente`}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* View toggle */}

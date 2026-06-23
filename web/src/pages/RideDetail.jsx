@@ -169,6 +169,9 @@ export default function RideDetail() {
                 fontSize: 40, color: 'rgba(193,39,45,0.06)', fontWeight: 900, pointerEvents: 'none', userSelect: 'none',
               }}>رحلة</div>
 
+              {/* AtlasWay badge */}
+              <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay · Détail du trajet</p>
+
               {/* Top row: badges + fav */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
                 {ride.instantBooking && (
