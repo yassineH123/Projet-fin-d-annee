@@ -371,9 +371,22 @@ function QuickFilters({ active, onChange }) {
   );
 }
 
+/* ─── REPUTATION HELPER ─────────────────────────── */
+function userLevel(trips) {
+  if (trips >= 100) return { label: 'PLATINE',  color: '#E5E4E2', icon: '💎', xpColor: '#a0d8ef' };
+  if (trips >= 50)  return { label: 'OR',        color: '#D4890A', icon: '🥇', xpColor: '#D4890A' };
+  if (trips >= 20)  return { label: 'ARGENT',    color: '#A8A8A8', icon: '🥈', xpColor: '#A8A8A8' };
+  return               { label: 'BRONZE',    color: '#CD7F32', icon: '🥉', xpColor: '#CD7F32' };
+}
+
 /* ─── LEFT SIDEBAR ──────────────────────────────── */
 function LeftSidebar({ user }) {
   const location = useLocation();
+  const trips = user?.totalTrips || 0;
+  const lvl   = userLevel(trips);
+  const nextThreshold = trips >= 100 ? 100 : trips >= 50 ? 100 : trips >= 20 ? 50 : 20;
+  const xpPct = Math.min(100, Math.round((trips / nextThreshold) * 100));
+
   return (
     <aside style={{
       position: 'sticky', top: 72, height: 'calc(100vh - 80px)',
@@ -384,7 +397,7 @@ function LeftSidebar({ user }) {
       {user && (
         <Link to="/profile" style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 12px', borderRadius: 12, marginBottom: 8,
+          padding: '10px 12px', borderRadius: 12, marginBottom: 4,
           textDecoration: 'none',
           background: 'var(--bg-800)',
           border: '1px solid var(--border-color)',
@@ -408,6 +421,26 @@ function LeftSidebar({ user }) {
       )}
 
       {/* Grouped nav */}
+      {/* Reputation block */}
+      {user && (
+        <div style={{ padding: '8px 12px 10px', borderRadius: 10, marginBottom: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>NIVEAU</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: lvl.color, display: 'flex', alignItems: 'center', gap: 3 }}>
+              {lvl.icon} {lvl.label}
+            </span>
+          </div>
+          {/* XP bar */}
+          <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden', marginBottom: 4 }}>
+            <div style={{ height: '100%', width: `${xpPct}%`, borderRadius: 99, background: lvl.xpColor, transition: 'width 1s ease' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{trips} trajet{trips !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>→ {nextThreshold} pour le palier suivant</span>
+          </div>
+        </div>
+      )}
+
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {NAV_GROUPS.map(({ label, items }) => (
           <div key={label}>
