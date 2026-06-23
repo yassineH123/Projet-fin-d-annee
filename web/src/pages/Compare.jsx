@@ -303,63 +303,85 @@ export default function Compare() {
     <div className="min-h-screen">
 
       {/* ── HEADER SEARCH ── */}
-      <div className="py-10 px-4" style={{ background: 'linear-gradient(160deg,#C1272D 0%,#9e1f24 60%,#7e181d 100%)' }}>
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-6">
-            <h1 className="flex items-center justify-center gap-2 text-3xl font-black text-white mb-1"><Map size={28} /> Comparateur de transport</h1>
-            <p style={{ color: 'rgba(255,255,255,0.75)' }}>Covoiturage, Train, Bus, Grand Taxi, Avion — tout en un coup d'œil</p>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 0' }}>
+        <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+          {/* Zellige stripe */}
+          <div style={{ height: 5, display: 'flex', overflow: 'hidden' }}>
+            {Array.from({ length: 50 }).map((_, i) => (
+              <div key={i} style={{ flex: 1, background: i % 3 === 0 ? '#C1272D' : i % 3 === 1 ? '#D4890A' : '#006233', opacity: 0.85 }} />
+            ))}
           </div>
-
-          <form onSubmit={handleSearch} className="rounded-2xl p-4 shadow-2xl" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* From */}
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full" style={{ background: '#006233' }} />
-                <input value={from} onChange={e => setFrom(e.target.value)} placeholder="Ville de départ"
-                  className="input pl-8 text-sm" list="cmp-from" />
-                <datalist id="cmp-from">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+          <div style={{ padding: '18px 22px', background: 'linear-gradient(135deg, rgba(193,39,45,0.04) 0%, transparent 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Map size={20} style={{ color: '#C1272D' }} />
               </div>
-
-              {/* Swap + To */}
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full" style={{ background: '#C1272D' }} />
-                <input value={to} onChange={e => setTo(e.target.value)} placeholder="Ville d'arrivée"
-                  className="input pl-8 text-sm" list="cmp-to" />
-                <datalist id="cmp-to">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
-                <button type="button" onClick={swap}
-                  className="absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full hidden sm:flex items-center justify-center"
-                  style={{ background: 'var(--card-bg)', border: '2px solid var(--border-muted)', color: '#C1272D' }}>
-                  <ArrowLeftRight size={13} />
+              <div>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Comparateur de transport</p>
+              </div>
+              {searched && from && to && (
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{from}</span>
+                  <div style={{ width: 40, height: 2, background: 'linear-gradient(to right, #C1272D, #D4890A, #006233)', borderRadius: 1 }} />
+                  <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{to}</span>
+                </div>
+              )}
+            </div>
+            <form onSubmit={handleSearch}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: 10 }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: '#006233' }} />
+                  <input value={from} onChange={e => setFrom(e.target.value)} placeholder="Ville de départ"
+                    className="input" style={{ paddingLeft: 28, fontSize: 14, height: 44 }} list="cmp-from" />
+                  <datalist id="cmp-from">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <button type="button" onClick={swap} style={{ position: 'absolute', left: -16, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 28, height: 28, borderRadius: '50%', background: 'var(--card-bg)', border: '1.5px solid var(--border-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C1272D', padding: 0 }}>
+                    <ArrowLeftRight size={12} />
+                  </button>
+                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', background: '#C1272D' }} />
+                  <input value={to} onChange={e => setTo(e.target.value)} placeholder="Ville d'arrivée"
+                    className="input" style={{ paddingLeft: 28, fontSize: 14, height: 44 }} list="cmp-to" />
+                  <datalist id="cmp-to">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+                </div>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                  className="input" style={{ fontSize: 14, height: 44 }} min={new Date().toISOString().split('T')[0]} />
+                <button type="submit" className="btn-primary" style={{ height: 44, paddingInline: 20, display: 'flex', alignItems: 'center', gap: 7, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                  Comparer <ArrowRight size={15} />
                 </button>
               </div>
-
-              <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="input text-sm" min={new Date().toISOString().split('T')[0]} />
-
-              <button type="submit" className="btn-primary flex items-center justify-center gap-2 text-sm h-12">
-                Comparer <ArrowRight size={15} />
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
 
       {/* ── RESULTS ── */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px 48px' }}>
 
         {!searched ? (
           /* Landing state */
-          <div className="text-center py-20">
-            <div className="flex justify-center mb-4"><Map size={56} style={{ color: 'var(--text-muted)' }} /></div>
-            <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text-base)' }}>Comparez tous les moyens de transport</h2>
-            <p className="text-sm mb-8" style={{ color: 'var(--text-muted)' }}>Entrez une ville de départ et d'arrivée pour voir toutes les options disponibles</p>
-            <div className="flex flex-wrap justify-center gap-3">
+          <div style={{ paddingTop: 32 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
               {Object.entries(MODE_CONFIG).map(([key, cfg]) => (
-                <div key={key} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-                  style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
-                  <cfg.Icon size={16} /> {cfg.label}
+                <div key={key} style={{
+                  padding: '18px 16px', borderRadius: 16, textAlign: 'center',
+                  background: 'var(--card-bg)', border: `1px solid ${cfg.border}`,
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = cfg.bg; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.color}18`; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--card-bg)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                    <cfg.Icon size={22} style={{ color: cfg.color }} />
+                  </div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>{cfg.label}</p>
                 </div>
               ))}
+            </div>
+            <div style={{ textAlign: 'center', padding: '32px 20px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 16 }}>
+              <p style={{ fontSize: 36, marginBottom: 8 }}>🗺️</p>
+              <p style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginBottom: 6 }}>Entrez votre trajet ci-dessus</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Comparez prix, durée et CO₂ pour chaque moyen de transport</p>
             </div>
           </div>
         ) : (

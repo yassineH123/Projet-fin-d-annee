@@ -290,8 +290,17 @@ export default function Profile() {
         <ZelligeStripe />
 
         {/* Cover area */}
-        <div style={{ height: 72, background: 'linear-gradient(135deg, rgba(193,39,45,0.15) 0%, rgba(212,137,10,0.10) 50%, rgba(0,98,51,0.10) 100%)', position: 'relative' }}>
-          <div style={{ position: 'absolute', right: 16, bottom: -8, fontFamily: 'Amiri, serif', fontSize: 48, color: 'rgba(193,39,45,0.08)', fontWeight: 900, userSelect: 'none' }}>رفيق الطريق</div>
+        <div style={{ height: 110, background: 'linear-gradient(135deg, rgba(193,39,45,0.18) 0%, rgba(212,137,10,0.12) 50%, rgba(0,98,51,0.12) 100%)', position: 'relative', overflow: 'hidden' }}>
+          {/* Geometric pattern */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute', top: -10, left: `${i * 14}%`,
+              width: 40, height: 40, borderRadius: 8, border: '1.5px solid rgba(193,39,45,0.12)',
+              transform: `rotate(${i * 15}deg)`, opacity: 0.7,
+            }} />
+          ))}
+          <div style={{ position: 'absolute', right: 20, bottom: 8, fontFamily: 'Amiri, serif', fontSize: 56, color: 'rgba(193,39,45,0.07)', fontWeight: 900, userSelect: 'none', lineHeight: 1 }}>رفيق الطريق</div>
+          <div style={{ position: 'absolute', top: 12, left: 18, fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(193,39,45,0.5)' }}>✦ ATLASWAY PROFILE</div>
         </div>
 
         <div style={{ padding: '0 20px 20px' }}>
@@ -365,23 +374,25 @@ export default function Profile() {
           )}
 
           {/* Stats row */}
-          <div style={{ display: 'flex', gap: 24, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
-            <div>
-              <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{profile.totalTrips || 0}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Trajets</p>
-            </div>
-            <div>
-              <p style={{ fontSize: 22, fontWeight: 900, color: '#F59E0B', lineHeight: 1 }}>{(profile.avgRating || 0).toFixed(1)}</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Note moy.</p>
-            </div>
-            {(profile.languages || []).length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-                {(profile.languages || []).map(l => (
-                  <span key={l} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: 'var(--bg-700)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{l}</span>
-                ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-color)' }}>
+            {[
+              { value: profile.totalTrips || 0, label: 'Trajets', color: '#C1272D', suffix: '' },
+              { value: (profile.avgRating || 0).toFixed(1), label: 'Note', color: '#F59E0B', suffix: '★' },
+              { value: profile.totalRatings || 0, label: 'Avis', color: '#006233', suffix: '' },
+            ].map(({ value, label, color, suffix }) => (
+              <div key={label} style={{ textAlign: 'center', padding: '10px 6px', borderRadius: 12, background: `${color}08`, border: `1px solid ${color}18` }}>
+                <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{value}{suffix}</p>
+                <p style={{ margin: '4px 0 0', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
               </div>
-            )}
+            ))}
           </div>
+          {(profile.languages || []).length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
+              {(profile.languages || []).map(l => (
+                <span key={l} style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: 'var(--bg-700)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{l}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -203,39 +203,43 @@ export default function SearchRides() {
       <SEO title={seoTitle} description={seoDesc} path="/rides/search" />
 
       {/* ── Hero header ── */}
-      <div style={{
-        borderRadius: 16, overflow: 'hidden', marginBottom: 16,
-        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
-      }}>
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
         <ZelligeStripe />
-        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            {hasRoute ? (
-              <>
-                <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1 }}>
-                  {from} <span style={{ color: '#C1272D' }}>→</span> {to}
-                </p>
+        {hasRoute ? (
+          <div style={{ padding: '20px 22px', background: 'linear-gradient(135deg, rgba(193,39,45,0.06) 0%, rgba(0,98,51,0.04) 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ Résultats de recherche</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{from}</p>
+                  <div style={{ flex: 1, maxWidth: 60, height: 2, background: 'linear-gradient(to right, #C1272D, #D4890A, #006233)', borderRadius: 1 }} />
+                  <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{to}</p>
+                </div>
                 {ARABIC_NAMES[from] && ARABIC_NAMES[to] && (
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'Amiri, serif', direction: 'rtl', marginTop: 3 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(193,39,45,0.6)', fontFamily: 'Amiri, serif', direction: 'rtl' }}>
                     {ARABIC_NAMES[to]} ← {ARABIC_NAMES[from]}
                   </p>
                 )}
-              </>
-            ) : (
-              <>
-                <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Rechercher un trajet</p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>Toutes les villes du Maroc · 5 modes de transport</p>
-              </>
-            )}
+              </div>
+              <Link to="/compare" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', flexShrink: 0, background: 'rgba(193,39,45,0.08)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)' }}>
+                <Map size={13} /> Comparer
+              </Link>
+            </div>
           </div>
-          <Link to="/compare" style={{
-            display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
-            padding: '7px 12px', borderRadius: 10, textDecoration: 'none', flexShrink: 0,
-            background: 'rgba(193,39,45,0.08)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)',
-          }}>
-            <Map size={13} /> Comparer
-          </Link>
-        </div>
+        ) : (
+          <div style={{ padding: '20px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Rechercher un trajet</p>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Toutes les villes du Maroc · 5 modes de transport</p>
+              </div>
+              <Link to="/compare" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', flexShrink: 0, background: 'rgba(193,39,45,0.08)', color: '#C1272D', border: '1px solid rgba(193,39,45,0.2)' }}>
+                <Map size={13} /> Comparer
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Quick filters (prominent) ── */}
