@@ -109,10 +109,11 @@ function AdminRoute({ children }) {
 function AppRoutes() {
   return (
     <div className="flex flex-col min-h-screen">
+      <a href="#main-content" className="skip-link">Aller au contenu</a>
       <Navbar />
       <SOSButton />
       <AccessibilityWidget />
-      <main className="flex-1 page-enter">
+      <main id="main-content" className="flex-1 page-enter">
         <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
         <Routes>

@@ -415,7 +415,7 @@ function LeftSidebar({ user }) {
             <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-base)', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user.firstName} {user.lastName}
             </p>
-            <p style={{ margin: 0, fontSize: 10, color: '#D4890A', fontFamily: "'Amiri', serif", marginTop: 1 }}>رفيق الطريق</p>
+            <p lang="ar" style={{ margin: 0, fontSize: 10, color: '#D4890A', fontFamily: "'Amiri', serif", marginTop: 1, direction: 'rtl' }}>رفيق الطريق</p>
           </div>
         </Link>
       )}
@@ -664,7 +664,7 @@ function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, ha
         <div style={{ padding: '14px 14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D', margin: 0 }}>✦ Trouver un trajet</p>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#00875A', fontWeight: 600 }}>
+            <span aria-live="polite" aria-atomic="true" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#00875A', fontWeight: 600 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C851', display: 'inline-block', animation: 'pulse 2s ease infinite' }} />
               {liveUsers || '—'} en ligne
             </span>
@@ -1230,6 +1230,13 @@ export default function Home() {
   const [burst,     setBurst]     = useState(false);
   const [page,      setPage]      = useState(1);
   const [filter,    setFilter]    = useState('all');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const revealSteps = useScrollReveal({ staggerMs: 120 });
 
@@ -1306,6 +1313,14 @@ export default function Home() {
     <>
       <SEO path="/" />
       <SplashScreen />
+
+      {/* Scroll to top */}
+      <button
+        className={`scroll-top-btn${showScrollTop ? '' : ' hidden'}`}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        aria-label="Retour en haut">
+        ↑
+      </button>
 
       <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 0%, #C1272D 33%, #D4890A 50%, #006233 67%, #006233 100%)', position: 'sticky', top: 0, zIndex: 100 }} />
 
@@ -1468,7 +1483,7 @@ export default function Home() {
                           </div>
                           <Stars n={rating} />
                         </div>
-                        <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--text-secondary)', fontFamily: showDarija ? "'Amiri', serif" : 'inherit', direction: showDarija ? 'rtl' : 'ltr', fontSize: showDarija ? 14 : 12, transition: 'all 0.2s' }}>
+                        <p lang={showDarija ? 'ar' : 'fr'} style={{ margin: 0, lineHeight: 1.6, color: 'var(--text-secondary)', fontFamily: showDarija ? "'Amiri', serif" : 'inherit', direction: showDarija ? 'rtl' : 'ltr', fontSize: showDarija ? 14 : 12, transition: 'all 0.2s' }}>
                           "{showDarija ? darija : text}"
                         </p>
                       </div>
@@ -1478,18 +1493,29 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Trust */}
-            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden', marginBottom: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+            {/* Trust — premium redesign */}
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ margin: '0 0 8px 2px', fontSize: 9, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                🛡️ POURQUOI ATLASWAY
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {[
-                  { icon: Shield,       title: 'Profils vérifiés',  desc: 'Chaque conducteur est vérifié' },
-                  { icon: Lock,         title: 'Paiement sécurisé', desc: 'Transaction 100% sécurisée' },
-                  { icon: ThumbsUp,     title: 'Avis authentiques', desc: 'Avis vérifiés après trajet' },
-                  { icon: MessageCircle,title: 'Support 24/7',      desc: 'Équipe disponible toujours' },
-                ].map(({ icon: Icon, title, desc }, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRight: i % 2 === 0 ? '1px solid var(--border-color)' : 'none', borderBottom: i < 2 ? '1px solid var(--border-color)' : 'none' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: 'rgba(193,39,45,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon size={14} style={{ color: '#C1272D' }} />
+                  { icon: Shield,        title: 'Profils vérifiés',  desc: 'CIN + permis contrôlés', bg: 'rgba(193,39,45,0.06)', ic: '#C1272D' },
+                  { icon: Lock,          title: 'Paiement sécurisé', desc: 'Transaction chiffrée',    bg: 'rgba(0,98,51,0.06)',   ic: '#006233' },
+                  { icon: ThumbsUp,      title: 'Avis vérifiés',     desc: 'Après chaque trajet',     bg: 'rgba(212,137,10,0.06)',ic: '#D4890A' },
+                  { icon: MessageCircle, title: 'Support 24/7',       desc: 'Équipe toujours là',      bg: 'rgba(139,92,246,0.06)',ic: '#8B5CF6' },
+                ].map(({ icon: Icon, title, desc, bg, ic }) => (
+                  <div key={title} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 10,
+                    background: 'var(--bg-800)',
+                    border: '1px solid var(--border-color)',
+                    transition: 'all 0.15s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = bg; e.currentTarget.style.borderColor = `${ic}33`; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={15} style={{ color: ic }} />
                     </div>
                     <div>
                       <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: 'var(--text-base)' }}>{title}</p>
