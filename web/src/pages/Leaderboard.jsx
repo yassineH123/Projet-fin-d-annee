@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Star, MapPin, Route, Award, Zap } from 'lucide-react';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
 
 const LEVEL_META = {
   bronze:  { color: '#CD7F32', bg: 'rgba(205,127,50,0.15)',  label: 'Bronze',  emoji: '🥉' },
@@ -96,11 +97,12 @@ export default function Leaderboard() {
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
       ) : drivers.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--card-bg)', borderRadius: 16, border: '1px solid var(--border-color)' }}>
-          <Trophy size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 14px', display: 'block' }} />
-          <p style={{ fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Aucun conducteur dans le classement</p>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Effectuez des trajets pour apparaître ici</p>
-        </div>
+        <EmptyState
+          icon={<Trophy size={28} style={{ color: '#D4890A' }} />}
+          title="Aucun conducteur dans le classement"
+          description="Effectuez des trajets pour apparaître ici"
+          color="#D4890A"
+        />
       ) : (
         <>
           {/* ── Podium top 3 ── */}
