@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Clock, Leaf, Star, Users, Zap,
   TrendingDown, ArrowLeftRight, ExternalLink, ChevronDown, ChevronUp,
   Plane, Train, Bus, Car, Bike, ArrowUpDown,
-  Map, Sparkles, Wallet, Ban
+  Map, Sparkles, Wallet, Ban, List
 } from 'lucide-react';
+const RouteMap = lazy(() => import('../components/RouteMap'));
 import {
   ONCF, CTM_ROUTES, GRAND_TAXI, FLIGHTS,
   findRoutes, formatDuration, co2Color, co2Label
@@ -223,6 +224,7 @@ export default function Compare() {
   const [date,  setDate]  = useState(searchParams.get('date') || '');
   const [mode,  setMode]  = useState('all');
   const [sort,  setSort]  = useState('price');
+  const [view,  setView]  = useState('list'); // 'list' | 'map'
   const [searched, setSearched] = useState(false);
 
   const [rides,        setRides]        = useState([]);
@@ -411,8 +413,8 @@ export default function Compare() {
               ))}
             </div>
 
-            {/* Sort bar */}
-            <div className="flex items-center gap-2 mb-5">
+            {/* Sort bar + view toggle */}
+            <div className="flex items-center gap-2 mb-5" style={{ flexWrap: 'wrap' }}>
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Trier :</span>
               {SORT_OPTIONS.map(s => (
                 <button key={s.id} onClick={() => setSort(s.id)}
@@ -421,35 +423,69 @@ export default function Compare() {
                   <s.icon size={12} /> {s.label}
                 </button>
               ))}
-              {from && to && (
-                <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {from} → {to} · {filtered.length} option{filtered.length !== 1 ? 's' : ''}
-                </span>
-              )}
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, background: 'var(--bg-700)', borderRadius: 10, padding: 3 }}>
+                {[{ id: 'list', Icon: List, label: 'Liste' }, { id: 'map', Icon: Map, label: 'Carte' }].map(({ id, Icon, label }) => (
+                  <button key={id} onClick={() => setView(id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8,
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none',
+                    background: view === id ? 'var(--card-bg)' : 'transparent',
+                    color: view === id ? '#C1272D' : 'var(--text-muted)',
+                    boxShadow: view === id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.15s',
+                  }}>
+                    <Icon size={13} /> {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Cards */}
-            {loadingRides && rides.length === 0 ? (
-              <div className="flex justify-center py-8"><Spinner /></div>
-            ) : filtered.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="flex justify-center mb-3"><Ban size={40} style={{ color: 'var(--text-muted)' }} /></div>
-                <p className="font-semibold" style={{ color: 'var(--text-secondary)' }}>Aucune option trouvée pour ce trajet</p>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Essayez d'autres villes ou un autre mode</p>
+            {/* MAP VIEW */}
+            {view === 'map' && (
+              <div style={{ marginBottom: 16 }}>
+                <Suspense fallback={<div style={{ height: 340, borderRadius: 14, background: 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Chargement de la carte…</div>}>
+                  <RouteMap from={from} to={to} height={340} />
+                </Suspense>
+                {filtered.length > 0 && (
+                  <div style={{ marginTop: 12, padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>{from} → {to}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>{filtered.length} option{filtered.length !== 1 ? 's' : ''} disponible{filtered.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    {cheapest && (
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>À partir de</p>
+                        <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#22C55E' }}>{cheapest.price} DH</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {filtered.map((option, i) => {
-                  const bs = [];
-                  if (cheapest && option === cheapest)                    bs.push('cheapest');
-                  if (fastest  && option === fastest)                     bs.push('fastest');
-                  if (eco      && option === eco)                         bs.push('eco');
-                  if (option.comfort === Math.max(...allOptions.map(o => o.comfort))) bs.push('comfort');
-                  return (
-                    <TransportCard key={i} option={option} from={from} to={to} badges={bs} />
-                  );
-                })}
-              </div>
+            )}
+
+            {/* Cards — masquées en vue carte */}
+            {view === 'list' && (
+              loadingRides && rides.length === 0 ? (
+                <div className="flex justify-center py-8"><Spinner /></div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="flex justify-center mb-3"><Ban size={40} style={{ color: 'var(--text-muted)' }} /></div>
+                  <p className="font-semibold" style={{ color: 'var(--text-secondary)' }}>Aucune option trouvée pour ce trajet</p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Essayez d'autres villes ou un autre mode</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {filtered.map((option, i) => {
+                    const bs = [];
+                    if (cheapest && option === cheapest)                    bs.push('cheapest');
+                    if (fastest  && option === fastest)                     bs.push('fastest');
+                    if (eco      && option === eco)                         bs.push('eco');
+                    if (option.comfort === Math.max(...allOptions.map(o => o.comfort))) bs.push('comfort');
+                    return (
+                      <TransportCard key={i} option={option} from={from} to={to} badges={bs} />
+                    );
+                  })}
+                </div>
+              )
             )}
 
             {/* CO2 comparison bar */}
