@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -107,15 +107,17 @@ function AdminRoute({ children }) {
 }
 
 function AppRoutes() {
+  const location = useLocation();
   return (
     <div className="flex flex-col min-h-screen">
       <a href="#main-content" className="skip-link">Aller au contenu</a>
       <Navbar />
       <SOSButton />
       <AccessibilityWidget />
-      <main id="main-content" className="flex-1 page-enter">
+      <main id="main-content" className="flex-1">
         <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
+        <div key={location.pathname} className="page-enter">
         <Routes>
           <Route path="/"               element={<Home />} />
           <Route path="/login"          element={<Login />} />
@@ -157,6 +159,7 @@ function AppRoutes() {
           <Route path="/city-ride"        element={<PrivateRoute><CityRide /></PrivateRoute>} />
           <Route path="*"                  element={<NotFound />} />
         </Routes>
+        </div>
         </Suspense>
         </ErrorBoundary>
       </main>
