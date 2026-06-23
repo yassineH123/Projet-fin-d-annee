@@ -100,16 +100,31 @@ const SPONSORED_ADS = [
   },
 ];
 
-const NAV_ITEMS = [
-  { icon: HomeIcon,      label: 'Accueil',         to: '/' },
-  { icon: Compass,       label: 'Tous les trajets', to: '/rides/search' },
-  { icon: GitCompare,    label: 'Comparer',         to: '/compare' },
-  { icon: Calendar,      label: 'Réservations',     to: '/bookings' },
-  { icon: Heart,         label: 'Favoris',          to: '/favorites' },
-  { icon: Bell,          label: 'Alertes prix',     to: '/ride-alerts' },
-  { icon: MessageCircle, label: 'Messages',         to: '/messages' },
-  { icon: CreditCard,    label: 'Portefeuille',     to: '/wallet' },
-  { icon: Trophy,        label: 'Classement',       to: '/leaderboard' },
+const NAV_GROUPS = [
+  {
+    label: 'TRAJETS',
+    items: [
+      { icon: HomeIcon,      label: 'Accueil',         to: '/' },
+      { icon: Compass,       label: 'Explorer',         to: '/rides/search' },
+      { icon: GitCompare,    label: 'Comparer',         to: '/compare' },
+    ],
+  },
+  {
+    label: 'COMPTE',
+    items: [
+      { icon: Calendar,      label: 'Réservations',     to: '/bookings' },
+      { icon: Heart,         label: 'Favoris',          to: '/favorites' },
+      { icon: MessageCircle, label: 'Messages',         to: '/messages' },
+      { icon: Bell,          label: 'Alertes prix',     to: '/ride-alerts' },
+      { icon: CreditCard,    label: 'Portefeuille',     to: '/wallet' },
+    ],
+  },
+  {
+    label: 'COMMUNAUTÉ',
+    items: [
+      { icon: Trophy,        label: 'Classement',       to: '/leaderboard' },
+    ],
+  },
 ];
 
 const ARABIC_CITIES = {
@@ -363,68 +378,84 @@ function LeftSidebar({ user }) {
     <aside style={{
       position: 'sticky', top: 72, height: 'calc(100vh - 80px)',
       overflowY: 'auto', paddingBottom: 24, scrollbarWidth: 'none',
+      display: 'flex', flexDirection: 'column', gap: 0,
     }}>
+      {/* User profile card */}
       {user && (
         <Link to="/profile" style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 10px', borderRadius: 12, marginBottom: 4,
-          textDecoration: 'none', background: 'var(--bg-800)',
-          border: '1px solid var(--border-color)', transition: 'all 0.2s',
+          padding: '10px 12px', borderRadius: 12, marginBottom: 8,
+          textDecoration: 'none',
+          background: 'var(--bg-800)',
+          border: '1px solid var(--border-color)',
+          transition: 'all 0.2s',
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.06)'; e.currentTarget.style.borderColor = 'rgba(193,39,45,0.25)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(193,39,45,0.3)'; e.currentTarget.style.background = 'rgba(193,39,45,0.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-800)'; }}>
           {user.photo
-            ? <img src={user.photo} alt="" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2px solid #C1272D', flexShrink: 0 }} />
-            : <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0, border: '2px solid rgba(212,137,10,0.4)' }}>
+            ? <img src={user.photo} alt="" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '2px solid #C1272D', flexShrink: 0 }} />
+            : <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#C1272D,#D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
                 {user.firstName?.[0]}{user.lastName?.[0]}
               </div>
           }
           <div style={{ minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-base)', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-base)', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user.firstName} {user.lastName}
             </p>
-            <p style={{ margin: 0, fontSize: 11, color: '#D4890A', fontFamily: "'Amiri', serif", marginTop: 2 }}>رفيق الطريق</p>
+            <p style={{ margin: 0, fontSize: 10, color: '#D4890A', fontFamily: "'Amiri', serif", marginTop: 1 }}>رفيق الطريق</p>
           </div>
         </Link>
       )}
 
-      <nav style={{ marginTop: 8 }}>
-        {NAV_ITEMS.map(({ icon: Icon, label, to }) => {
-          const active = location.pathname === to;
-          return (
-            <Link key={to} to={to} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '9px 10px', borderRadius: 8, marginBottom: 2,
-              textDecoration: 'none',
-              background: active ? 'rgba(193,39,45,0.1)' : 'transparent',
-              color: active ? '#C1272D' : 'var(--text-secondary)',
-              fontWeight: active ? 700 : 500, fontSize: 14,
-              transition: 'all 0.15s',
-              border: active ? '1px solid rgba(193,39,45,0.2)' : '1px solid transparent',
-            }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.color = 'var(--text-base)'; } }}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
-              <Icon size={18} style={{ flexShrink: 0, color: active ? '#C1272D' : undefined }} />
+      {/* Grouped nav */}
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {NAV_GROUPS.map(({ label, items }) => (
+          <div key={label}>
+            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 10px', marginBottom: 4 }}>
               {label}
-            </Link>
-          );
-        })}
+            </p>
+            {items.map(({ icon: Icon, label: itemLabel, to }) => {
+              const active = location.pathname === to;
+              return (
+                <Link key={to} to={to} style={{
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '7px 10px 7px 12px',
+                  borderRadius: 8, marginBottom: 1,
+                  textDecoration: 'none',
+                  position: 'relative',
+                  color: active ? '#C1272D' : 'var(--text-secondary)',
+                  fontWeight: active ? 700 : 500,
+                  fontSize: 13,
+                  background: active ? 'rgba(193,39,45,0.07)' : 'transparent',
+                  transition: 'all 0.15s',
+                  borderLeft: active ? '3px solid #C1272D' : '3px solid transparent',
+                }}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-800)'; e.currentTarget.style.color = 'var(--text-base)'; } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
+                  <Icon size={16} style={{ flexShrink: 0 }} />
+                  {itemLabel}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      <div style={{ height: 1, background: 'var(--border-color)', margin: '12px 0' }} />
+      <div style={{ flexGrow: 1, minHeight: 16 }} />
 
+      {/* CTA Proposer */}
       <Link to="/rides/publish" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        padding: '11px 16px', borderRadius: 10,
-        background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        padding: '10px 14px', borderRadius: 10,
+        background: 'linear-gradient(135deg,#C1272D,#9e1f24)',
         color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13,
-        boxShadow: '0 4px 16px rgba(193,39,45,0.35)', transition: 'transform 0.2s, box-shadow 0.2s',
+        boxShadow: '0 4px 14px rgba(193,39,45,0.3)',
+        transition: 'transform 0.2s, box-shadow 0.2s',
       }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(193,39,45,0.5)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(193,39,45,0.35)'; }}>
-        <Car size={15} /> Proposer un trajet
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 7px 20px rgba(193,39,45,0.45)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(193,39,45,0.3)'; }}>
+        <Car size={14} /> Proposer un trajet
       </Link>
-
     </aside>
   );
 }
@@ -595,8 +626,8 @@ function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, ha
       scrollbarWidth: 'none', paddingBottom: 24,
     }}>
       {/* Search widget */}
-      <div style={{ background: 'var(--bg-800)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden' }}>
-        <ZelligeStripe />
+      <div style={{ background: 'var(--bg-800)', border: '1px solid var(--border-color)', borderRadius: 14, flexShrink: 0 }}>
+        <div style={{ borderRadius: '14px 14px 0 0', overflow: 'hidden' }}><ZelligeStripe /></div>
         <div style={{ padding: '14px 14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D', margin: 0 }}>✦ Trouver un trajet</p>
@@ -636,6 +667,39 @@ function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, ha
             </div>
             <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
               min={new Date().toISOString().split('T')[0]} className="input" style={{ fontSize: 12 }} />
+
+            {/* Passagers */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Users size={11} /> Passagers
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button type="button"
+                  onClick={() => setForm(f => ({ ...f, passengers: Math.max(1, f.passengers - 1) }))}
+                  style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-700)', color: 'var(--text-base)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>−</button>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-base)', minWidth: 16, textAlign: 'center' }}>{form.passengers}</span>
+                <button type="button"
+                  onClick={() => setForm(f => ({ ...f, passengers: Math.min(8, f.passengers + 1) }))}
+                  style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-700)', color: 'var(--text-base)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>+</button>
+              </div>
+            </div>
+
+            {/* Prix maximum */}
+            <div style={{ padding: '0 2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <CreditCard size={11} /> Prix max
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: form.priceMax > 0 ? '#C1272D' : 'var(--text-muted)' }}>
+                  {form.priceMax > 0 ? `${form.priceMax} DH` : 'Illimité'}
+                </span>
+              </div>
+              <input type="range" min="0" max="500" step="25"
+                value={form.priceMax}
+                onChange={e => setForm(f => ({ ...f, priceMax: Number(e.target.value) }))}
+                style={{ width: '100%', accentColor: '#C1272D', cursor: 'pointer' }} />
+            </div>
+
             <button type="submit" style={{
               width: '100%', height: 42, borderRadius: 10,
               background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
@@ -1063,7 +1127,7 @@ export default function Home() {
   const { t }       = useLanguage();
   const h           = t.home;
 
-  const [form,      setForm]      = useState({ from: '', to: '', date: '' });
+  const [form,      setForm]      = useState({ from: '', to: '', date: '', passengers: 1, priceMax: 0 });
   const [showMap,   setShowMap]   = useState(false);
   const [locating,  setLocating]  = useState(false);
   const [realTrips, setRealTrips] = useState([]);
@@ -1103,9 +1167,11 @@ export default function Home() {
     setBurst(true);
     setTimeout(() => setBurst(false), 1100);
     const p = new URLSearchParams();
-    if (form.from) p.set('from', form.from);
-    if (form.to)   p.set('to', form.to);
-    if (form.date) p.set('date', form.date);
+    if (form.from)            p.set('from', form.from);
+    if (form.to)              p.set('to', form.to);
+    if (form.date)            p.set('date', form.date);
+    if (form.passengers > 1)  p.set('seats', form.passengers);
+    if (form.priceMax > 0)    p.set('maxPrice', form.priceMax);
     navigate(`/rides/search?${p.toString()}`);
   };
 
@@ -1152,8 +1218,8 @@ export default function Home() {
 
       <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 0%, #C1272D 33%, #D4890A 50%, #006233 67%, #006233 100%)', position: 'sticky', top: 0, zIndex: 100 }} />
 
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 16px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 280px', gap: 14, alignItems: 'start' }} className="home-grid">
+      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '16px 20px 0' }}>
+        <div style={{ display: 'grid', gap: 18, alignItems: 'start' }} className="home-grid">
 
           {/* LEFT */}
           <LeftSidebar user={user} />
@@ -1165,9 +1231,15 @@ export default function Home() {
 
             {/* Feed header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, padding: '0 2px' }}>
-              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#D4890A' }}>
-                ✦ رحلات متاحة · Trajets en direct
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, background: 'rgba(0,200,81,0.08)', border: '1px solid rgba(0,200,81,0.18)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C851', display: 'inline-block', animation: 'pulse 1.5s ease infinite' }} />
+                  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', color: '#00875A', textTransform: 'uppercase' }}>DIRECT</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#D4890A' }}>
+                  رحلات متاحة · Trajets
+                </p>
+              </div>
               <Link to="/rides/search" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#C1272D', textDecoration: 'none', fontWeight: 600 }}>
                 Voir tout <ChevronRight size={13} />
               </Link>

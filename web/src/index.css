@@ -502,6 +502,27 @@ h1, h2, h3, h4 {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
+/* ── Home 3-column grid responsive ── */
+.home-grid {
+  grid-template-columns: 196px 1fr 252px;
+}
+@media (max-width: 1100px) {
+  .home-grid {
+    grid-template-columns: 196px 1fr !important;
+  }
+  .home-grid > aside:last-child {
+    display: none !important;
+  }
+}
+@media (max-width: 860px) {
+  .home-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .home-grid > aside:first-child {
+    display: none !important;
+  }
+}
+
 /* ── Hero grid responsive ── */
 .hero-grid {
   grid-template-columns: minmax(0,1fr) minmax(0,420px) !important;
