@@ -122,6 +122,70 @@ function DocUploadField({ label, fieldName, currentDoc, onChange, required }) {
   );
 }
 
+const LEVELS = [
+  { name: 'Bronze',  emoji: '🥉', color: '#CD7F32', bg: 'rgba(205,127,50,0.10)',  min: 0,   max: 9   },
+  { name: 'Argent',  emoji: '🥈', color: '#A0A0A0', bg: 'rgba(160,160,160,0.10)', min: 10,  max: 24  },
+  { name: 'Or',      emoji: '🥇', color: '#FFD700', bg: 'rgba(255,215,0,0.10)',   min: 25,  max: 49  },
+  { name: 'Platine', emoji: '💎', color: '#B0C4DE', bg: 'rgba(176,196,222,0.10)', min: 50,  max: 99  },
+  { name: 'Diamant', emoji: '🔷', color: '#89CFF0', bg: 'rgba(137,207,240,0.10)', min: 100, max: Infinity },
+];
+
+function LevelCard({ trips, rating }) {
+  const lvl    = LEVELS.find(l => trips >= l.min && trips <= l.max) || LEVELS[0];
+  const next   = LEVELS[LEVELS.indexOf(lvl) + 1];
+  const pct    = next ? Math.min(100, Math.round(((trips - lvl.min) / (next.min - lvl.min)) * 100)) : 100;
+  const perks  = [
+    { label: 'Priorité recherche', ok: trips >= 25 },
+    { label: 'Badge profil',       ok: trips >= 10 },
+    { label: 'Support prioritaire',ok: trips >= 50 },
+    { label: 'Commission réduite', ok: trips >= 100 },
+  ];
+  return (
+    <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: `1px solid ${lvl.color}30` }}>
+      <div style={{ height: 4, background: `linear-gradient(90deg, ${lvl.color}, ${next?.color || lvl.color})` }} />
+      <div style={{ padding: '16px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: lvl.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>{lvl.emoji}</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: lvl.color }}>Niveau AtlasWay</p>
+            <p style={{ margin: '2px 0 0', fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{lvl.name}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+              {next ? `${trips - lvl.min} / ${next.min - lvl.min} trajets → ${next.emoji} ${next.name}` : '🏆 Niveau maximum atteint !'}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: lvl.color }}>{trips}</p>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>trajets</p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        {next && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: lvl.color }}>{lvl.emoji} {lvl.name}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>{next.emoji} {next.name} ({pct}%)</span>
+            </div>
+            <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-700)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 4, width: `${pct}%`, background: `linear-gradient(90deg, ${lvl.color}, ${next.color})`, transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1)' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Perks */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {perks.map(p => (
+            <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', borderRadius: 10, background: p.ok ? `${lvl.color}10` : 'var(--bg-700)', border: `1px solid ${p.ok ? lvl.color + '30' : 'var(--border-color)'}` }}>
+              <span style={{ fontSize: 13 }}>{p.ok ? '✅' : '🔒'}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: p.ok ? lvl.color : 'var(--text-muted)' }}>{p.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const { id } = useParams();
   const { user: me, updateUser } = useAuth();
@@ -400,6 +464,9 @@ export default function Profile() {
       {(profile.totalTrips > 0 || profile.driverVerified) && (
         <ReliabilityScore user={profile} />
       )}
+
+      {/* ── Level & progression ── */}
+      <LevelCard trips={profile.totalTrips || 0} rating={profile.avgRating || 0} />
 
       {/* ══════════════════════════════════════
           OWN PROFILE — edit mode
