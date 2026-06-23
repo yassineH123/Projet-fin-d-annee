@@ -150,15 +150,66 @@ export default function PublishRide() {
   const minDate  = new Date().toISOString().slice(0, 16);
   const suggestion = suggestPrice(form.from.trim(), form.to.trim());
 
+  const steps = [
+    { n: 1, label: 'Transport' },
+    { n: 2, label: 'Itinéraire' },
+    { n: 3, label: 'Détails' },
+    { n: 4, label: 'Options' },
+  ];
+  const currentStep = form.transportMode && form.from && form.to && form.departureDate && form.price ? 4
+    : form.transportMode && form.from && form.to ? 3
+    : form.transportMode ? 2 : 1;
+
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 16px 64px' }}>
 
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 4 }}>
-          Publier un trajet
-        </h1>
-        <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Partagez votre trajet et réduisez vos frais</p>
+      {/* ── Header ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 24, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        {/* Zellige stripe */}
+        <div style={{ height: 5, display: 'flex', overflow: 'hidden' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3], opacity: 0.9 }} />
+          ))}
+        </div>
+        <div style={{ padding: '20px 22px', background: 'linear-gradient(135deg, rgba(193,39,45,0.04) 0%, transparent 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Car size={22} style={{ color: '#C1272D' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>Publier un trajet</h1>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Partagez votre trajet et réduisez vos frais</p>
+            </div>
+          </div>
+          {/* Stepper */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            {steps.map(({ n, label }, i) => {
+              const done    = currentStep > n;
+              const active  = currentStep === n;
+              return (
+                <div key={n} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 900, fontSize: 12, border: '2px solid',
+                      borderColor: done ? '#006233' : active ? '#C1272D' : 'var(--border-color)',
+                      background: done ? '#006233' : active ? '#C1272D' : 'var(--bg-700)',
+                      color: done || active ? '#fff' : 'var(--text-muted)',
+                      transition: 'all 0.3s',
+                    }}>
+                      {done ? '✓' : n}
+                    </div>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#C1272D' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div style={{ flex: 1, height: 2, margin: '0 6px', marginBottom: 16, borderRadius: 1, background: done ? '#006233' : 'var(--border-color)', transition: 'background 0.3s' }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -548,13 +599,20 @@ export default function PublishRide() {
 
         <button type="submit" disabled={loading}
           style={{
-            height: 52, borderRadius: 14, background: loading ? 'var(--bg-500)' : 'linear-gradient(135deg, #C1272D, #a01f24)',
-            color: '#fff', fontSize: 16, fontWeight: 900, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-            boxShadow: loading ? 'none' : '0 4px 20px rgba(193,39,45,0.35)',
+            height: 58, borderRadius: 16, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+            background: loading ? 'var(--bg-700)' : 'linear-gradient(135deg, #C1272D 0%, #9e1f24 50%, #C1272D 100%)',
+            color: loading ? 'var(--text-muted)' : '#fff',
+            fontSize: 16, fontWeight: 900, letterSpacing: '0.02em',
+            boxShadow: loading ? 'none' : '0 6px 24px rgba(193,39,45,0.4)',
             transition: 'all .2s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }}>
-          {loading ? 'Publication en cours…' : '🚗 Publier le trajet'}
+          {loading
+            ? <><RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> Publication en cours…</>
+            : <><Car size={18} /> Publier le trajet →</>
+          }
         </button>
+        <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
       </form>
     </div>
   );

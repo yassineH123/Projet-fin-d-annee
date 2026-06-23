@@ -106,7 +106,7 @@ function PostCard({ post, currentUser, onReact, onComment, onDelete, onSave, onP
   };
 
   return (
-    <div className="card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden', border: post.pinned ? '1.5px solid #D4890A' : undefined }}>
+    <div className="card" style={{ marginBottom: 12, padding: 0, overflow: 'hidden', border: post.pinned ? '1.5px solid #D4890A' : '1px solid var(--border-color)', borderLeft: `3px solid ${cfg.color}` }}>
       {post.pinned && (
         <div style={{ background: 'rgba(212,137,10,0.08)', padding: '4px 16px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid rgba(212,137,10,0.2)' }}>
           <Pin size={12} style={{ color: '#D4890A' }} />
@@ -553,9 +553,34 @@ export default function Feed() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-900)', paddingTop: 24, paddingBottom: 40 }}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 16px' }}>
 
-        <div style={{ marginBottom: 16 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-base)', margin: 0 }}>Fil d'actualité</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Trajets, expériences et questions de la communauté AtlasWay 🇲🇦</p>
+        {/* ── Header ── */}
+        <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+          <div style={{ height: 5, display: 'flex', overflow: 'hidden' }}>
+            {Array.from({ length: 60 }).map((_, i) => (
+              <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+            ))}
+          </div>
+          <div style={{ padding: '18px 20px', background: 'linear-gradient(135deg, rgba(193,39,45,0.04) 0%, transparent 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+                <h1 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>Fil d'actualité</h1>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Trajets, expériences et questions de la communauté 🇲🇦</p>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {[
+                  { label: 'Posts',   val: posts.length, color: '#C1272D' },
+                  { label: 'Trajets', val: posts.filter(p => p.type === 'trip').length,     color: '#D4890A' },
+                  { label: 'Questions',val: posts.filter(p => p.type === 'question').length, color: '#006233' },
+                ].map(({ label, val, color }) => (
+                  <div key={label} style={{ textAlign: 'center', padding: '8px 12px', borderRadius: 10, background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+                    <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color }}>{val}</p>
+                    <p style={{ margin: 0, fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {user
