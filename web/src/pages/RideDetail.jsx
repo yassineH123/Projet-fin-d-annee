@@ -134,7 +134,7 @@ export default function RideDetail() {
   };
 
   if (loading) return <Spinner size="lg" />;
-  if (!ride)   return <div className="text-center py-20 text-slate-400">Trajet introuvable.</div>;
+  if (!ride)   return <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>Trajet introuvable.</div>;
 
   const driver  = ride.driver || {};
   const date    = new Date(ride.departureDate);
@@ -379,8 +379,7 @@ export default function RideDetail() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {reviews.slice(0, 5).map((r) => (
-                  <div key={r.id} style={{ paddingBottom: 16, borderBottom: '1px solid var(--border-color)' }}
-                    className="last:border-0 last:pb-0">
+                  <div key={r.id} style={{ paddingBottom: r.id === reviews.slice(0, 5).at(-1)?.id ? 0 : 16, borderBottom: r.id === reviews.slice(0, 5).at(-1)?.id ? 'none' : '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                       {r.reviewer?.photo
                         ? <img src={r.reviewer.photo} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />

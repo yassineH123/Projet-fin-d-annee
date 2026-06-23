@@ -21,17 +21,41 @@ const LEVEL_META = {
   diamant: { color: '#B9F2FF', label: 'Diamant',  next: null,      target: null },
 };
 
+function ZelligeStripe() {
+  return (
+    <div style={{ height: 5, display: 'flex', overflow: 'hidden' }}>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: ['#C1272D', '#D4890A', '#006233'][i % 3] }} />
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, sub, color = '#C1272D' }) {
   return (
-    <div className="card flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</span>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
-          <Icon size={15} style={{ color }} />
+    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, padding: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={14} style={{ color }} />
         </div>
       </div>
-      <p className="text-2xl font-black text-white">{value}</p>
-      {sub && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
+      <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>{value}</p>
+      {sub && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>{sub}</p>}
+    </div>
+  );
+}
+
+function SectionCard({ title, icon: Icon, iconColor, children }) {
+  return (
+    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
+      <ZelligeStripe />
+      <div style={{ padding: '18px 20px' }}>
+        <p style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon size={15} style={{ color: iconColor }} /> {title}
+        </p>
+        {children}
+      </div>
     </div>
   );
 }
@@ -44,31 +68,43 @@ export default function DriverAnalytics() {
     api.get('/analytics/driver').then(({ data }) => setStats(data)).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Spinner size="lg" />;
-  if (!stats) return <p className="text-center text-slate-400 py-16">Aucune donnée disponible.</p>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><Spinner size="lg" /></div>;
+  if (!stats)  return <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>Aucune donnée disponible.</div>;
 
   const lm = LEVEL_META[stats.level] || LEVEL_META.bronze;
   const progress = lm.target ? Math.min(100, Math.round((stats.totalTrips / lm.target) * 100)) : 100;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
-      <h1 className="text-2xl font-black text-white flex items-center gap-2">
-        <TrendingUp size={22} className="text-primary-400" /> Mes statistiques
-      </h1>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 64px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Header */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <ZelligeStripe />
+        <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TrendingUp size={22} style={{ color: '#10B981' }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#10B981' }}>✦ AtlasWay</p>
+            <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Mes statistiques</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Tableau de bord analytique conducteur</p>
+          </div>
+        </div>
+      </div>
 
       {/* Level card */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-3">
+      <div style={{ background: 'var(--card-bg)', border: `1.5px solid ${lm.color}40`, borderRadius: 14, padding: '18px 20px', boxShadow: `0 4px 20px ${lm.color}12` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
-            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Niveau actuel</p>
-            <p className="text-xl font-black" style={{ color: lm.color }}>{lm.label}</p>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Niveau actuel</p>
+            <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: lm.color }}>{lm.label}</p>
           </div>
           <Trophy size={32} style={{ color: lm.color }} />
         </div>
-        <div className="w-full rounded-full h-2.5 mb-2" style={{ background: 'var(--bg-700)' }}>
-          <div className="h-2.5 rounded-full transition-all" style={{ width: `${progress}%`, background: lm.color }} />
+        <div style={{ width: '100%', height: 10, borderRadius: 99, background: 'var(--bg-700)', marginBottom: 8 }}>
+          <div style={{ height: 10, borderRadius: 99, background: lm.color, width: `${progress}%`, transition: 'width 0.6s ease' }} />
         </div>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
           {lm.target
             ? `${stats.totalTrips} / ${lm.target} trajets pour atteindre ${lm.next}`
             : 'Niveau maximum atteint ! 🏆'}
@@ -76,22 +112,18 @@ export default function DriverAnalytics() {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <StatCard icon={Car}       label="Trajets"         value={stats.totalTrips}         sub="complétés"           color="#C1272D" />
-        <StatCard icon={DollarSign} label="Revenus estimés" value={`${stats.totalEarnings} DH`} sub="total"           color="#10B981" />
-        <StatCard icon={MapPin}    label="Km parcourus"    value={`${stats.totalKm} km`}    sub="au total"            color="#3B82F6" />
-        <StatCard icon={Leaf}      label="CO₂ économisé"   value={`${stats.co2Saved} kg`}   sub="vs trajets solo"     color="#10B981" />
-        <StatCard icon={Star}      label="Note moyenne"    value={stats.avgRating?.toFixed(1) || '–'} sub="/ 5"       color="#FBBF24" />
-        <StatCard icon={Percent}   label="Taux de remplissage" value={`${stats.fillRate ?? 0} %`} sub="places vendues"  color="#D4890A" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+        <StatCard icon={Car}       label="Trajets"              value={stats.totalTrips}              sub="complétés"        color="#C1272D" />
+        <StatCard icon={DollarSign} label="Revenus estimés"     value={`${stats.totalEarnings} DH`}   sub="total"            color="#10B981" />
+        <StatCard icon={MapPin}    label="Km parcourus"         value={`${stats.totalKm} km`}          sub="au total"         color="#3B82F6" />
+        <StatCard icon={Leaf}      label="CO₂ économisé"        value={`${stats.co2Saved} kg`}         sub="vs trajets solo"  color="#10B981" />
+        <StatCard icon={Star}      label="Note moyenne"         value={stats.avgRating?.toFixed(1) || '–'} sub="/ 5"          color="#FBBF24" />
+        <StatCard icon={Percent}   label="Taux remplissage"     value={`${stats.fillRate ?? 0} %`}    sub="places vendues"   color="#D4890A" />
       </div>
 
-      {/* ── Graphiques ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenus par mois */}
-        <div className="card">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <DollarSign size={16} className="text-green-400" /> Revenus (6 derniers mois)
-          </h2>
+      {/* Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <SectionCard title="Revenus (6 derniers mois)" icon={DollarSign} iconColor="#10B981">
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={stats.monthlyEarnings || []} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
@@ -107,13 +139,9 @@ export default function DriverAnalytics() {
               <Area type="monotone" dataKey="earnings" stroke="#10B981" strokeWidth={2} fill="url(#earnGrad)" />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </SectionCard>
 
-        {/* Trajets par mois */}
-        <div className="card">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Car size={16} className="text-primary-400" /> Trajets publiés (6 derniers mois)
-          </h2>
+        <SectionCard title="Trajets publiés (6 derniers mois)" icon={Car} iconColor="#C1272D">
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={stats.monthlyTrips || []} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
@@ -123,15 +151,12 @@ export default function DriverAnalytics() {
               <Bar dataKey="trips" fill="#C1272D" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </SectionCard>
       </div>
 
       {/* Top destinations */}
       {stats.topDestinations?.length > 0 && (
-        <div className="card">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <MapPin size={16} className="text-blue-400" /> Destinations les plus populaires
-          </h2>
+        <SectionCard title="Destinations les plus populaires" icon={MapPin} iconColor="#3B82F6">
           <ResponsiveContainer width="100%" height={Math.max(140, stats.topDestinations.length * 42)}>
             <BarChart data={stats.topDestinations} layout="vertical" margin={{ top: 0, right: 16, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
@@ -143,55 +168,44 @@ export default function DriverAnalytics() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </SectionCard>
       )}
 
       {/* Badges */}
       {stats.badges?.length > 0 && (
-        <div className="card">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Award size={16} className="text-yellow-400" /> Mes badges
-          </h2>
-          <div className="flex flex-wrap gap-3">
+        <SectionCard title="Mes badges" icon={Award} iconColor="#D4890A">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {stats.badges.map(b => (
-              <div key={b.id} className="flex items-center gap-2 px-3 py-2 rounded-xl"
-                style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
-                <span className="text-xl">{b.emoji}</span>
+              <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: 20 }}>{b.emoji}</span>
                 <div>
-                  <p className="text-xs font-semibold text-white">{b.label}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {new Date(b.earnedAt).toLocaleDateString('fr-FR')}
-                  </p>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{b.label}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>{new Date(b.earnedAt).toLocaleDateString('fr-FR')}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* Rating evolution */}
       {stats.ratingEvolution?.length > 0 && (
-        <div className="card">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-            <TrendingUp size={16} className="text-green-400" /> Évolution de la note (6 derniers mois)
-          </h2>
-          <div className="flex items-end gap-2 h-24">
+        <SectionCard title="Évolution de la note (6 derniers mois)" icon={TrendingUp} iconColor="#10B981">
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 96 }}>
             {stats.ratingEvolution.map(({ month, avg }) => (
-              <div key={month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>{avg}</span>
-                <div className="w-full rounded-t-lg transition-all"
-                  style={{
-                    height: `${Math.round((avg / 5) * 80)}px`,
-                    background: avg >= 4.5 ? '#10B981' : avg >= 3.5 ? '#FBBF24' : '#EF4444',
-                    minHeight: 6,
-                  }} />
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {month.slice(5)}
-                </span>
+              <div key={month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#FBBF24' }}>{avg}</span>
+                <div style={{
+                  width: '100%', borderRadius: '6px 6px 0 0',
+                  height: `${Math.round((avg / 5) * 70)}px`,
+                  background: avg >= 4.5 ? '#10B981' : avg >= 3.5 ? '#FBBF24' : '#EF4444',
+                  minHeight: 6, transition: 'height 0.4s ease',
+                }} />
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{month.slice(5)}</span>
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
     </div>
   );

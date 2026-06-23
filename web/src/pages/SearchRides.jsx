@@ -66,41 +66,39 @@ function StaticTransportCard({ item, mode }) {
     >
       <div style={{ height: 3, background: cfg?.color }} />
       <div style={{ padding: '14px 16px' }}>
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
           <div>
-            <p className="font-black text-sm" style={{ color: cfg?.color }}>{item.operator}</p>
-            {item.class && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{item.class}</p>}
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: cfg?.color }}>{item.operator}</p>
+            {item.class && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>{item.class}</p>}
           </div>
-          <div className="text-right">
-            <p className="font-black text-2xl" style={{ color: cfg?.color, fontVariantNumeric: 'tabular-nums' }}>{price}</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>DH/pers</p>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: cfg?.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{price}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>DH/pers</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs mb-3 flex-wrap">
-          {item.duration && <span className="flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}><Clock size={11}/>{formatDuration(item.duration)}</span>}
-          {item.co2      && <span className="flex items-center gap-1 font-semibold" style={{ color: co2Color(item.co2) }}><Leaf size={11}/>{item.co2}kg CO₂</span>}
-          {mode === 'grandtaxi' && <span style={{ color: 'var(--text-muted)' }}>~30 min attente · 5 passagers</span>}
-          {mode === 'avion'     && <span style={{ color: 'var(--text-muted)' }}>Prix à partir de</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+          {item.duration && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}><Clock size={11}/>{formatDuration(item.duration)}</span>}
+          {item.co2      && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: co2Color(item.co2) }}><Leaf size={11}/>{item.co2}kg CO₂</span>}
+          {mode === 'grandtaxi' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>~30 min attente · 5 passagers</span>}
+          {mode === 'avion'     && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Prix à partir de</span>}
         </div>
         {item.departures && (
-          <div className="flex gap-1.5 flex-wrap mb-3">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             {item.departures.slice(0, 6).map(d => (
-              <span key={d} className="text-xs px-2 py-0.5 rounded-lg font-mono"
-                style={{ background: `${cfg?.color}15`, color: cfg?.color, border: `1px solid ${cfg?.color}30` }}>{d}</span>
+              <span key={d} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, fontFamily: 'monospace', background: `${cfg?.color}15`, color: cfg?.color, border: `1px solid ${cfg?.color}30` }}>{d}</span>
             ))}
             {item.departures.length > 6 && (
-              <span className="text-xs px-2 py-0.5 rounded-lg" style={{ color: 'var(--text-muted)', background: 'var(--bg-700)' }}>+{item.departures.length - 6}</span>
+              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, color: 'var(--text-muted)', background: 'var(--bg-700)' }}>+{item.departures.length - 6}</span>
             )}
           </div>
         )}
         {item.bookingUrl ? (
           <a href={item.bookingUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-sm font-bold"
-            style={{ background: `${cfg?.color}15`, color: cfg?.color, border: `1px solid ${cfg?.color}30` }}>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '8px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', background: `${cfg?.color}15`, color: cfg?.color, border: `1px solid ${cfg?.color}30` }}>
             Réserver <ExternalLink size={13}/>
           </a>
         ) : (
-          <div className="flex items-center justify-center w-full py-2 rounded-xl text-sm" style={{ background: 'var(--bg-700)', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '8px 0', borderRadius: 10, fontSize: 13, background: 'var(--bg-700)', color: 'var(--text-muted)' }}>
             Disponible en station
           </div>
         )}
