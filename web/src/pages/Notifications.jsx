@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, Car, MessageSquare, Star, MapPin, CheckCheck, Clock, ArrowRight } from 'lucide-react';
 import api from '../services/api';
 import { SkeletonList } from '../components/SkeletonCard';
+import EmptyState from '../components/EmptyState';
 
 const TYPE_CONFIG = {
   booking: { icon: Car,          color: '#C1272D', bg: 'rgba(193,39,45,0.10)',  label: 'Réservation' },
@@ -88,21 +89,19 @@ export default function Notifications() {
       <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)', marginBottom: 16 }}>
         <ZelligeStripe />
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Bell size={20} style={{ color: '#C1272D' }} />
-            <div>
-              <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Notifications</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 13, background: 'rgba(193,39,45,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <Bell size={20} style={{ color: '#C1272D' }} />
               {unread > 0 && (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                  {unread} non lue{unread > 1 ? 's' : ''}
-                </p>
+                <div style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '2px solid var(--card-bg)' }}>
+                  {unread > 9 ? '9+' : unread}
+                </div>
               )}
             </div>
-            {unread > 0 && (
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: '#C1272D', color: '#fff' }}>
-                {unread}
-              </span>
-            )}
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+              <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Notifications</p>
+            </div>
           </div>
           {unread > 0 && (
             <button onClick={markAllRead} disabled={marking} style={{
@@ -139,15 +138,21 @@ export default function Notifications() {
       {loading ? (
         <SkeletonList count={5} />
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--card-bg)', borderRadius: 16, border: '1px solid var(--border-color)' }}>
-          <Bell size={40} style={{ color: 'var(--text-muted)', margin: '0 auto 12px', display: 'block' }} />
-          <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-            {filter === 'Non lues' ? 'Tout est lu ✓' : 'Aucune notification'}
-          </p>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            {filter === 'Non lues' ? 'Vous êtes à jour !' : 'Les notifications apparaîtront ici'}
-          </p>
-        </div>
+        filter === 'Non lues' ? (
+          <EmptyState
+            icon={<CheckCheck size={26} style={{ color: '#22C55E' }} />}
+            title="Tout est lu ✓"
+            description="Vous êtes à jour ! Aucune notification en attente."
+            color="#22C55E"
+          />
+        ) : (
+          <EmptyState
+            icon={<Bell size={26} style={{ color: '#C1272D' }} />}
+            title="Aucune notification"
+            description="Les notifications apparaîtront ici au fil de votre activité."
+            color="#C1272D"
+          />
+        )
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(notif => {
