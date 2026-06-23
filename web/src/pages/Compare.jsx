@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, ArrowRight, Clock, Leaf, Star, Users, Zap,
   TrendingDown, ArrowLeftRight, ExternalLink, ChevronDown, ChevronUp,
   Plane, Train, Bus, Car, Bike, ArrowUpDown,
-  Map, Sparkles, Wallet, Ban, List
+  Map, Sparkles, Wallet, Ban, List, Navigation, Locate, X
 } from 'lucide-react';
 const RouteMap = lazy(() => import('../components/RouteMap'));
 import {
@@ -15,6 +15,253 @@ import api from '../services/api';
 import Spinner from '../components/Spinner';
 
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Laâyoune','Kénitra','Chefchaouen','Essaouira','Dakhla','Al Hoceima','Nador'];
+
+/* ── Toutes les gares et stations du Maroc ── */
+const MOROCCO_STATIONS = [
+  // ONCF — Trains
+  { type: 'train', name: 'Casa Voyageurs',      city: 'Casablanca', lat: 33.5892, lng: -7.5903, line: 'ONCF' },
+  { type: 'train', name: 'Casa Port',            city: 'Casablanca', lat: 33.5967, lng: -7.6183, line: 'ONCF' },
+  { type: 'train', name: 'Casa Aïn Sebaâ',       city: 'Casablanca', lat: 33.6122, lng: -7.5331, line: 'ONCF' },
+  { type: 'train', name: 'Mohammedia',           city: 'Mohammedia',  lat: 33.6886, lng: -7.3829, line: 'ONCF' },
+  { type: 'train', name: 'Rabat Ville',          city: 'Rabat',       lat: 34.0175, lng: -6.8428, line: 'ONCF' },
+  { type: 'train', name: 'Rabat Agdal',          city: 'Rabat',       lat: 33.9924, lng: -6.8608, line: 'ONCF' },
+  { type: 'train', name: 'Salé Tabriquet',       city: 'Salé',        lat: 34.0379, lng: -6.8019, line: 'ONCF' },
+  { type: 'train', name: 'Kénitra',              city: 'Kénitra',     lat: 34.2551, lng: -6.5756, line: 'ONCF' },
+  { type: 'train', name: 'Meknès',               city: 'Meknès',      lat: 33.8945, lng: -5.5473, line: 'ONCF' },
+  { type: 'train', name: 'Fès',                  city: 'Fès',         lat: 34.0300, lng: -5.0004, line: 'ONCF' },
+  { type: 'train', name: 'Tanger Ville',         city: 'Tanger',      lat: 35.7593, lng: -5.8309, line: 'ONCF' },
+  { type: 'train', name: 'Tanger Med',           city: 'Tanger',      lat: 35.8816, lng: -5.5015, line: 'ONCF' },
+  { type: 'train', name: 'Marrakech',            city: 'Marrakech',   lat: 31.6257, lng: -8.0109, line: 'ONCF' },
+  { type: 'train', name: 'Settat',               city: 'Settat',      lat: 33.0014, lng: -7.6266, line: 'ONCF' },
+  { type: 'train', name: 'El Jadida',            city: 'El Jadida',   lat: 33.2388, lng: -8.5083, line: 'ONCF' },
+  { type: 'train', name: 'Oujda',                city: 'Oujda',       lat: 34.6830, lng: -1.9030, line: 'ONCF' },
+  { type: 'train', name: 'Nador',                city: 'Nador',       lat: 35.1640, lng: -2.9285, line: 'ONCF' },
+  { type: 'train', name: 'Taourirt',             city: 'Taourirt',    lat: 34.4076, lng: -2.8933, line: 'ONCF' },
+  // CTM — Bus
+  { type: 'bus',   name: 'Gare CTM Casablanca',  city: 'Casablanca', lat: 33.5836, lng: -7.6099, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Rabat',        city: 'Rabat',      lat: 34.0191, lng: -6.8283, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Marrakech',    city: 'Marrakech',  lat: 31.6335, lng: -8.0097, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Fès',          city: 'Fès',        lat: 34.0442, lng: -5.0019, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Tanger',       city: 'Tanger',     lat: 35.7710, lng: -5.7987, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Agadir',       city: 'Agadir',     lat: 30.4221, lng: -9.5978, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Meknès',       city: 'Meknès',     lat: 33.8979, lng: -5.5411, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Oujda',        city: 'Oujda',      lat: 34.6892, lng: -1.9078, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Tétouan',      city: 'Tétouan',    lat: 35.5741, lng: -5.3697, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Laâyoune',     city: 'Laâyoune',   lat: 27.1495, lng: -13.1878, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Dakhla',       city: 'Dakhla',     lat: 23.7148, lng: -15.9356, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Essaouira',    city: 'Essaouira',  lat: 31.5142, lng: -9.7704, line: 'CTM' },
+  { type: 'bus',   name: 'Gare CTM Safi',         city: 'Safi',       lat: 32.2994, lng: -9.2378, line: 'CTM' },
+  { type: 'bus',   name: 'Gare Supratours Agadir',city: 'Agadir',     lat: 30.4283, lng: -9.5887, line: 'Supratours' },
+  { type: 'bus',   name: 'Gare Supratours Marrakech', city: 'Marrakech', lat: 31.6245, lng: -8.0118, line: 'Supratours' },
+];
+
+/* ── Haversine distance (km) ── */
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ── Composant Carte "Autour de moi" ── */
+function NearbyStationsMap({ onClose }) {
+  const mapRef  = useRef(null);
+  const instRef = useRef(null);
+  const [locating,  setLocating]  = useState(false);
+  const [located,   setLocated]   = useState(false);
+  const [error,     setError]     = useState(null);
+  const [userPos,   setUserPos]   = useState(null);
+  const [nearby,    setNearby]    = useState([]);
+  const [filter,    setFilter]    = useState('all'); // 'all' | 'train' | 'bus'
+  const [radius,    setRadius]    = useState(30);    // km
+
+  const locate = () => {
+    if (!navigator.geolocation) { setError('Géolocalisation non supportée par ce navigateur.'); return; }
+    setLocating(true); setError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setUserPos([lat, lng]);
+        const found = MOROCCO_STATIONS
+          .map(s => ({ ...s, dist: haversine(lat, lng, s.lat, s.lng) }))
+          .filter(s => s.dist <= radius)
+          .sort((a, b) => a.dist - b.dist);
+        setNearby(found);
+        setLocating(false);
+        setLocated(true);
+        await initMap(lat, lng, found);
+      },
+      () => { setError('Accès à la position refusé. Autorisez la géolocalisation dans votre navigateur.'); setLocating(false); }
+    );
+  };
+
+  const initMap = async (lat, lng, stations) => {
+    const L = (await import('leaflet')).default;
+    await import('leaflet/dist/leaflet.css');
+
+    if (instRef.current) { instRef.current.remove(); instRef.current = null; }
+    if (!mapRef.current) return;
+
+    const map = L.map(mapRef.current, { zoomControl: true, attributionControl: false });
+    instRef.current = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.control.attribution({ prefix: '© OpenStreetMap' }).addTo(map);
+
+    // Marker utilisateur
+    const userIcon = L.divIcon({
+      html: `<div style="position:relative;width:24px;height:24px">
+        <div style="position:absolute;inset:0;border-radius:50%;background:#3B82F6;opacity:0.2;animation:pulse 1.5s infinite"></div>
+        <div style="position:absolute;top:4px;left:4px;width:16px;height:16px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>
+      </div>`,
+      className: '', iconSize: [24,24], iconAnchor: [12,12],
+    });
+    L.marker([lat, lng], { icon: userIcon }).addTo(map)
+      .bindPopup('<b>📍 Vous êtes ici</b>').openPopup();
+
+    // Cercle de rayon
+    L.circle([lat, lng], { radius: radius * 1000, color: '#3B82F6', fillColor: '#3B82F6', fillOpacity: 0.04, weight: 1.5, dashArray: '6,4' }).addTo(map);
+
+    // Markers stations
+    stations.forEach(s => {
+      const color   = s.type === 'train' ? '#2196F3' : '#FF9800';
+      const emoji   = s.type === 'train' ? '🚆' : '🚌';
+      const icon = L.divIcon({
+        html: `<div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:14px">${emoji}</div>`,
+        className: '', iconSize: [30,30], iconAnchor: [15,15],
+      });
+      L.marker([s.lat, s.lng], { icon })
+        .addTo(map)
+        .bindPopup(`<b>${s.name}</b><br>${s.line}<br><span style="color:#666">${s.dist.toFixed(1)} km de vous</span>`);
+    });
+
+    const allPoints = [[lat, lng], ...stations.map(s => [s.lat, s.lng])];
+    if (allPoints.length > 1) map.fitBounds(L.latLngBounds(allPoints), { padding: [40, 40] });
+    else map.setView([lat, lng], 12);
+  };
+
+  useEffect(() => () => { instRef.current?.remove(); }, []);
+
+  const displayed = nearby.filter(s => filter === 'all' || s.type === filter);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 860, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 32px 80px rgba(0,0,0,0.5)' }}>
+
+        {/* Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Locate size={18} style={{ color: '#3B82F6' }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#3B82F6' }}>✦ Géolocalisation</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>Stations près de moi</p>
+          </div>
+          <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6 }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+
+          {/* Sidebar résultats */}
+          <div style={{ width: 260, flexShrink: 0, borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: 14, borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+              {/* Rayon */}
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                Rayon : <span style={{ color: '#3B82F6', fontWeight: 900 }}>{radius} km</span>
+              </label>
+              <input type="range" min="5" max="100" step="5" value={radius}
+                onChange={e => setRadius(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#3B82F6', marginBottom: 12 }} />
+
+              {/* Filtres */}
+              <div style={{ display: 'flex', gap: 5 }}>
+                {[{ id: 'all', label: 'Tous', emoji: '🗺️' }, { id: 'train', label: 'Train', emoji: '🚆' }, { id: 'bus', label: 'Bus', emoji: '🚌' }].map(f => (
+                  <button key={f.id} onClick={() => setFilter(f.id)} style={{
+                    flex: 1, padding: '5px 4px', borderRadius: 8, fontSize: 10, fontWeight: 800,
+                    cursor: 'pointer', border: '1px solid',
+                    borderColor: filter === f.id ? '#3B82F6' : 'var(--border-color)',
+                    background: filter === f.id ? 'rgba(59,130,246,0.1)' : 'var(--bg-700)',
+                    color: filter === f.id ? '#3B82F6' : 'var(--text-muted)',
+                  }}>{f.emoji} {f.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {!located ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                  <Navigation size={28} style={{ color: '#3B82F6' }} />
+                </div>
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Activez votre position</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+                  Trouvez toutes les gares et stations dans un rayon de {radius} km autour de vous
+                </p>
+                {error && <p style={{ fontSize: 11, color: '#F87171', marginBottom: 12, background: 'rgba(248,113,113,0.08)', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.2)' }}>{error}</p>}
+                <button onClick={locate} disabled={locating} style={{
+                  width: '100%', padding: '11px', borderRadius: 12, border: 'none',
+                  background: locating ? 'var(--bg-700)' : 'linear-gradient(135deg, #3B82F6, #1d4ed8)',
+                  color: locating ? 'var(--text-muted)' : '#fff', fontWeight: 700, fontSize: 13,
+                  cursor: locating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  boxShadow: locating ? 'none' : '0 4px 16px rgba(59,130,246,0.35)',
+                }}>
+                  {locating ? <><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', fontSize: 14 }}>⟳</span> Localisation…</> : <><Locate size={15} /> Me localiser</>}
+                </button>
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'thin' }}>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-color)', background: 'rgba(59,130,246,0.04)' }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#3B82F6' }}>
+                    {displayed.length} station{displayed.length !== 1 ? 's' : ''} trouvée{displayed.length !== 1 ? 's' : ''}
+                    {nearby.length !== displayed.length && <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> (filtrées)</span>}
+                  </p>
+                  <button onClick={locate} style={{ marginTop: 6, fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <Locate size={10} /> Actualiser ma position
+                  </button>
+                </div>
+                {displayed.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)', fontSize: 13 }}>
+                    Aucune station dans ce rayon.<br />Augmentez le rayon de recherche.
+                  </div>
+                ) : displayed.map((s, i) => (
+                  <div key={i} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 10, cursor: 'default' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: s.type === 'train' ? 'rgba(33,150,243,0.1)' : 'rgba(255,152,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                      {s.type === 'train' ? '🚆' : '🚌'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: 12, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</p>
+                      <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)' }}>{s.line} · {s.city}</p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: s.dist < 5 ? '#22C55E' : s.dist < 15 ? '#F59E0B' : 'var(--text-muted)' }}>{s.dist.toFixed(1)}</p>
+                      <p style={{ margin: 0, fontSize: 9, color: 'var(--text-muted)' }}>km</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Carte */}
+          <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+            <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 400 }} />
+            {!located && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-800)', flexDirection: 'column', gap: 12 }}>
+                <p style={{ fontSize: 40 }}>🗺️</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, fontWeight: 600 }}>La carte apparaîtra ici</p>
+                <button onClick={locate} disabled={locating} style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: '#3B82F6', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Locate size={15} /> {locating ? 'Localisation…' : 'Me localiser'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} @keyframes pulse{0%,100%{transform:scale(1);opacity:.2}50%{transform:scale(1.6);opacity:.06}}`}</style>
+    </div>
+  );
+}
 
 const MODE_CONFIG = {
   covoiturage: { label: 'Covoiturage', Icon: Car,   color: '#C1272D', bg: 'rgba(193,39,45,0.12)', border: 'rgba(193,39,45,0.3)' },
@@ -226,6 +473,7 @@ export default function Compare() {
   const [sort,  setSort]  = useState('price');
   const [view,  setView]  = useState('list'); // 'list' | 'map'
   const [searched, setSearched] = useState(false);
+  const [showNearby, setShowNearby] = useState(false);
 
   const [rides,        setRides]        = useState([]);
   const [loadingRides, setLoadingRides] = useState(false);
@@ -304,6 +552,9 @@ export default function Compare() {
   return (
     <div className="min-h-screen">
 
+      {/* ── MODAL STATIONS PRÈS DE MOI ── */}
+      {showNearby && <NearbyStationsMap onClose={() => setShowNearby(false)} />}
+
       {/* ── HEADER SEARCH ── */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 0' }}>
         <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
@@ -322,13 +573,23 @@ export default function Compare() {
                 <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Comparateur de transport</p>
               </div>
-              {searched && from && to && (
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{from}</span>
-                  <div style={{ width: 40, height: 2, background: 'linear-gradient(to right, #C1272D, #D4890A, #006233)', borderRadius: 1 }} />
-                  <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{to}</span>
-                </div>
-              )}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                {searched && from && to && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{from}</span>
+                    <div style={{ width: 40, height: 2, background: 'linear-gradient(to right, #C1272D, #D4890A, #006233)', borderRadius: 1 }} />
+                    <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{to}</span>
+                  </div>
+                )}
+                <button type="button" onClick={() => setShowNearby(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 12, border: 'none',
+                  background: 'linear-gradient(135deg, #3B82F6, #1d4ed8)', color: '#fff',
+                  fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 14px rgba(59,130,246,0.35)', flexShrink: 0,
+                }}>
+                  <Locate size={14} /> Stations près de moi
+                </button>
+              </div>
             </div>
             <form onSubmit={handleSearch}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: 10 }}>
