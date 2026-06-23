@@ -139,8 +139,9 @@ export default function SearchRides() {
   const [from,       setFrom]       = useState(searchParams.get('from') || '');
   const [to,         setTo]         = useState(searchParams.get('to')   || '');
   const [date,       setDate]       = useState(searchParams.get('date') || '');
-  const [maxPrice,   setMaxPrice]   = useState('');
+  const [maxPrice,   setMaxPrice]   = useState(500);
   const [minRating,  setMinRating]  = useState(0);
+  const [timeSlot,   setTimeSlot]   = useState(null); // 'matin'|'aprem'|'soir'
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [pmrOnly,    setPmrOnly]    = useState(false);
   const [womenOnly,       setWomenOnly]       = useState(false);
@@ -150,7 +151,21 @@ export default function SearchRides() {
   const [sortBy,     setSortBy]     = useState('date_asc');
   const [seats,      setSeats]      = useState(1);
 
-  const activeFilters = [verifiedOnly, pmrOnly, womenOnly, acceptsCash, acceptsPackages, recurringOnly, minRating > 0, maxPrice].filter(Boolean).length;
+  const activeFilters = [verifiedOnly, pmrOnly, womenOnly, acceptsCash, acceptsPackages, recurringOnly, minRating > 0, maxPrice < 500, timeSlot].filter(Boolean).length;
+
+  const TIME_SLOTS = [
+    { id: 'matin', label: '🌅 Matin',      range: [6, 12],  color: '#F59E0B' },
+    { id: 'aprem', label: '☀️ Après-midi', range: [12, 18], color: '#C1272D' },
+    { id: 'soir',  label: '🌙 Soir',       range: [18, 24], color: '#6366F1' },
+  ];
+
+  const filterByTime = (ride) => {
+    if (!timeSlot) return true;
+    const slot = TIME_SLOTS.find(s => s.id === timeSlot);
+    if (!slot || !ride.departureDate) return true;
+    const h = new Date(ride.departureDate).getHours();
+    return h >= slot.range[0] && h < slot.range[1];
+  };
 
   const staticResults = {
     train:      findRoutes(ONCF,       from, to),
@@ -162,7 +177,7 @@ export default function SearchRides() {
   const fetchRides = async (overrides = {}) => {
     setLoading(true);
     try {
-      const params = { from, to, date, maxPrice, minRating, verifiedOnly, pmrOnly, womenOnly,
+      const params = { from, to, date, maxPrice: maxPrice < 500 ? maxPrice : undefined, minRating, verifiedOnly, pmrOnly, womenOnly,
         acceptsCash, acceptsPackages, recurringOnly, sortBy, seats,
         transportMode: vehicleMode !== 'all' ? vehicleMode : undefined, ...overrides };
       Object.keys(params).forEach(k => !params[k] && params[k] !== 0 && delete params[k]);
@@ -185,7 +200,7 @@ export default function SearchRides() {
   };
 
   const resetFilters = () => {
-    setMaxPrice(''); setMinRating(0); setVerifiedOnly(false);
+    setMaxPrice(500); setMinRating(0); setVerifiedOnly(false); setTimeSlot(null);
     setPmrOnly(false); setWomenOnly(false); setAcceptsCash(false);
     setAcceptsPackages(false); setRecurringOnly(false); setSortBy('date_asc'); setSeats(1);
   };
@@ -337,11 +352,20 @@ export default function SearchRides() {
                   style={{ width: '100%', accentColor: '#F59E0B', cursor: 'pointer' }} />
               </div>
 
-              {/* Prix max */}
+              {/* Prix max slider */}
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>Prix max (DH)</label>
-                <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                  placeholder="ex : 150" className="input" style={{ fontSize: 13 }} min="0" />
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  Prix max
+                  <span style={{ color: maxPrice < 500 ? '#C1272D' : 'var(--text-muted)', fontWeight: 800 }}>
+                    {maxPrice < 500 ? `${maxPrice} DH` : 'Tous'}
+                  </span>
+                </label>
+                <input type="range" min="30" max="500" step="10" value={maxPrice}
+                  onChange={e => setMaxPrice(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#C1272D', cursor: 'pointer' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
+                  <span>30 DH</span><span>500 DH</span>
+                </div>
               </div>
 
               {/* Places */}
@@ -360,6 +384,23 @@ export default function SearchRides() {
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input" style={{ fontSize: 13 }}>
                   {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+              </div>
+            </div>
+
+            {/* Heure de départ */}
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Clock size={11} /> Heure de départ
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {TIME_SLOTS.map(({ id, label, color }) => (
+                  <button key={id} type="button" onClick={() => setTimeSlot(timeSlot === id ? null : id)} style={{
+                    flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: '1.5px solid',
+                    borderColor: timeSlot === id ? color : 'var(--border-color)',
+                    background: timeSlot === id ? `${color}15` : 'var(--bg-700)',
+                    color: timeSlot === id ? color : 'var(--text-muted)', cursor: 'pointer', transition: 'all .15s',
+                  }}>{label}</button>
+                ))}
               </div>
             </div>
 
@@ -438,7 +479,7 @@ export default function SearchRides() {
             })}
           </div>
 
-          {loading ? <SkeletonList count={4} card="ride" /> : rides.length === 0 ? (
+          {loading ? <SkeletonList count={4} card="ride" /> : rides.filter(filterByTime).length === 0 ? (
             <EmptyState
               icon={(() => { const I = VEHICLE_MODES.find(v => v.id === vehicleMode)?.Icon || Search; return <I size={28} style={{ color: 'var(--text-muted)' }} />; })()}
               title="Aucun trajet trouvé"
@@ -460,7 +501,7 @@ export default function SearchRides() {
                     display: 'inline-block', boxShadow: '0 0 0 3px rgba(34,197,94,0.2)',
                   }} />
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {rides.length} trajet{rides.length > 1 ? 's' : ''} disponible{rides.length > 1 ? 's' : ''}
+                    {rides.filter(filterByTime).length} trajet{rides.filter(filterByTime).length > 1 ? 's' : ''} disponible{rides.filter(filterByTime).length > 1 ? 's' : ''}
                   </span>
                   {hasRoute && (
                     <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -475,7 +516,7 @@ export default function SearchRides() {
               </div>
 
               <div ref={revealResults} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {rides.map(ride => (
+                {rides.filter(filterByTime).map(ride => (
                   <div key={ride.id} data-reveal style={{ position: 'relative' }}>
                     {ride.transportMode && ride.transportMode !== 'voiture' && (
                       <div style={{
