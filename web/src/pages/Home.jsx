@@ -1021,85 +1021,143 @@ function CompactSearchBar({ user }) {
 }
 
 /* ─── HERO BANNER (non-auth) ─────────────────────── */
+const HERO_STATS = [
+  { end: 50000, suffix: '+', label: 'utilisateurs', color: '#fff' },
+  { end: 200,   suffix: '+', label: 'trajets / jour', color: '#D4890A' },
+  { end: 87,    suffix: '%', label: 'économisé vs taxi', color: '#00C851' },
+  { end: 49,    suffix: '★', label: 'note moyenne', color: '#D4890A', display: '4.9★' },
+];
+
+const HERO_CITIES = [
+  { name: 'Casa', emoji: '🏙️' }, { name: 'Rabat', emoji: '🏛️' },
+  { name: 'Marrakech', emoji: '🌴' }, { name: 'Fès', emoji: '🕌' },
+  { name: 'Tanger', emoji: '⚓' }, { name: 'Agadir', emoji: '🏖️' },
+];
+
+function AnimatedCount({ end, suffix, display }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const dur = 1200, steps = 40, step = dur / steps;
+    let i = 0;
+    const iv = setInterval(() => {
+      i++;
+      setCount(Math.round((end / steps) * i));
+      if (i >= steps) { setCount(end); clearInterval(iv); }
+    }, step);
+    return () => clearInterval(iv);
+  }, [end]);
+  if (display) return <>{display}</>;
+  return <>{count >= 1000 ? `${Math.floor(count / 1000)} ${Math.round((count % 1000) / 100) > 0 ? Math.round((count % 1000) / 100) * 100 : '000'}` : count}{suffix}</>;
+}
+
 function HeroBanner() {
+  const navigate = useNavigate();
   return (
     <div style={{
       borderRadius: 16, overflow: 'hidden', marginBottom: 10, position: 'relative',
-      background: 'linear-gradient(145deg, #0f0500 0%, #1a0800 40%, #0a0f05 100%)',
-      border: '1px solid rgba(212,137,10,0.18)',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
+      background: 'linear-gradient(150deg, #0d0400 0%, #180800 35%, #0a1005 70%, #050d02 100%)',
+      border: '1px solid rgba(212,137,10,0.2)',
+      boxShadow: '0 10px 50px rgba(0,0,0,0.5)',
     }}>
       {/* Zellige SVG pattern overlay */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.04, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.035, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="zel" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
             <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" fill="none" stroke="#D4890A" strokeWidth="1"/>
             <polygon points="20,8 32,14 32,26 20,32 8,26 8,14" fill="none" stroke="#C1272D" strokeWidth="0.5"/>
-            <line x1="20" y1="2" x2="20" y2="38" stroke="#006233" strokeWidth="0.3"/>
-            <line x1="2" y1="20" x2="38" y2="20" stroke="#006233" strokeWidth="0.3"/>
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#zel)"/>
       </svg>
 
       {/* Glow spots */}
-      <div style={{ position: 'absolute', top: '-20px', right: '15%', width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(193,39,45,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-30px', left: '10%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,137,10,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-30px', right: '10%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(193,39,45,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-40px', left: '5%', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,98,51,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '30%', right: '30%', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,137,10,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       {/* Arabic watermark */}
-      <div style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', fontFamily: "'Amiri', serif", fontSize: 72, color: 'rgba(212,137,10,0.06)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700, lineHeight: 1 }}>المغرب</div>
+      <div style={{ position: 'absolute', bottom: 8, right: 14, fontFamily: "'Amiri', serif", fontSize: 64, color: 'rgba(212,137,10,0.055)', userSelect: 'none', pointerEvents: 'none', fontWeight: 700, lineHeight: 1 }}>رحلة آمنة</div>
 
       {/* Tricolor top bar */}
       <div style={{ height: 3, background: 'linear-gradient(to right, #C1272D 33%, #D4890A 50%, #006233 67%)' }} />
 
       <div style={{ padding: '20px 22px 22px', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', color: '#D4890A', textTransform: 'uppercase', marginBottom: 10, padding: '3px 10px', borderRadius: 99, background: 'rgba(212,137,10,0.1)', border: '1px solid rgba(212,137,10,0.2)' }}>
-          ✦ LA PLATEFORME #1 AU MAROC
+        {/* Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', color: '#D4890A', textTransform: 'uppercase', padding: '3px 10px', borderRadius: 99, background: 'rgba(212,137,10,0.1)', border: '1px solid rgba(212,137,10,0.22)' }}>
+            ✦ PLATEFORME #1 AU MAROC
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: 'rgba(0,200,81,0.1)', border: '1px solid rgba(0,200,81,0.2)', color: '#00C851' }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00C851', display: 'inline-block', animation: 'pulse 1.5s ease infinite' }} />
+            DISPONIBLE MAINTENANT
+          </div>
         </div>
 
-        <h1 style={{ margin: '0 0 10px', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', lineHeight: 1.1, color: '#fff' }}>
-          Voyagez partout au Maroc<br />
-          <span style={{ background: 'linear-gradient(135deg, #C1272D 0%, #D4890A 60%, #e8a820 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>pour moins cher.</span>
+        {/* Headline */}
+        <h1 style={{ margin: '0 0 6px', fontWeight: 900, fontSize: 'clamp(1.4rem, 2.8vw, 2rem)', lineHeight: 1.1, color: '#fff', letterSpacing: '-0.02em' }}>
+          Voyagez partout au Maroc
         </h1>
-
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginBottom: 18, lineHeight: 1.6 }}>
-          Covoiturage simple, économique et sécurisé.<br/>
-          Économisez jusqu'à <strong style={{ color: '#D4890A' }}>60 %</strong> par rapport au taxi.
+        <h2 style={{ margin: '0 0 12px', fontWeight: 900, fontSize: 'clamp(1.4rem, 2.8vw, 2rem)', lineHeight: 1.1, letterSpacing: '-0.02em', background: 'linear-gradient(130deg, #C1272D 0%, #D4890A 55%, #e8a820 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          jusqu'à 87% moins cher.
+        </h2>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 16, lineHeight: 1.6, fontFamily: "'Amiri', serif", letterSpacing: '0.02em' }}>
+          ارحل معنا — سفر آمن وبأسعار معقولة في جميع أنحاء المغرب
         </p>
 
-        {/* Stats bar */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 18 }}>
-          {[
-            { val: '50 000+', label: 'utilisateurs' },
-            { val: '200+',    label: 'trajets/jour' },
-            { val: '4.9 ★',   label: 'note moyenne' },
-          ].map(({ val, label }) => (
-            <div key={label}>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{val}</p>
-              <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{label}</p>
+        {/* Animated stats */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 18, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          {HERO_STATS.map(({ end, suffix, label, color, display }, i) => (
+            <div key={label} style={{
+              flex: 1, padding: '10px 6px', textAlign: 'center',
+              borderRight: i < HERO_STATS.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+            }}>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                <AnimatedCount end={end} suffix={suffix} display={display} />
+              </p>
+              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {/* CTAs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <Link to="/rides/search" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-            borderRadius: 10, background: 'linear-gradient(135deg, #C1272D, #9e1f24)',
+            borderRadius: 10, background: 'linear-gradient(135deg,#C1272D,#9e1f24)',
             color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none',
-            boxShadow: '0 6px 24px rgba(193,39,45,0.45)', transition: 'transform 0.15s',
+            boxShadow: '0 6px 20px rgba(193,39,45,0.4)', transition: 'all 0.15s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
-            Voir les trajets <ArrowRight size={14} />
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 9px 28px rgba(193,39,45,0.55)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(193,39,45,0.4)'; }}>
+            <Compass size={14} /> Voir les trajets
           </Link>
           <Link to="/register" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-            borderRadius: 10, background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)',
-            fontWeight: 600, fontSize: 13, textDecoration: 'none',
-          }}>
-            S'inscrire gratuitement
+            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+            borderRadius: 10, background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.75)',
+            fontWeight: 600, fontSize: 13, textDecoration: 'none', transition: 'all 0.15s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}>
+            S'inscrire — c'est gratuit
           </Link>
+        </div>
+
+        {/* Quick city chips */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {HERO_CITIES.map(({ name, emoji }) => (
+            <button key={name} onClick={() => navigate(`/rides/search?to=${name}`)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 99, cursor: 'pointer',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600,
+              transition: 'all 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(193,39,45,0.1)'; e.currentTarget.style.borderColor = 'rgba(193,39,45,0.25)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}>
+              {emoji} {name}
+            </button>
+          ))}
         </div>
       </div>
     </div>
