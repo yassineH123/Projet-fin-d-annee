@@ -673,9 +673,9 @@ function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, ha
             <button type="button" onClick={handleVoiceSearch} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(0,135,90,0.1)', color: '#00875A', border: '1px solid rgba(0,135,90,0.22)', cursor: 'pointer' }}>
               <Mic size={12} /> Voix
             </button>
-            <button type="button" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(245,166,35,0.1)', color: '#F5A623', border: '1px solid rgba(245,166,35,0.22)', cursor: 'pointer' }}>
+            <Link to="/compare" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(245,166,35,0.1)', color: '#F5A623', border: '1px solid rgba(245,166,35,0.22)', cursor: 'pointer', textDecoration: 'none' }}>
               <MapPin size={12} /> Carte
-            </button>
+            </Link>
           </div>
           <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ position: 'relative' }}>
@@ -1348,7 +1348,41 @@ export default function Home() {
                   </div>
                 )
                 : visible.map((trip, i) => (
-                  <RideFeedCard key={trip.id || i} trip={trip} initialFav={favIds.has(trip.id)} index={i} />
+                  <div key={trip.id || i}>
+                    <RideFeedCard trip={trip} initialFav={favIds.has(trip.id)} index={i} />
+                    {/* IA suggestions after 2nd card */}
+                    {i === 1 && user && (
+                      <div style={{ marginBottom: 12, borderRadius: 14, padding: '12px 14px', background: 'linear-gradient(135deg, rgba(0,98,51,0.06), rgba(0,98,51,0.03))', border: '1px solid rgba(0,98,51,0.15)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.15em', color: '#00875A', textTransform: 'uppercase' }}>✨ POUR VOUS</span>
+                          <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 500 }}>— Basé sur votre historique</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {[
+                            { from: 'Casablanca', to: 'Rabat',      emoji: '🏛️', price: 40, label: 'Rapide' },
+                            { from: 'Rabat',      to: 'Marrakech',  emoji: '🌴', price: 90, label: 'Populaire' },
+                            { from: 'Casa',       to: 'Agadir',     emoji: '🏖️', price: 110, label: 'Week-end' },
+                          ].map(({ from, to, emoji, price, label }) => (
+                            <Link key={to} to={`/rides/search?from=${from}&to=${to}`} style={{
+                              flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
+                              padding: '8px 10px', borderRadius: 10, textDecoration: 'none',
+                              background: 'var(--bg-800)', border: '1px solid var(--border-color)',
+                              transition: 'all 0.15s',
+                            }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,135,90,0.3)'; e.currentTarget.style.background = 'rgba(0,135,90,0.05)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-800)'; }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 14 }}>{emoji}</span>
+                                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, background: 'rgba(0,135,90,0.1)', color: '#00875A', border: '1px solid rgba(0,135,90,0.2)' }}>{label}</span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-base)' }}>{from} → {to}</p>
+                              <p style={{ margin: 0, fontSize: 11, color: '#C1272D', fontWeight: 700 }}>dès {price} DH</p>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))
             }
 
