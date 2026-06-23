@@ -56,17 +56,28 @@ export default function DriverDashboard() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <BarChart2 size={24} style={{ color: '#C1272D' }} /> Tableau de bord conducteur
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">Vos statistiques en temps réel</p>
+      {/* ── Header ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
         </div>
-        <Link to="/rides/publish" className="btn-primary flex items-center gap-2 text-sm h-10 px-4">
-          <Plus size={16} /> Nouveau trajet
-        </Link>
+        <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BarChart2 size={22} style={{ color: '#C1272D' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Tableau de bord conducteur</h1>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Vos statistiques en temps réel</p>
+            </div>
+          </div>
+          <Link to="/rides/publish" className="btn-primary flex items-center gap-2 text-sm h-10 px-4">
+            <Plus size={16} /> Nouveau trajet
+          </Link>
+        </div>
       </div>
 
       {/* Stats cards */}

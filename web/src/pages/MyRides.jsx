@@ -105,11 +105,30 @@ export default function MyRides() {
           onClose={() => setModal(null)}
         />
       )}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-black text-white">Mes trajets</h1>
-        <Link to="/rides/publish" className="btn-primary flex items-center gap-2 text-sm">
-          <Plus size={16} /> Publier
-        </Link>
+      {/* ── Header ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
+        </div>
+        <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(212,137,10,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <MapPin size={22} style={{ color: '#D4890A' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#D4890A' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Mes trajets</h1>
+              {!loading && <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                {counts.active} actif{counts.active > 1 ? 's' : ''} · {counts.completed} terminé{counts.completed > 1 ? 's' : ''}
+              </p>}
+            </div>
+          </div>
+          <Link to="/rides/publish" className="btn-primary flex items-center gap-2 text-sm">
+            <Plus size={16} /> Publier
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
