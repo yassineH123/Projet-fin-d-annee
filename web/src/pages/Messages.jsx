@@ -10,17 +10,40 @@ import Spinner from '../components/Spinner';
 const SOCKET_URL = 'http://localhost:4000';
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
-function Avatar({ user, size = 40 }) {
-  return user?.photo
-    ? <img src={user.photo} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-    : <div style={{
-        width: size, height: size, borderRadius: '50%', flexShrink: 0,
-        background: 'linear-gradient(135deg,#C1272D,#D4890A)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: size * 0.38, fontWeight: 900, color: '#fff',
-      }}>
-        {user?.firstName?.[0] || '?'}
-      </div>;
+function Avatar({ user, size = 40, online = false }) {
+  return (
+    <div style={{ position: 'relative', flexShrink: 0, width: size, height: size }}>
+      {user?.photo
+        ? <img src={user.photo} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+        : <div style={{
+            width: size, height: size, borderRadius: '50%',
+            background: 'linear-gradient(135deg,#C1272D,#D4890A)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: size * 0.38, fontWeight: 900, color: '#fff',
+          }}>
+            {user?.firstName?.[0] || '?'}
+          </div>
+      }
+      {online && (
+        <div style={{ position: 'absolute', bottom: 1, right: 1, width: size * 0.28, height: size * 0.28, borderRadius: '50%', background: '#22C55E', border: '2px solid var(--card-bg)' }} />
+      )}
+    </div>
+  );
+}
+
+function DateSeparator({ iso }) {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const isYesterday = new Date(now - 86400000).toDateString() === d.toDateString();
+  const label = isToday ? "Aujourd'hui" : isYesterday ? 'Hier' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
+      <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', padding: '2px 10px', borderRadius: 99, background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
+    </div>
+  );
 }
 
 function TimeStamp({ iso }) {
@@ -189,18 +212,25 @@ export default function Messages() {
   return (
     <div style={{ maxWidth: 980, margin: '0 auto', padding: '20px 16px', height: 'calc(100vh - 90px)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Page title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexShrink: 0 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 11, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <MessageSquare size={18} style={{ color: '#C1272D' }} />
+      {/* Header ZelligeStripe */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, flexShrink: 0, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
         </div>
-        <div>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
-          <p style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Messages</p>
+        <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageSquare size={20} style={{ color: '#C1272D' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+            <p style={{ margin: '2px 0 0', fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Messages</p>
+          </div>
+          <Link to="/friends" style={{ fontSize: 12, fontWeight: 800, color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#C1272D,#9e1f24)', boxShadow: '0 4px 12px rgba(193,39,45,0.3)' }}>
+            + Nouveau
+          </Link>
         </div>
-        <Link to="/friends" style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: '#C1272D', textDecoration: 'none', padding: '7px 14px', borderRadius: 10, background: 'rgba(193,39,45,0.08)', border: '1px solid rgba(193,39,45,0.2)' }}>
-          + Nouveau message
-        </Link>
       </div>
 
       <div style={{ flex: 1, display: 'flex', gap: 14, minHeight: 0, overflow: 'hidden' }}>
@@ -240,18 +270,25 @@ export default function Messages() {
             )}
 
             {filteredConvs.length === 0 && !pending ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <MessageSquare size={32} style={{ color: 'var(--text-muted)', marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>Aucune conversation</p>
-                <Link to="/friends" style={{ fontSize: 12, color: '#C1272D', textDecoration: 'none', fontWeight: 600 }}>Trouver des amis →</Link>
+              <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(193,39,45,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <MessageSquare size={24} style={{ color: 'rgba(193,39,45,0.4)' }} />
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Aucune conversation</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>Commencez à discuter avec vos amis</p>
+                <Link to="/friends" style={{ fontSize: 12, color: '#C1272D', textDecoration: 'none', fontWeight: 700, padding: '7px 16px', borderRadius: 10, background: 'rgba(193,39,45,0.08)', border: '1px solid rgba(193,39,45,0.2)', display: 'inline-block' }}>
+                  Trouver des amis →
+                </Link>
               </div>
             ) : filteredConvs.map(conv => {
-              const info    = getConvInfo(conv);
-              const lastMsg = conv.messages?.[0];
-              const isAct   = active?.id === conv.id;
+              const info      = getConvInfo(conv);
+              const lastMsg   = conv.messages?.[0];
+              const isAct     = active?.id === conv.id;
+              const unread    = conv.unreadCount || 0;
+              const isFromMe  = lastMsg?.senderId === user?.id;
               return (
                 <button key={conv.id} onClick={() => openConv(conv)} style={{
-                  width: '100%', padding: '12px 14px', border: 'none', cursor: 'pointer',
+                  width: '100%', padding: '11px 14px', border: 'none', cursor: 'pointer',
                   background: isAct ? 'rgba(193,39,45,0.08)' : 'transparent',
                   borderLeft: `3px solid ${isAct ? '#C1272D' : 'transparent'}`,
                   borderBottom: '1px solid var(--border-color)',
@@ -261,17 +298,27 @@ export default function Messages() {
                   onMouseEnter={e => { if (!isAct) e.currentTarget.style.background = 'var(--bg-700)'; }}
                   onMouseLeave={e => { if (!isAct) e.currentTarget.style.background = 'transparent'; }}>
                   {info.isGroup
-                    ? <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(193,39,45,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} style={{ color: '#C1272D' }} /></div>
-                    : <Avatar user={{ firstName: info.name, photo: info.photo }} size={40} />
+                    ? <div style={{ position: 'relative', width: 42, height: 42, flexShrink: 0 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(193,39,45,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users size={18} style={{ color: '#C1272D' }} /></div>
+                      </div>
+                    : <Avatar user={{ firstName: info.name, photo: info.photo }} size={42} online={!info.isGroup && conv.isOnline} />
                   }
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{info.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <p style={{ margin: 0, fontWeight: unread > 0 ? 900 : 700, fontSize: 13, color: unread > 0 ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>{info.name}</p>
                       <TimeStamp iso={conv.lastMessageAt || lastMsg?.createdAt} />
                     </div>
-                    <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {lastMsg?.content || (info.isGroup ? 'Groupe' : 'Nouvelle conversation')}
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                      <p style={{ margin: 0, fontSize: 12, color: unread > 0 ? 'var(--text-secondary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, fontWeight: unread > 0 ? 600 : 400 }}>
+                        {isFromMe && <span style={{ color: 'var(--text-muted)' }}>Vous: </span>}
+                        {lastMsg?.content || (info.isGroup ? 'Groupe' : 'Nouvelle conversation')}
+                      </p>
+                      {unread > 0 && (
+                        <div style={{ flexShrink: 0, minWidth: 18, height: 18, borderRadius: 99, background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#fff', padding: '0 5px' }}>
+                          {unread}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </button>
               );
@@ -312,12 +359,16 @@ export default function Messages() {
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Envoyez votre premier message</p>
                   </div>
                 )}
-                {msgs.map(m => {
+                {msgs.map((m, idx) => {
+                  const prevMsg = msgs[idx - 1];
+                  const showDate = !prevMsg || new Date(m.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString();
                   const mine = m.senderId === user.id;
                   const grouped = groupedReactions(m.reactions || []);
                   const showPicker = emojiPicker === m.id;
                   return (
-                    <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}
+                    <div key={m.id}>
+                      {showDate && m.createdAt && <DateSeparator iso={m.createdAt} />}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}
                       className="group">
                       {active?.type === 'group' && !mine && (
                         <p style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2, paddingLeft: 4 }}>{m.sender?.firstName}</p>
@@ -379,6 +430,7 @@ export default function Messages() {
                           </div>
                         )}
                       </div>
+                    </div>
                     </div>
                   );
                 })}
