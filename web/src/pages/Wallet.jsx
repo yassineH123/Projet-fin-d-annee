@@ -3,6 +3,7 @@ import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, RefreshCw, TrendingUp, Shiel
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
+import { useTheme } from '../context/ThemeContext';
 
 const TYPE_META = {
   credit: { icon: ArrowDownLeft, color: '#10B981', bg: 'rgba(16,185,129,0.1)', label: 'Reçu',   sign: '+' },
@@ -25,6 +26,9 @@ function ZelligeStripe() {
 const QUICK_AMOUNTS = [50, 100, 200, 500];
 
 export default function WalletPage() {
+  const { theme } = useTheme();
+  const isLight   = theme === 'light';
+
   const [data,    setData]    = useState({ balance: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
   const [amount,  setAmount]  = useState('');
@@ -86,11 +90,16 @@ export default function WalletPage() {
       {/* ── Balance card ── */}
       <div style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 16, position: 'relative', boxShadow: '0 16px 48px rgba(193,39,45,0.25)' }}>
         <ZelligeStripe />
-        <div style={{ background: 'linear-gradient(135deg, #1a0a0a 0%, #2d0f0f 50%, #1f0d0d 100%)', padding: '28px 28px 24px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          background: isLight
+            ? 'linear-gradient(135deg, #C1272D 0%, #9e1f24 50%, #7e181d 100%)'
+            : 'linear-gradient(135deg, #1a0a0a 0%, #2d0f0f 50%, #1f0d0d 100%)',
+          padding: '28px 28px 24px', position: 'relative', overflow: 'hidden',
+        }}>
           {/* Motif géométrique de fond */}
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{
-              position: 'absolute', width: 80, height: 80, border: '1px solid rgba(193,39,45,0.15)',
+              position: 'absolute', width: 80, height: 80, border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 12, transform: `rotate(${i * 15}deg)`,
               top: `${-20 + i * 10}px`, right: `${20 + i * 12}px`,
             }} />
@@ -98,27 +107,27 @@ export default function WalletPage() {
 
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>Solde disponible</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Solde disponible</p>
               <p style={{ margin: '6px 0 0', fontSize: 44, fontWeight: 900, color: '#fff', letterSpacing: '-1px', lineHeight: 1 }}>
                 {fmt(data.balance)}
-                <span style={{ fontSize: 18, fontWeight: 600, marginLeft: 6, color: 'rgba(255,255,255,0.7)' }}>DH</span>
+                <span style={{ fontSize: 18, fontWeight: 600, marginLeft: 6, color: 'rgba(255,255,255,0.75)' }}>DH</span>
               </p>
             </div>
-            <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <Wallet size={24} style={{ color: '#D4890A' }} />
+            <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.18)' }}>
+              <Wallet size={24} style={{ color: '#FFD980' }} />
             </div>
           </div>
 
           {/* Stats row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: 0, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '12px 0', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: 0, background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 0', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ textAlign: 'center', padding: '0 16px' }}>
-              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>Reçu au total</p>
-              <p style={{ margin: '4px 0 0', fontSize: 18, fontWeight: 900, color: '#10B981' }}>+{fmt(credits)} DH</p>
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Reçu au total</p>
+              <p style={{ margin: '4px 0 0', fontSize: 18, fontWeight: 900, color: '#6EE7B7' }}>+{fmt(credits)} DH</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.1)' }} />
             <div style={{ textAlign: 'center', padding: '0 16px' }}>
-              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>Dépensé au total</p>
-              <p style={{ margin: '4px 0 0', fontSize: 18, fontWeight: 900, color: '#F87171' }}>{fmt(debits)} DH</p>
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Dépensé au total</p>
+              <p style={{ margin: '4px 0 0', fontSize: 18, fontWeight: 900, color: '#FCA5A5' }}>{fmt(debits)} DH</p>
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ html.light {
   --bg-400: #a0a0a0;
 
   --text-base:       #111111;
+  --text-primary:    #111111;
   --text-secondary:  rgba(17,17,17,0.65);
   --text-muted:      rgba(17,17,17,0.42);
   --border-color:    #e5e5e5;
@@ -363,6 +364,7 @@ html.light button[class*="text-slate-"]:hover { color: #111111; }
   --bg-500: #242D4A;
   --bg-400: #303D60;
   --text-base:      #EEF2FF;
+  --text-primary:   #EEF2FF;
   --text-secondary: rgba(238,242,255,0.65);
   --text-muted:     rgba(238,242,255,0.35);
   --border-color:   #1A2238;
@@ -556,6 +558,20 @@ html.light .gold-bar { background: linear-gradient(to bottom, transparent, #a865
 /* Light mode — fix text colors that use hardcoded white/cream */
 html.light .section-eyebrow { color: #a86508; }
 html.light .gold-section-rule { background: linear-gradient(to right, transparent, rgba(168,101,8,0.35), transparent); }
+
+/* Light mode — fix text-white / text-slate hardcoded classes used in stat cards */
+html.light [style*="color: var(--text-primary)"] { color: #111111 !important; }
+html.light [style*="color: var(--text-secondary)"] { color: rgba(17,17,17,0.65) !important; }
+html.light [style*="color: var(--text-muted)"] { color: rgba(17,17,17,0.42) !important; }
+
+/* Light mode — card box-shadow plus léger */
+html.light .card {
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06) !important;
+}
+html.light .card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 16px rgba(193,39,45,0.1) !important;
+}
 
 /* ── Scrollbar marocain ── */
 ::-webkit-scrollbar { width: 5px; }
@@ -905,6 +921,10 @@ html.light .press-logo { color: rgba(0,0,0,0.28); border-color: rgba(0,0,0,0.1);
   background: linear-gradient(90deg, var(--bg-700) 25%, var(--bg-600) 50%, var(--bg-700) 75%);
   background-size: 800px 100%;
   animation: shimmerLoad 1.4s ease-in-out infinite;
+}
+html.light .skeleton {
+  background: linear-gradient(90deg, #e8e8e8 25%, #d4d4d4 50%, #e8e8e8 75%);
+  background-size: 800px 100%;
 }
 
 /* ═══════════════════════════════════════
