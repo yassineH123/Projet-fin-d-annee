@@ -650,6 +650,105 @@ function SponsoredSection() {
   );
 }
 
+/* ─── FEED SPONSORED CARD ────────────────────────── */
+function FeedSponsoredCard() {
+  const [adIndex, setAdIndex] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ brand: '', tagline: '', url: '', budget: '100' });
+  const [sent, setSent] = useState(false);
+
+  if (dismissed) return null;
+
+  const ad = SPONSORED_ADS[adIndex % SPONSORED_ADS.length];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSent(true);
+    setTimeout(() => { setShowModal(false); setSent(false); setForm({ brand: '', tagline: '', url: '', budget: '100' }); }, 2000);
+  };
+
+  return (
+    <>
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Megaphone size={18} style={{ color: '#C1272D' }} />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 900, fontSize: 15, color: 'var(--text-primary)' }}>Créer une publicité</p>
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>Touchez des milliers de voyageurs</p>
+                </div>
+              </div>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}><X size={18} /></button>
+            </div>
+            {sent ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
+                <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Demande envoyée !</p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Notre équipe vous contactera sous 24h.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Nom de votre marque</label>
+                  <input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} required placeholder="ex: Mon Restaurant Casablanca" className="input" style={{ fontSize: 13 }} /></div>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Slogan publicitaire</label>
+                  <input value={form.tagline} onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))} required placeholder="ex: -20% pour les voyageurs AtlasWay" className="input" style={{ fontSize: 13 }} /></div>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Site web ou numéro</label>
+                  <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} required placeholder="ex: monsite.ma" className="input" style={{ fontSize: 13 }} /></div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Budget mensuel : <span style={{ color: '#C1272D', fontWeight: 900 }}>{Number(form.budget).toLocaleString()} DH</span></label>
+                  <input type="range" min="100" max="5000" step="100" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} style={{ width: '100%', accentColor: '#C1272D' }} />
+                </div>
+                <button type="submit" style={{ padding: '12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #C1272D, #9e1f24)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Lancer ma campagne →</button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+      <div style={{ marginBottom: 12, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Sponsorisé</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--text-muted)', display: 'inline-block' }} />
+            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>Publicité</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setAdIndex(n => n + 1)} title="Voir une autre pub"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 3, fontSize: 11 }}>⟳</button>
+            <button onClick={() => setDismissed(true)} title="Fermer"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 3 }}><X size={12} /></button>
+          </div>
+        </div>
+
+        {/* Ad banner */}
+        <div style={{ margin: '10px 14px', borderRadius: 12, padding: '16px', background: `linear-gradient(135deg, ${ad.color}15, ${ad.color}08)`, border: `1px solid ${ad.color}25`, display: 'flex', gap: 14, alignItems: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: `${ad.color}20`, border: `2px solid ${ad.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>
+            {ad.logo}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 14, color: 'var(--text-base)' }}>{ad.brand}</p>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{ad.tagline}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button style={{ padding: '7px 18px', borderRadius: 8, border: 'none', background: ad.color, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{ad.cta} →</button>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ad.url}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer CTA */}
+        <button onClick={() => setShowModal(true)} style={{ width: '100%', padding: '8px 14px', borderTop: '1px solid var(--border-color)', background: 'transparent', border: 'none', borderTop: '1px solid var(--border-color)', cursor: 'pointer', fontSize: 11, color: '#C1272D', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+          <Megaphone size={11} /> Promouvoir votre entreprise ici
+        </button>
+      </div>
+    </>
+  );
+}
+
 /* ─── RIGHT SIDEBAR ─────────────────────────────── */
 function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, handleGeolocate, locating, stats, burst, liveUsers }) {
   return (
@@ -780,8 +879,7 @@ function RightSidebar({ form, setForm, handleSearch, swap, handleVoiceSearch, ha
         </div>
       </div>
 
-      {/* Sponsored section */}
-      <SponsoredSection />
+      {/* Sponsored: moved to main feed */}
 
       {/* Footer links */}
       <div style={{ padding: '4px 2px' }}>
@@ -1365,6 +1463,8 @@ export default function Home() {
                 : visible.map((trip, i) => (
                   <div key={trip.id || i}>
                     <RideFeedCard trip={trip} initialFav={favIds.has(trip.id)} index={i} />
+                    {/* Sponsored ad after 4th card */}
+                    {i === 3 && <FeedSponsoredCard />}
                     {/* IA suggestions after 2nd card */}
                     {i === 1 && user && (
                       <div style={{ marginBottom: 12, borderRadius: 14, padding: '12px 14px', background: 'linear-gradient(135deg, rgba(0,98,51,0.06), rgba(0,98,51,0.03))', border: '1px solid rgba(0,98,51,0.15)' }}>
