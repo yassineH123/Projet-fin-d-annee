@@ -1,10 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowRight, Car, Train, Bus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SEO from '../components/SEO';
+
+const STATS = [
+  { val: '12K+', label: 'Voyageurs' },
+  { val: '3K+',  label: 'Conducteurs' },
+  { val: '48',   label: 'Villes' },
+];
+
+const CITIES_FLOW = ['Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger', 'Agadir', 'Meknès', 'Oujda'];
 
 export default function Login() {
   const { login }   = useAuth();
@@ -40,110 +48,167 @@ export default function Login() {
       toast.success('Connexion réussie !');
       navigate(data.user.role === 'admin' || data.user.role === 'superadmin' ? '/admin' : '/');
     } catch (err) {
-      const msg = err.response?.data?.message || 'Erreur de connexion';
-      setError(msg);
+      setError(err.response?.data?.message || 'Email ou mot de passe incorrect');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 bg-dark-900">
+    <div style={{ minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', background: 'var(--bg-900)' }}>
       <SEO title="Connexion" description="Connectez-vous à votre compte AtlasWay pour réserver ou proposer un covoiturage au Maroc." path="/login" noIndex />
-      <div className="w-full max-w-md">
 
-        {/* Logo + title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-500/10 border border-primary-500/20 mb-4">
-            <Car className="text-primary-400" size={28} />
-          </div>
-          <h1 className="text-3xl font-black text-white">Connexion</h1>
-          <p className="text-slate-400 mt-2 text-sm">Accédez à votre compte AtlasWay</p>
+      {/* ── Hero band ── */}
+      <div style={{ background: 'linear-gradient(135deg, #0f0505 0%, #1f0808 40%, #0a1a0a 100%)', borderBottom: '1px solid var(--border-color)', padding: '28px 20px 24px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        {/* Zellige stripe */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, display: 'flex' }}>
+          {Array.from({ length: 80 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
         </div>
 
-        <div className="card p-6 shadow-2xl">
+        {/* Geometric accents */}
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{ position: 'absolute', width: 60 + i * 20, height: 60 + i * 20, border: '1px solid rgba(193,39,45,0.08)', borderRadius: 12, transform: `rotate(${i * 20}deg)`, top: -10 + i * 5, right: -15 + i * 8, pointerEvents: 'none' }} />
+        ))}
 
-          {/* Global error banner */}
-          {error && (
-            <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 mb-5 text-sm">
-              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
+        <div style={{ maxWidth: 440, margin: '0 auto', position: 'relative' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(193,39,45,0.15)', border: '1px solid rgba(193,39,45,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Car size={22} style={{ color: '#C1272D' }} />
             </div>
-          )}
-
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-            {/* Email */}
             <div>
-              <label className="field-label">Adresse email</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={set('email')}
-                placeholder="vous@example.com"
-                className={`input ${fErr.email ? 'input-error' : ''}`}
-                autoComplete="email"
-              />
-              {fErr.email && <p className="field-error"><AlertCircle size={12} /> {fErr.email}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-semibold text-slate-300">Mot de passe</label>
-                <Link to="/forgot-password" className="text-xs text-primary-400 hover:underline">Mot de passe oublié ?</Link>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPwd ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={set('password')}
-                  placeholder="••••••••"
-                  className={`input pr-11 ${(fErr.password || error) ? 'input-error' : ''}`}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {fErr.password && <p className="field-error"><AlertCircle size={12} /> {fErr.password}</p>}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary h-12 mt-1 rounded-xl flex items-center justify-center gap-2"
-            >
-              {loading
-                ? <span className="animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5 inline-block" />
-                : 'Se connecter'}
-            </button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-dark-500" />
-            </div>
-            <div className="relative text-center">
-              <span className="bg-dark-800 px-3 text-slate-500 text-xs">ou</span>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', color: '#D4890A', textTransform: 'uppercase' }}>✦ AtlasWay</p>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Bon retour 👋</p>
             </div>
           </div>
 
-          <p className="text-center text-slate-400 text-sm">
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="text-primary-400 font-semibold hover:text-primary-300 hover:underline transition-colors">
-              Créer un compte
-            </Link>
+          {/* Route animation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 4 }}>
+            {CITIES_FLOW.map((city, i) => (
+              <div key={city} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: i % 3 === 0 ? '#C1272D' : i % 3 === 1 ? '#D4890A' : '#22C55E', whiteSpace: 'nowrap' }}>{city}</span>
+                {i < CITIES_FLOW.length - 1 && (
+                  <div style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 4px', flexShrink: 0 }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
+            {STATS.map(({ val, label }) => (
+              <div key={label}>
+                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{val}</p>
+                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Form ── */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 16px 48px' }}>
+        <div style={{ width: '100%', maxWidth: 440 }}>
+
+          {/* Card */}
+          <div style={{ background: 'var(--card-bg)', borderRadius: 20, border: '1px solid var(--border-color)', padding: '28px 26px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+            <p style={{ margin: '0 0 22px', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>
+              Connexion à votre compte
+            </p>
+
+            {error && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 18 }}>
+                <AlertCircle size={15} style={{ color: '#F87171', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: '#F87171', fontWeight: 600 }}>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Email */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.04em' }}>ADRESSE EMAIL</label>
+                <input
+                  type="email" value={form.email} onChange={set('email')}
+                  placeholder="vous@example.com" autoComplete="email"
+                  className={`input ${fErr.email ? 'input-error' : ''}`}
+                  style={{ height: 46 }}
+                />
+                {fErr.email && <p className="field-error" style={{ marginTop: 4 }}><AlertCircle size={11} /> {fErr.email}</p>}
+              </div>
+
+              {/* Password */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>MOT DE PASSE</label>
+                  <Link to="/forgot-password" style={{ fontSize: 11, color: '#C1272D', fontWeight: 700, textDecoration: 'none' }}>
+                    Oublié ?
+                  </Link>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPwd ? 'text' : 'password'} value={form.password} onChange={set('password')}
+                    placeholder="••••••••" autoComplete="current-password"
+                    className={`input ${(fErr.password || error) ? 'input-error' : ''}`}
+                    style={{ height: 46, paddingRight: 44 }}
+                  />
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
+                    {showPwd ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+                {fErr.password && <p className="field-error" style={{ marginTop: 4 }}><AlertCircle size={11} /> {fErr.password}</p>}
+              </div>
+
+              {/* Submit */}
+              <button type="submit" disabled={loading} style={{
+                height: 50, borderRadius: 14, border: 'none', marginTop: 4,
+                background: loading ? 'var(--bg-700)' : 'linear-gradient(135deg, #C1272D, #9e1f24)',
+                color: loading ? 'var(--text-muted)' : '#fff', fontSize: 15, fontWeight: 800,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: loading ? 'none' : '0 6px 20px rgba(193,39,45,0.35)',
+                transition: 'all 0.2s',
+              }}>
+                {loading
+                  ? <span style={{ width: 20, height: 20, borderRadius: '50%', border: '2.5px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                  : <><span>Se connecter</span> <ArrowRight size={16} /></>
+                }
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ou</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
+            </div>
+
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+              Pas encore de compte ?{' '}
+              <Link to="/register" style={{ color: '#C1272D', fontWeight: 800, textDecoration: 'none' }}>
+                Créer un compte →
+              </Link>
+            </p>
+          </div>
+
+          {/* Modes de transport */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 24 }}>
+            {[{ Icon: Car, label: 'Covoiturage' }, { Icon: Train, label: 'Train' }, { Icon: Bus, label: 'Bus' }].map(({ Icon, label }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)', fontSize: 11, fontWeight: 600 }}>
+                <Icon size={13} /> {label}
+              </div>
+            ))}
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 14 }}>
+            En vous connectant, vous acceptez nos conditions d'utilisation.
           </p>
         </div>
-
-        <p className="text-center text-slate-600 text-xs mt-6">
-          En vous connectant, vous acceptez nos conditions d'utilisation.
-        </p>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }

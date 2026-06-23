@@ -1,24 +1,34 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Star, MapPin, Route } from 'lucide-react';
+import { Trophy, Star, MapPin, Route, Award, Zap } from 'lucide-react';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 
 const LEVEL_META = {
-  bronze:  { color: '#CD7F32', bg: 'rgba(205,127,50,0.12)',  label: 'Bronze'  },
-  argent:  { color: '#C0C0C0', bg: 'rgba(192,192,192,0.12)', label: 'Argent'  },
-  or:      { color: '#FFD700', bg: 'rgba(255,215,0,0.12)',   label: 'Or'      },
-  platine: { color: '#E5E4E2', bg: 'rgba(229,228,226,0.12)', label: 'Platine' },
-  diamant: { color: '#B9F2FF', bg: 'rgba(185,242,255,0.12)', label: 'Diamant' },
+  bronze:  { color: '#CD7F32', bg: 'rgba(205,127,50,0.15)',  label: 'Bronze',  emoji: '🥉' },
+  argent:  { color: '#A0A0A0', bg: 'rgba(160,160,160,0.15)', label: 'Argent',  emoji: '🥈' },
+  or:      { color: '#FFD700', bg: 'rgba(255,215,0,0.15)',   label: 'Or',      emoji: '🥇' },
+  platine: { color: '#B0C4DE', bg: 'rgba(176,196,222,0.15)', label: 'Platine', emoji: '💎' },
+  diamant: { color: '#89CFF0', bg: 'rgba(137,207,240,0.15)', label: 'Diamant', emoji: '🔷' },
 };
 
 const TABS = [
-  { id: 'rating', label: 'Mieux notés',    icon: Star   },
-  { id: 'trips',  label: 'Plus de trajets', icon: Trophy },
-  { id: 'km',     label: 'Plus de km',      icon: Route  },
+  { id: 'rating', label: 'Mieux notés',     icon: Star,    statLabel: (d) => `${d.avgRating?.toFixed(1)} ★`,         color: '#F59E0B' },
+  { id: 'trips',  label: 'Plus de trajets',  icon: Trophy,  statLabel: (d) => `${d.totalTrips} trajets`,              color: '#C1272D' },
+  { id: 'km',     label: 'Plus de km',       icon: Route,   statLabel: (d) => `${d.totalKm} km`,                      color: '#006233' },
 ];
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+const PODIUM_HEIGHTS = [80, 110, 60]; // 2nd, 1st, 3rd
+const PODIUM_ORDER   = [1, 0, 2];     // left=2nd, center=1st, right=3rd
+
+function Avatar({ user, size = 44 }) {
+  if (user?.photo) return <img src={user.photo} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: 'linear-gradient(135deg, #C1272D, #D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: size * 0.38, flexShrink: 0 }}>
+      {user?.firstName?.[0]}{user?.lastName?.[0]}
+    </div>
+  );
+}
 
 export default function Leaderboard() {
   const [tab,     setTab]     = useState('rating');
@@ -33,101 +43,179 @@ export default function Leaderboard() {
       .finally(() => setLoading(false));
   }, [tab]);
 
+  const tabCfg = TABS.find(t => t.id === tab);
+  const top3   = drivers.slice(0, 3);
+  const rest   = drivers.slice(3);
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Trophy size={24} className="text-yellow-400" />
-        <h1 className="text-2xl font-black text-white">Classement</h1>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 64px' }}>
+
+      {/* ── Header ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
+        </div>
+        <div style={{ padding: '20px 22px', background: 'linear-gradient(135deg, rgba(212,137,10,0.06) 0%, transparent 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(212,137,10,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Trophy size={22} style={{ color: '#D4890A' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#D4890A' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>Classement</h1>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Les meilleurs conducteurs de la communauté 🇲🇦</p>
+            </div>
+            {drivers.length > 0 && (
+              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>{drivers.length}</p>
+                <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>classés</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg-800)', border: '1px solid var(--border-color)' }}>
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all"
-            style={{
-              background: tab === id ? '#C1272D' : 'transparent',
-              color: tab === id ? 'white' : 'var(--text-secondary)',
-            }}>
-            <Icon size={14} /> {label}
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, padding: 5 }}>
+        {TABS.map(({ id, label, icon: Icon, color }) => (
+          <button key={id} onClick={() => setTab(id)} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: 'none',
+            cursor: 'pointer', transition: 'all 0.15s',
+            background: tab === id ? color : 'transparent',
+            color: tab === id ? '#fff' : 'var(--text-muted)',
+            boxShadow: tab === id ? `0 4px 12px ${color}40` : 'none',
+          }}>
+            <Icon size={13} /> {label}
           </button>
         ))}
       </div>
 
-      {loading ? <Spinner /> : drivers.length === 0 ? (
-        <div className="card text-center py-12">
-          <Trophy size={40} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400 font-medium">Aucun conducteur dans le classement</p>
-          <p className="text-slate-500 text-sm mt-1">Effectuez des trajets pour apparaître ici</p>
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
+      ) : drivers.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--card-bg)', borderRadius: 16, border: '1px solid var(--border-color)' }}>
+          <Trophy size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 14px', display: 'block' }} />
+          <p style={{ fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Aucun conducteur dans le classement</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Effectuez des trajets pour apparaître ici</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {drivers.map((d, i) => {
-            const lm = LEVEL_META[d.level] || LEVEL_META.bronze;
-            return (
-              <Link key={d.id} to={`/profile/${d.id}`}
-                className="card flex items-center gap-4 hover:border-primary-500/40 transition-all">
-                {/* Rank */}
-                <div className="w-10 text-center shrink-0">
-                  {i < 3
-                    ? <span className="text-2xl">{MEDALS[i]}</span>
-                    : <span className="text-lg font-black" style={{ color: 'var(--text-muted)' }}>#{i + 1}</span>
-                  }
-                </div>
+        <>
+          {/* ── Podium top 3 ── */}
+          {top3.length >= 2 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ borderRadius: 20, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+                {/* Fond dégradé podium */}
+                <div style={{ background: 'linear-gradient(180deg, rgba(212,137,10,0.08) 0%, transparent 100%)', padding: '28px 20px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12 }}>
+                    {PODIUM_ORDER.map((rank, col) => {
+                      const driver = top3[rank];
+                      if (!driver) return <div key={col} style={{ flex: 1 }} />;
+                      const lm = LEVEL_META[driver.level] || LEVEL_META.bronze;
+                      const isFirst = rank === 0;
+                      const medals = ['🥇','🥈','🥉'];
+                      const podH = PODIUM_HEIGHTS[col];
 
-                {/* Avatar */}
-                <div className="relative shrink-0">
-                  {d.photo
-                    ? <img src={d.photo} alt="" className="w-11 h-11 rounded-full object-cover" />
-                    : <div className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-black"
-                        style={{ background: 'rgba(193,39,45,0.15)', color: '#C1272D' }}>
-                        {d.firstName?.[0]}
-                      </div>
-                  }
-                  <div className="absolute -bottom-1 -right-1 text-xs px-1 rounded-md font-bold"
-                    style={{ background: lm.bg, color: lm.color, border: `1px solid ${lm.color}40` }}>
-                    {lm.label}
+                      return (
+                        <Link key={col} to={`/profile/${driver.id}`} style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                          {/* Badge médaille */}
+                          <span style={{ fontSize: isFirst ? 26 : 20 }}>{medals[rank]}</span>
+
+                          {/* Avatar */}
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ width: isFirst ? 72 : 56, height: isFirst ? 72 : 56, borderRadius: '50%', padding: 3, background: isFirst ? 'linear-gradient(135deg, #D4890A, #FFD700)' : 'var(--border-color)' }}>
+                              <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-800)' }}>
+                                <Avatar user={driver} size={isFirst ? 66 : 50} />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Nom */}
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: isFirst ? 13 : 11, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                              {driver.firstName} {driver.lastName?.[0]}.
+                            </p>
+                            <p style={{ margin: '3px 0 0', fontSize: 10, fontWeight: 700, color: lm.color }}>{lm.emoji} {lm.label}</p>
+                          </div>
+
+                          {/* Stat principale */}
+                          <div style={{ fontSize: isFirst ? 15 : 13, fontWeight: 900, color: tabCfg.color }}>
+                            {tabCfg.statLabel(driver)}
+                          </div>
+
+                          {/* Bloc podium */}
+                          <div style={{
+                            width: '100%', height: podH, borderRadius: '10px 10px 0 0',
+                            background: isFirst
+                              ? `linear-gradient(180deg, ${tabCfg.color}30, ${tabCfg.color}12)`
+                              : 'var(--bg-700)',
+                            border: `1px solid ${isFirst ? tabCfg.color + '40' : 'var(--border-color)'}`,
+                            borderBottom: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{ fontSize: isFirst ? 28 : 22, fontWeight: 900, color: isFirst ? tabCfg.color : 'var(--text-muted)', opacity: isFirst ? 1 : 0.5 }}>
+                              #{rank + 1}
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white truncate">{d.firstName} {d.lastName}</p>
-                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                    <span className="text-xs flex items-center gap-1" style={{ color: '#FBBF24' }}>
-                      <Star size={11} fill="currentColor" /> {d.avgRating?.toFixed(1)} ({d.totalRatings})
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {d.totalTrips} trajets
-                    </span>
-                    {d.totalKm > 0 && (
-                      <span className="text-xs flex items-center gap-0.5" style={{ color: 'var(--text-muted)' }}>
-                        <MapPin size={10} /> {d.totalKm} km
-                      </span>
-                    )}
-                  </div>
-                  {/* Badges */}
-                  {d.badges?.length > 0 && (
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {d.badges.slice(0, 4).map(b => (
-                        <span key={b.id} title={b.label} className="text-sm">{b.emoji}</span>
-                      ))}
+          {/* ── Liste 4+ ── */}
+          {rest.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {rest.map((d, i) => {
+                const rank = i + 4;
+                const lm   = LEVEL_META[d.level] || LEVEL_META.bronze;
+                return (
+                  <Link key={d.id} to={`/profile/${d.id}`} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
+                    padding: '12px 16px', borderRadius: 14,
+                    background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(3px)'; e.currentTarget.style.borderColor = tabCfg.color + '50'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
+                    {/* Rang */}
+                    <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-muted)' }}>#{rank}</span>
                     </div>
-                  )}
-                </div>
 
-                {/* Primary stat */}
-                <div className="text-right shrink-0">
-                  <p className="text-lg font-black" style={{ color: '#C1272D' }}>
-                    {tab === 'rating' ? d.avgRating?.toFixed(1)
-                      : tab === 'trips' ? d.totalTrips
-                      : `${d.totalKm} km`}
-                  </p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                    <Avatar user={d} size={42} />
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {d.firstName} {d.lastName}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: lm.bg, color: lm.color }}>
+                          {lm.emoji} {lm.label}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          <Star size={10} style={{ display: 'inline', color: '#F59E0B', verticalAlign: 'middle' }} /> {d.avgRating?.toFixed(1)} · {d.totalTrips} trajets
+                        </span>
+                        {d.badges?.slice(0, 3).map(b => (
+                          <span key={b.id} title={b.label} style={{ fontSize: 13 }}>{b.emoji}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: tabCfg.color }}>{tabCfg.statLabel(d)}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
