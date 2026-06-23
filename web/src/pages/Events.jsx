@@ -1,29 +1,42 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Plus, Users } from 'lucide-react';
+import { Calendar, MapPin, Plus, Users, X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
 
 const CATEGORIES = [
-  { id: 'concert', label: 'Concert' }, { id: 'sport', label: 'Sport' },
-  { id: 'festival', label: 'Festival' }, { id: 'conference', label: 'Conférence' },
-  { id: 'autre', label: 'Autre' },
+  { id: 'concert',    label: 'Concert',      emoji: '🎵', color: '#8B5CF6' },
+  { id: 'sport',      label: 'Sport',        emoji: '⚽', color: '#10B981' },
+  { id: 'festival',   label: 'Festival',     emoji: '🎉', color: '#F59E0B' },
+  { id: 'conference', label: 'Conférence',   emoji: '🎤', color: '#3B82F6' },
+  { id: 'autre',      label: 'Autre',        emoji: '📌', color: '#6B7280' },
 ];
 const CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès'];
 
+function ZelligeStripe() {
+  return (
+    <div style={{ height: 5, display: 'flex' }}>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+      ))}
+    </div>
+  );
+}
+
 export default function Events() {
   const { user } = useAuth();
-  const [events,  setEvents]  = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [events,   setEvents]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter] = useState({ city: '', category: '' });
-  const [form, setForm] = useState({ title: '', description: '', city: '', address: '', eventDate: '', category: 'autre' });
-  const [saving, setSaving] = useState(false);
+  const [filter,   setFilter]   = useState({ city: '', category: '' });
+  const [form,     setForm]     = useState({ title: '', description: '', city: '', address: '', eventDate: '', category: 'autre' });
+  const [saving,   setSaving]   = useState(false);
 
   const load = () => {
     const params = new URLSearchParams();
-    if (filter.city) params.set('city', filter.city);
+    if (filter.city)     params.set('city', filter.city);
     if (filter.category) params.set('category', filter.category);
     setLoading(true);
     api.get(`/events?${params}`).then(({ data }) => setEvents(data.events || [])).catch(() => setEvents([])).finally(() => setLoading(false));
@@ -50,99 +63,171 @@ export default function Events() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Calendar size={22} className="text-purple-400" />
-          <h1 className="text-2xl font-black text-white">Événements</h1>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 64px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Header */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <ZelligeStripe />
+        <div style={{ padding: '18px 20px', background: 'linear-gradient(135deg, rgba(139,92,246,0.06) 0%, transparent 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Calendar size={20} style={{ color: '#8B5CF6' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8B5CF6' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Événements</h1>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Concerts, festivals, sports & plus au Maroc</p>
+            </div>
+            {user && (
+              <button onClick={() => setShowForm(s => !s)} style={{
+                display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 12,
+                background: showForm ? 'var(--bg-700)' : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                border: showForm ? '1px solid var(--border-color)' : 'none',
+                color: showForm ? 'var(--text-muted)' : '#fff',
+                fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                boxShadow: showForm ? 'none' : '0 4px 14px rgba(139,92,246,0.3)',
+              }}>
+                {showForm ? <X size={15} /> : <Plus size={15} />}
+                {showForm ? 'Annuler' : 'Créer'}
+              </button>
+            )}
+          </div>
         </div>
-        {user && (
-          <button onClick={() => setShowForm(s => !s)} className="btn-primary px-4 py-2 text-sm flex items-center gap-2">
-            <Plus size={15} /> Créer
-          </button>
-        )}
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <select value={filter.city} onChange={e => setFilter(f => ({ ...f, city: e.target.value }))} className="input w-auto text-sm">
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {/* Category pills */}
+        <button onClick={() => setFilter(f => ({ ...f, category: '' }))} style={{
+          padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          border: '1px solid', transition: 'all 0.15s',
+          borderColor: !filter.category ? '#8B5CF6' : 'var(--border-color)',
+          background: !filter.category ? 'rgba(139,92,246,0.12)' : 'var(--card-bg)',
+          color: !filter.category ? '#8B5CF6' : 'var(--text-muted)',
+        }}>Tout</button>
+        {CATEGORIES.map(c => (
+          <button key={c.id} onClick={() => setFilter(f => ({ ...f, category: filter.category === c.id ? '' : c.id }))} style={{
+            padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            border: '1px solid', transition: 'all 0.15s',
+            borderColor: filter.category === c.id ? c.color : 'var(--border-color)',
+            background: filter.category === c.id ? `${c.color}18` : 'var(--card-bg)',
+            color: filter.category === c.id ? c.color : 'var(--text-muted)',
+          }}>{c.emoji} {c.label}</button>
+        ))}
+        {/* City select */}
+        <select value={filter.city} onChange={e => setFilter(f => ({ ...f, city: e.target.value }))}
+          className="input" style={{ height: 36, fontSize: 12, padding: '0 12px', borderRadius: 20, width: 'auto' }}>
           <option value="">Toutes les villes</option>
           {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select value={filter.category} onChange={e => setFilter(f => ({ ...f, category: e.target.value }))} className="input w-auto text-sm">
-          <option value="">Toutes catégories</option>
-          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
       </div>
 
       {/* Create form */}
       {showForm && (
-        <div className="card">
-          <h2 className="font-bold text-white mb-4">Nouvel événement</h2>
-          <form onSubmit={handleCreate} className="flex flex-col gap-3">
-            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="input" placeholder="Titre de l'événement" required />
-            <div className="grid grid-cols-2 gap-3">
-              <select value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className="input" required>
-                <option value="">Ville</option>
-                {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="input">
-                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </div>
-            <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-              className="input" placeholder="Adresse (optionnel)" />
-            <input type="datetime-local" value={form.eventDate} onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))}
-              className="input text-slate-300" required />
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="input resize-none text-sm" rows={2} placeholder="Description" />
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setShowForm(false)}
-                className="flex-1 h-11 rounded-xl font-semibold text-sm"
-                style={{ background: 'var(--bg-700)', color: 'var(--text-secondary)' }}>
-                Annuler
-              </button>
-              <button type="submit" disabled={saving} className="flex-1 btn-primary h-11">
-                {saving ? 'Création...' : 'Publier'}
-              </button>
-            </div>
-          </form>
+        <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)', animation: 'esEnter 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
+          <ZelligeStripe />
+          <div style={{ padding: '20px 22px' }}>
+            <p style={{ fontWeight: 900, fontSize: 15, color: 'var(--text-primary)', margin: '0 0 16px' }}>Nouvel événement</p>
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                className="input" placeholder="Titre de l'événement" required />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <select value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className="input" required>
+                  <option value="">Ville</option>
+                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="input">
+                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                </select>
+              </div>
+              <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                className="input" placeholder="Adresse (optionnel)" />
+              <input type="datetime-local" value={form.eventDate} onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))}
+                className="input" required />
+              <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                className="input" style={{ resize: 'none', fontSize: 14 }} rows={2} placeholder="Description" />
+              <button type="submit" disabled={saving} style={{
+                height: 46, borderRadius: 12, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                background: saving ? 'var(--bg-700)' : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                color: saving ? 'var(--text-muted)' : '#fff', fontWeight: 900, fontSize: 14,
+                boxShadow: saving ? 'none' : '0 4px 14px rgba(139,92,246,0.3)',
+              }}>{saving ? 'Création...' : 'Publier l\'événement'}</button>
+            </form>
+          </div>
         </div>
       )}
 
+      {/* Events list */}
       {loading ? <Spinner /> : events.length === 0 ? (
-        <div className="card text-center py-12"><p className="text-slate-500">Aucun événement à venir</p></div>
+        <EmptyState
+          icon={<Calendar size={26} style={{ color: '#8B5CF6' }} />}
+          title="Aucun événement à venir"
+          description="Créez le premier événement et invitez la communauté à se retrouver !"
+          actionLabel="Créer un événement"
+          onAction={() => setShowForm(true)}
+          color="#8B5CF6"
+        />
       ) : (
-        <div className="grid gap-4">
-          {events.map(ev => (
-            <div key={ev.id} className="card flex gap-4">
-              {ev.photo && <img src={ev.photo} alt="" className="w-20 h-20 rounded-xl object-cover shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-bold text-white">{ev.title}</p>
-                    <p className="text-xs text-purple-400 mt-0.5">{CATEGORIES.find(c => c.id === ev.category)?.label}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {events.map(ev => {
+            const cat = CATEGORIES.find(c => c.id === ev.category) || CATEGORIES[4];
+            const evDate = new Date(ev.eventDate);
+            return (
+              <div key={ev.id} style={{
+                borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+                display: 'flex', transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = `${cat.color}50`}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                {/* Date chip */}
+                <div style={{ width: 68, flexShrink: 0, background: `${cat.color}12`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 8px', borderRight: `1px solid ${cat.color}25` }}>
+                  <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: cat.color, lineHeight: 1 }}>{evDate.getDate()}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 10, fontWeight: 700, color: cat.color, textTransform: 'uppercase' }}>
+                    {evDate.toLocaleDateString('fr-FR', { month: 'short' })}
+                  </p>
+                  <p style={{ margin: '6px 0 0', fontSize: 22 }}>{cat.emoji}</p>
+                </div>
+
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</p>
+                      <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `${cat.color}18`, color: cat.color }}>
+                        {cat.label}
+                      </span>
+                    </div>
+                    {user && (
+                      <button onClick={() => handleAttend(ev.id)} style={{
+                        flexShrink: 0, fontSize: 12, padding: '7px 14px', borderRadius: 10, fontWeight: 800, cursor: 'pointer',
+                        border: 'none', background: `${cat.color}18`, color: cat.color, transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = cat.color; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = `${cat.color}18`; e.currentTarget.style.color = cat.color; }}>
+                        Participer
+                      </button>
+                    )}
                   </div>
-                  {user && (
-                    <button onClick={() => handleAttend(ev.id)}
-                      className="shrink-0 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all"
-                      style={{ background: 'rgba(139,92,246,0.15)', color: '#A78BFA' }}>
-                      Participer
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <MapPin size={11} /> {ev.city}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <Calendar size={11} /> {evDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <Users size={11} /> {ev.attendees} participant{ev.attendees !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {ev.description && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ev.description}</p>}
                 </div>
-                <div className="flex gap-4 mt-2 text-xs flex-wrap" style={{ color: 'var(--text-muted)' }}>
-                  <span className="flex items-center gap-1"><MapPin size={11} /> {ev.city}</span>
-                  <span className="flex items-center gap-1"><Calendar size={11} /> {new Date(ev.eventDate).toLocaleDateString('fr-FR', { dateStyle: 'medium' })}</span>
-                  <span className="flex items-center gap-1"><Users size={11} /> {ev.attendees} participant{ev.attendees !== 1 ? 's' : ''}</span>
-                </div>
-                {ev.description && <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{ev.description}</p>}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      <style>{`@keyframes esEnter { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }`}</style>
     </div>
   );
 }

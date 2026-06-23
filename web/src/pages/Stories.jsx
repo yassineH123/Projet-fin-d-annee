@@ -1,9 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
+
+function ZelligeStripe() {
+  return (
+    <div style={{ height: 5, display: 'flex' }}>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+      ))}
+    </div>
+  );
+}
 
 function StoryViewer({ group, onClose, onNext, onPrev, hasNext, hasPrev }) {
   const [idx, setIdx] = useState(0);
@@ -19,37 +30,36 @@ function StoryViewer({ group, onClose, onNext, onPrev, hasNext, hasPrev }) {
   }, [idx, story.id]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.95)' }}>
-      {hasPrev && <button onClick={onPrev} className="absolute left-4 z-10 text-white/60 hover:text-white"><ChevronLeft size={36} /></button>}
-      {hasNext && <button onClick={onNext} className="absolute right-4 z-10 text-white/60 hover:text-white"><ChevronRight size={36} /></button>}
-      <button onClick={onClose} className="absolute top-4 right-4 z-10 text-white/60 hover:text-white"><X size={24} /></button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {hasPrev && <button onClick={onPrev} style={{ position: 'absolute', left: 16, zIndex: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><ChevronLeft size={24} /></button>}
+      {hasNext && <button onClick={onNext} style={{ position: 'absolute', right: 16, zIndex: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><ChevronRight size={24} /></button>}
+      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><X size={20} /></button>
 
-      <div className="relative max-w-sm w-full mx-4">
+      <div style={{ width: '100%', maxWidth: 380, padding: '0 16px' }}>
         {/* Progress bars */}
-        <div className="flex gap-1 mb-3">
+        <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
           {group.stories.map((_, i) => (
-            <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.3)' }}>
-              <div className="h-full bg-white transition-all" style={{ width: i < idx ? '100%' : i === idx ? '50%' : '0%' }} />
+            <div key={i} style={{ flex: 1, height: 2, borderRadius: 2, background: 'rgba(255,255,255,0.25)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: '#fff', width: i < idx ? '100%' : i === idx ? '50%' : '0%', transition: 'width 0.3s' }} />
             </div>
           ))}
         </div>
 
         {/* Author */}
-        <div className="flex items-center gap-2 mb-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           {group.user?.photo
-            ? <img src={group.user.photo} className="w-8 h-8 rounded-full object-cover" alt="" />
-            : <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-sm font-bold text-white">{group.user?.firstName?.[0]}</div>
+            ? <img src={group.user.photo} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid #C1272D' }} alt="" />
+            : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#C1272D,#D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#fff' }}>{group.user?.firstName?.[0]}</div>
           }
-          <span className="text-white font-semibold text-sm">{group.user?.firstName} {group.user?.lastName}</span>
-          <span className="text-white/50 text-xs ml-auto">{story.views} vues</span>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{group.user?.firstName} {group.user?.lastName}</span>
+          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginLeft: 'auto' }}>{story.views} vues</span>
         </div>
 
-        {/* Media */}
         {story.mediaType === 'video'
-          ? <video src={story.mediaUrl} className="w-full rounded-2xl max-h-[70vh] object-contain" autoPlay muted />
-          : <img src={story.mediaUrl} className="w-full rounded-2xl max-h-[70vh] object-contain" alt="" />
+          ? <video src={story.mediaUrl} style={{ width: '100%', borderRadius: 18, maxHeight: '68vh', objectFit: 'contain' }} autoPlay muted />
+          : <img src={story.mediaUrl} style={{ width: '100%', borderRadius: 18, maxHeight: '68vh', objectFit: 'contain' }} alt="" />
         }
-        {story.caption && <p className="text-white text-sm text-center mt-3">{story.caption}</p>}
+        {story.caption && <p style={{ color: '#fff', fontSize: 14, textAlign: 'center', marginTop: 14, lineHeight: 1.5 }}>{story.caption}</p>}
       </div>
     </div>
   );
@@ -57,12 +67,12 @@ function StoryViewer({ group, onClose, onNext, onPrev, hasNext, hasPrev }) {
 
 export default function StoriesPage() {
   const { user } = useAuth();
-  const [groups,   setGroups]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [viewing,  setViewing]  = useState(null);
+  const [groups,    setGroups]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [viewing,   setViewing]   = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [pending,  setPending]  = useState(null); // { file, preview } waiting for caption
-  const [caption,  setCaption]  = useState('');
+  const [pending,   setPending]   = useState(null);
+  const [caption,   setCaption]   = useState('');
   const fileRef = useRef(null);
 
   const load = () => api.get('/stories').then(({ data }) => setGroups(data.groups || [])).catch(() => setGroups([])).finally(() => setLoading(false));
@@ -71,8 +81,7 @@ export default function StoriesPage() {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const preview = URL.createObjectURL(file);
-    setPending({ file, preview });
+    setPending({ file, preview: URL.createObjectURL(file) });
     setCaption('');
     e.target.value = '';
   };
@@ -95,69 +104,95 @@ export default function StoriesPage() {
   if (loading) return <Spinner size="lg" />;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-black text-white mb-6">Stories</h1>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 64px' }}>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
-        {/* Add story */}
-        {user && (
-          <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="flex flex-col items-center gap-2 shrink-0">
-            <div className="w-16 h-16 rounded-full border-2 border-dashed flex items-center justify-center transition"
-              style={{ borderColor: 'var(--border-color)', background: 'var(--bg-700)' }}>
-              {uploading ? <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /> : <Plus size={22} className="text-primary-400" />}
+      {/* Header */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 24, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <ZelligeStripe />
+        <div style={{ padding: '18px 20px', background: 'linear-gradient(135deg, rgba(193,39,45,0.06) 0%, transparent 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={20} style={{ color: '#C1272D' }} />
             </div>
-            <span className="text-xs text-slate-400">Ajouter</span>
-            <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileSelect} />
-          </button>
-        )}
-
-        {/* Story groups */}
-        {groups.map((g, i) => (
-          <button key={g.user?.id} onClick={() => setViewing(i)} className="flex flex-col items-center gap-2 shrink-0">
-            <div className="w-16 h-16 rounded-full p-0.5" style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
-              {g.user?.photo
-                ? <img src={g.user.photo} className="w-full h-full rounded-full object-cover border-2 border-[var(--bg-card)]" alt="" />
-                : <div className="w-full h-full rounded-full flex items-center justify-center text-lg font-black text-white border-2 border-[var(--bg-card)]"
-                    style={{ background: '#C1272D' }}>{g.user?.firstName?.[0]}</div>
-              }
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Stories</h1>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Partagez vos moments de route · 24h</p>
             </div>
-            <span className="text-xs text-slate-300 max-w-[64px] truncate">{g.user?.firstName}</span>
-          </button>
-        ))}
+            {user && (
+              <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{
+                display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 12,
+                background: 'linear-gradient(135deg, #C1272D, #a01f23)', border: 'none', color: '#fff',
+                fontWeight: 800, fontSize: 13, cursor: uploading ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(193,39,45,0.3)',
+              }}>
+                {uploading
+                  ? <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  : <Plus size={15} />}
+                Ajouter
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFileSelect} />
+          </div>
+        </div>
       </div>
 
-      {groups.length === 0 && (
-        <div className="card text-center py-12 mt-4">
-          <p className="text-slate-500">Aucune story pour l'instant. Soyez le premier !</p>
+      {/* Story bubbles */}
+      {groups.length > 0 && (
+        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none', marginBottom: 8 }}>
+          {groups.map((g, i) => (
+            <button key={g.user?.id} onClick={() => setViewing(i)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>
+              {/* Gradient ring */}
+              <div style={{ width: 72, height: 72, borderRadius: '50%', padding: 3, background: 'linear-gradient(135deg, #C1272D 0%, #D4890A 50%, #006233 100%)', boxShadow: '0 4px 16px rgba(193,39,45,0.3)', transition: 'transform 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--card-bg)' }}>
+                  {g.user?.photo
+                    ? <img src={g.user.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    : <div style={{ width: '100%', height: '100%', background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#fff' }}>{g.user?.firstName?.[0]}</div>
+                  }
+                </div>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {g.user?.firstName}
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Caption modal before upload */}
+      {groups.length === 0 && (
+        <EmptyState
+          icon={<Sparkles size={26} style={{ color: '#C1272D' }} />}
+          title="Aucune story pour l'instant"
+          description="Soyez le premier à partager un moment de route avec la communauté AtlasWay !"
+          actionLabel="Publier une story"
+          onAction={() => fileRef.current?.click()}
+          color="#C1272D"
+        />
+      )}
+
+      {/* Caption modal */}
       {pending && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 360, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: 15 }}>Publier une story</p>
-            {pending.file.type.startsWith('image')
-              ? <img src={pending.preview} alt="" style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'cover' }} />
-              : <video src={pending.preview} style={{ width: '100%', borderRadius: 12, maxHeight: 200 }} muted />
-            }
-            <input
-              value={caption}
-              onChange={e => setCaption(e.target.value)}
-              placeholder="Ajouter une légende (optionnel)"
-              maxLength={150}
-              style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }}
-            />
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setPending(null); setCaption(''); }}
-                style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
-                Annuler
-              </button>
-              <button onClick={handleUpload}
-                style={{ flex: 1, padding: 11, borderRadius: 10, border: 'none', background: 'var(--primary-600, #C1272D)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900 }}>
-                Publier
-              </button>
+          <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 360, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
+            <ZelligeStripe />
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: 15, margin: 0 }}>Publier une story</p>
+              {pending.file.type.startsWith('image')
+                ? <img src={pending.preview} alt="" style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'cover' }} />
+                : <video src={pending.preview} style={{ width: '100%', borderRadius: 12, maxHeight: 200 }} muted />
+              }
+              <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Ajouter une légende (optionnel)" maxLength={150}
+                className="input" style={{ fontSize: 14 }} />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setPending(null); setCaption(''); }} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Annuler
+                </button>
+                <button onClick={handleUpload} style={{ flex: 1, padding: 11, borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#C1272D,#a01f23)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900, boxShadow: '0 4px 14px rgba(193,39,45,0.3)' }}>
+                  Publier
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -173,6 +208,8 @@ export default function StoriesPage() {
           hasPrev={viewing > 0}
         />
       )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }
