@@ -1,5 +1,6 @@
 require('dotenv').config();
 const http      = require('http');
+const https     = require('https');
 const express   = require('express');
 const cors      = require('cors');
 const helmet    = require('helmet');
@@ -113,7 +114,26 @@ const PORT = process.env.PORT || 4000;
       generatePredictions().catch((err) => console.warn('[Predictions] régénération échouée:', err.message));
     }, REFRESH_MS);
 
-    server.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+    server.listen(PORT, () => {
+      console.log(`Backend running on http://localhost:${PORT}`);
+
+      // Self-ping every 14 min to prevent Render free tier from sleeping
+      if (process.env.NODE_ENV === 'production') {
+        const pingUrl = process.env.RENDER_EXTERNAL_URL
+          ? `${process.env.RENDER_EXTERNAL_URL}/health`
+          : null;
+        if (pingUrl) {
+          setInterval(() => {
+            https.get(pingUrl, (res) => {
+              console.log(`[KeepAlive] ping OK (${res.statusCode})`);
+            }).on('error', (err) => {
+              console.warn('[KeepAlive] ping failed:', err.message);
+            });
+          }, 14 * 60 * 1000);
+          console.log(`[KeepAlive] Self-ping actif → ${pingUrl}`);
+        }
+      }
+    });
   } catch (error) {
     console.error('Unable to connect to database:', error);
     process.exit(1);
