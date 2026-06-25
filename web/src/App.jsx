@@ -92,6 +92,7 @@ import SOSButton           from './components/SOSButton';
 import AccessibilityWidget from './components/AccessibilityWidget';
 import ChatWidget          from './components/ChatWidget';
 import BecomeDriverModal   from './components/BecomeDriverModal';
+import WelcomeTour         from './components/WelcomeTour';
 import { HelmetProvider }  from 'react-helmet-async';
 import { useState } from 'react';
 
@@ -132,6 +133,7 @@ function DriverRoute({ children }) {
 
 function AppRoutes() {
   const location = useLocation();
+  const { user } = useAuth();
   return (
     <div className="flex flex-col min-h-screen">
       <a href="#main-content" className="skip-link">Aller au contenu</a>
@@ -139,6 +141,7 @@ function AppRoutes() {
       <SOSButton />
       <AccessibilityWidget />
       <ChatWidget />
+      <WelcomeTour user={user} />
       <main id="main-content" className="flex-1">
         <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
