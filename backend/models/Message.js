@@ -11,6 +11,9 @@ const messageSchema = new Schema({
 
 messageSchema.plugin(idPlugin);
 
+messageSchema.index({ conversationId: 1, createdAt: -1 });
+messageSchema.index({ conversationId: 1, read: 1, senderId: 1 });
+
 messageSchema.virtual('conversation', { ref: 'Conversation', localField: 'conversationId', foreignField: '_id', justOne: true });
 messageSchema.virtual('sender', { ref: 'User', localField: 'senderId', foreignField: '_id', justOne: true });
 

@@ -137,8 +137,51 @@ function ZelligeStripe() {
   );
 }
 
+// Haversine distance between two addresses using known Moroccan city district coords.
+// Falls back to a text-hash estimate if addresses are unrecognized.
+const DISTRICT_COORDS = {
+  'centre': [0, 0], // placeholder, overridden by city-specific below
+  // Casablanca
+  'maarif': [33.5900, -7.6322], 'anfa': [33.5956, -7.6589],
+  'ain diab': [33.5867, -7.6903], 'sidi belyout': [33.5963, -7.6197],
+  'hay hassani': [33.5453, -7.6575], 'bernoussi': [33.6189, -7.5467],
+  'derb sultan': [33.5849, -7.6089], 'bourgogne': [33.5972, -7.6364],
+  'racine': [33.5919, -7.6458], 'californie': [33.5869, -7.6589],
+  // Rabat
+  'agdal': [33.9869, -6.8508], 'hay riad': [33.9617, -6.8756],
+  'ocean': [34.0131, -6.8392], 'souissi': [33.9789, -6.8222],
+  // Marrakech
+  'guéliz': [31.6340, -8.0100], 'hivernage': [31.6228, -8.0072],
+  'médina': [31.6295, -7.9811], 'mellah': [31.6228, -7.9781],
+  // Default city centers
+  'casablanca': [33.5731, -7.5898], 'rabat': [34.0209, -6.8416],
+  'marrakech': [31.6295, -7.9811], 'fès': [34.0181, -5.0078],
+  'tanger': [35.7595, -5.8340], 'agadir': [30.4278, -9.5981],
+};
+
+function haversineKm([lat1, lon1], [lat2, lon2]) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function mockDistance(pickup, dropoff) {
   if (!pickup || !dropoff || pickup === dropoff) return 2.5;
+  const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const lookupCoords = (addr) => {
+    const n = norm(addr);
+    for (const [key, coords] of Object.entries(DISTRICT_COORDS)) {
+      if (n.includes(key) || key.includes(n)) return coords;
+    }
+    return null;
+  };
+  const c1 = lookupCoords(pickup);
+  const c2 = lookupCoords(dropoff);
+  if (c1 && c2) return Math.round(haversineKm(c1, c2) * 10) / 10 || 2.5;
+  // Fallback: deterministic hash
   const seed = [...(pickup + dropoff)].reduce((a, c) => a + c.charCodeAt(0), 0);
   return Math.round((((seed % 18) + 2) * 10)) / 10;
 }

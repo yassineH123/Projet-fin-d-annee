@@ -12,6 +12,9 @@ const notificationSchema = new Schema({
 
 notificationSchema.plugin(idPlugin);
 
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, read: 1 });
+
 notificationSchema.virtual('user', { ref: 'User', localField: 'userId', foreignField: '_id', justOne: true });
 
 module.exports = model('Notification', notificationSchema);

@@ -6,7 +6,7 @@ module.exports = function() {
   // GET /trips
   router.get('/', async (req, res) => {
     try {
-      const trips = await Trip.findAll();
+      const trips = await Trip.find().lean();
       return res.json(trips);
     } catch (error) {
       return res.status(500).json({ error: error.message });

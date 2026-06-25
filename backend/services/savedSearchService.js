@@ -9,7 +9,7 @@ const normalize = (s) => (s || '').trim().toLowerCase();
  */
 async function notifyMatchingSavedSearches(ride) {
   try {
-    const searches = await SavedSearch.findAll();
+    const searches = await SavedSearch.find().lean();
     const rideFrom = normalize(ride.from);
     const rideTo   = normalize(ride.to);
 

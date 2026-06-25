@@ -24,10 +24,10 @@ async function seedAuthUsers() {
   ];
 
   for (const seed of seeds) {
-    const existing = await User.findOne({ where: { email: seed.email } });
+    const existing = await User.findOne({ email: seed.email });
     if (existing) {
       if (!existing.onboardingDone) {
-        await existing.update({ onboardingDone: true });
+        await User.updateOne({ email: seed.email }, { onboardingDone: true });
         console.log(`✅ Seed mis à jour: ${seed.email}`);
       }
       continue;

@@ -22,6 +22,10 @@ const rideSchema = new Schema({
 
 rideSchema.plugin(idPlugin);
 
+rideSchema.index({ from: 1, to: 1, departureDate: 1, status: 1 });
+rideSchema.index({ driverId: 1 });
+rideSchema.index({ status: 1, departureDate: 1 });
+
 rideSchema.virtual('driver', { ref: 'User', localField: 'driverId', foreignField: '_id', justOne: true });
 rideSchema.virtual('bookings', { ref: 'Booking', localField: '_id', foreignField: 'rideId' });
 rideSchema.virtual('waitlist', { ref: 'WaitlistEntry', localField: '_id', foreignField: 'rideId' });

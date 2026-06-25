@@ -19,7 +19,18 @@ const server = http.createServer(app);
 initSocket(server);
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors());
+
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://atlasway.ma', 'https://www.atlasway.ma']
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS bloqué: ${origin}`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
@@ -74,6 +85,7 @@ app.use('/groups',        require('./routes/groupRoutes'));
 app.use('/events',        require('./routes/eventRoutes'));
 app.use('/premium',       require('./routes/premiumRoutes'));
 app.use('/export',        require('./routes/exportRoutes'));
+app.use('/enterprise',    require('./routes/enterpriseRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);

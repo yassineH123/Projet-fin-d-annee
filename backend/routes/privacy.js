@@ -7,8 +7,8 @@ module.exports = function() {
   // GET /privacy/export - returns a JSON export (mock)
   router.get('/export', async (req, res) => {
     try {
-      const users = await User.findAll();
-      const trips = await Trip.findAll();
+      const users = await User.find().lean();
+      const trips = await Trip.find().lean();
       const payload = { users, trips };
       res.setHeader('Content-Disposition', 'attachment; filename="export.json"');
       res.setHeader('Content-Type', 'application/json');
@@ -22,7 +22,7 @@ module.exports = function() {
   router.post('/delete', async (req, res) => {
     try {
       const { email } = req.body;
-      await User.destroy({ where: { email } });
+      await User.deleteOne({ email });
       return res.json({ ok: true });
     } catch (error) {
       return res.status(500).json({ error: error.message });

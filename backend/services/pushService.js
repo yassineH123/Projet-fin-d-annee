@@ -24,7 +24,7 @@ if (PUBLIC && PRIVATE) {
 async function sendPushToUser(userId, payload) {
   if (!enabled) return;
   try {
-    const subs = await PushSubscription.findAll({ where: { userId } });
+    const subs = await PushSubscription.find({ userId });
     await Promise.all(subs.map(async (s) => {
       const subscription = { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } };
       try {
@@ -32,7 +32,7 @@ async function sendPushToUser(userId, payload) {
       } catch (err) {
         // 404 / 410 = abonnement expiré → on le supprime
         if (err.statusCode === 404 || err.statusCode === 410) {
-          await s.destroy().catch(() => {});
+          await PushSubscription.deleteOne({ _id: s._id }).catch(() => {});
         }
       }
     }));

@@ -12,6 +12,9 @@ const bookingSchema = new Schema({
 
 bookingSchema.plugin(idPlugin);
 
+bookingSchema.index({ rideId: 1, status: 1 });
+bookingSchema.index({ passengerId: 1 });
+
 bookingSchema.virtual('ride', { ref: 'Ride', localField: 'rideId', foreignField: '_id', justOne: true });
 bookingSchema.virtual('passenger', { ref: 'User', localField: 'passengerId', foreignField: '_id', justOne: true });
 
