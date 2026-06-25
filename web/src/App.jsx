@@ -91,7 +91,9 @@ const CityRide              = lazy(() => import('./pages/CityRide'));
 import SOSButton           from './components/SOSButton';
 import AccessibilityWidget from './components/AccessibilityWidget';
 import ChatWidget          from './components/ChatWidget';
+import BecomeDriverModal   from './components/BecomeDriverModal';
 import { HelmetProvider }  from 'react-helmet-async';
+import { useState } from 'react';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -111,10 +113,21 @@ function AdminRoute({ children }) {
 
 function DriverRoute({ children }) {
   const { user, loading } = useAuth();
+  const [showModal, setShowModal] = useState(false);
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.onboardingDone === false || (user.isDriver && !user.driverVerified)) return <Navigate to="/onboarding" replace />;
-  return user.isDriver ? children : <Navigate to="/" replace />;
+  if (!user.isDriver) {
+    return (
+      <>
+        <BecomeDriverModal
+          onClose={() => { setShowModal(false); window.history.back(); }}
+          isVerificationPending={user.driverVerificationStatus === 'pending'}
+        />
+      </>
+    );
+  }
+  return children;
 }
 
 function AppRoutes() {
