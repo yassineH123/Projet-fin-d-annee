@@ -8,12 +8,14 @@ import LoginScreen      from '../screens/Auth/LoginScreen';
 import RegisterScreen   from '../screens/Auth/RegisterScreen';
 import VerifyCodeScreen from '../screens/Auth/VerifyCodeScreen';
 import HomeScreen       from '../screens/Home/HomeScreen';
+import ChatScreen       from '../screens/Chat/ChatScreen';
 
 export type RootStackParamList = {
   Login:      undefined;
   Register:   undefined;
   VerifyCode: { email: string };
   Home:       undefined;
+  Chat:       undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,7 +41,10 @@ export default function AppNavigator() {
         }}
       >
         {user ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login"      component={LoginScreen} />

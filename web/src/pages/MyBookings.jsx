@@ -1,218 +1,547 @@
-import { useEffect, useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Check, X, Star, MessageSquare, Leaf } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Clock, Check, X, Star, MessageSquare, Flag, ScanLine, CalendarDays, List, Ticket, Car, ArrowRight, ChevronRight, Banknote, MapPin, ShieldCheck, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import Spinner from '../components/Spinner';
+import { SkeletonList } from '../components/SkeletonCard';
+import EmptyState from '../components/EmptyState';
 import BookingStatusBadge from '../components/BookingStatusBadge';
+import ReportModal from '../components/ReportModal';
+import BookingQR from '../components/BookingQR';
 import { useAuth } from '../context/AuthContext';
 
-const CO2_KG_PER_SEAT_TRIP = 2 * 120 / 1000;
+function getCancellationRefund(departureDate, price) {
+  const hoursLeft = (new Date(departureDate) - new Date()) / (1000 * 60 * 60);
+  if (hoursLeft >= 48) return { pct: 100, refund: price,         color: '#22C55E', label: 'Remboursement intégral' };
+  if (hoursLeft >= 24) return { pct: 50,  refund: Math.round(price / 2), color: '#D4890A', label: 'Remboursement à 50%' };
+  return                       { pct: 0,   refund: 0,             color: '#EF4444', label: 'Non remboursable' };
+}
 
-export default function MyBookings() {
-  const navigate               = useNavigate();
-  const { user: me }           = useAuth();
-  const [tab, setTab]          = useState('passenger');
-  const [period, setPeriod]    = useState('upcoming');
-  const [bookings, setBookings] = useState([]);
-  const [loading,  setLoading]  = useState(true);
+function CancelModal({ booking, onConfirm, onClose }) {
+  const ride     = booking?.ride || {};
+  const price    = ride.price || 0;
+  const pol      = getCancellationRefund(ride.departureDate, price);
+  const hoursLeft = Math.max(0, Math.round((new Date(ride.departureDate) - new Date()) / (1000 * 60 * 60)));
 
-  const fetchBookings = (t = tab) => {
-    setLoading(true);
-    const url = t === 'passenger' ? '/bookings/me' : '/bookings/driver';
-    api.get(url).then(({ data }) => setBookings(data.bookings)).finally(() => setLoading(false));
-  };
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 400, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(239,68,68,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle size={18} style={{ color: '#EF4444' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 900, color: 'var(--text-primary)' }}>Annuler la réservation</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ride.from} → {ride.to}</p>
+            </div>
+          </div>
+        </div>
 
-  useEffect(() => { fetchBookings(); }, [tab]);
+        {/* Body */}
+        <div style={{ padding: '16px 20px' }}>
+          {/* Time remaining */}
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--bg-700)', border: '1px solid var(--border-color)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Départ dans <strong style={{ color: 'var(--text-primary)' }}>{hoursLeft}h</strong>
+              {ride.departureDate && <span> · {new Date(ride.departureDate).toLocaleString('fr-MA', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}
+            </p>
+          </div>
 
-  const isPast = (b) => {
-    const ride = b.ride || {};
-    return ride.status === 'completed' || (ride.departureDate && new Date(ride.departureDate) < new Date());
-  };
+          {/* Refund policy tiers */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+            {[
+              { label: '+48h avant', pct: 100, active: pol.pct === 100, color: '#22C55E' },
+              { label: '24h – 48h', pct: 50,  active: pol.pct === 50,  color: '#D4890A' },
+              { label: 'Moins 24h',  pct: 0,   active: pol.pct === 0,   color: '#EF4444' },
+            ].map(t => (
+              <div key={t.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, background: t.active ? `${t.color}12` : 'var(--bg-700)', border: `1.5px solid ${t.active ? t.color : 'var(--border-color)'}`, transition: 'all .15s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  {t.active ? <ShieldCheck size={13} style={{ color: t.color }} /> : <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid var(--border-color)' }} />}
+                  <span style={{ fontSize: 12, fontWeight: t.active ? 800 : 500, color: t.active ? t.color : 'var(--text-muted)' }}>{t.label}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 900, color: t.active ? t.color : 'var(--text-muted)' }}>{t.pct}% remboursé</span>
+              </div>
+            ))}
+          </div>
 
-  const visibleBookings = tab === 'passenger'
-    ? bookings.filter((b) => (period === 'past' ? isPast(b) : !isPast(b)))
-    : bookings;
+          {/* Refund amount */}
+          <div style={{ padding: '14px', borderRadius: 12, background: `${pol.color}0f`, border: `1.5px solid ${pol.color}40`, textAlign: 'center', marginBottom: 18 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600 }}>Vous recevrez</p>
+            <p style={{ fontSize: 28, fontWeight: 900, color: pol.color, lineHeight: 1 }}>{pol.refund} DH</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{pol.label} · {price} DH payé</p>
+          </div>
 
-  const co2Saved = useMemo(() => {
-    const pastAccepted = bookings.filter((b) => b.status === 'accepted' && isPast(b));
-    const totalSeats = pastAccepted.reduce((sum, b) => sum + (b.seats || 1), 0);
-    return Math.round(totalSeats * CO2_KG_PER_SEAT_TRIP * 10) / 10;
-  }, [bookings]);
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-700)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+              Garder ma place
+            </button>
+            <button onClick={() => onConfirm(booking.id)}
+              style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #EF4444, #DC2626)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900 }}>
+              Confirmer l'annulation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  const handleAction = async (id, action) => {
-    try {
-      await api.put(`/bookings/${id}/${action}`);
-      toast.success(action === 'accept' ? 'Acceptée !' : action === 'refuse' ? 'Refusée' : 'Annulée');
-      fetchBookings();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    }
-  };
+const STATUS_COLORS = {
+  pending:   { border: '#F59E0B', bg: 'rgba(245,158,11,0.06)',  label: 'En attente' },
+  accepted:  { border: '#10B981', bg: 'rgba(16,185,129,0.06)',  label: 'Acceptée'   },
+  refused:   { border: '#EF4444', bg: 'rgba(239,68,68,0.06)',   label: 'Refusée'    },
+  cancelled: { border: '#6B7280', bg: 'rgba(107,114,128,0.06)', label: 'Annulée'    },
+};
 
-  const canReview = (b) => {
-    const ride = b.ride || {};
+function ZelligeStripe() {
+  const colors = ['#C1272D', '#D4890A', '#006233'];
+  return (
+    <div style={{ height: 5, display: 'flex', overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
+      {Array.from({ length: 50 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: colors[i % 3], opacity: 0.88 }} />
+      ))}
+    </div>
+  );
+}
+
+function BookingCard({ b, tab, me, onAction, onQR, onReport, onCashConfirm }) {
+  const ride   = b.ride || {};
+  const other  = tab === 'passenger' ? ride.driver : b.passenger;
+  const date   = ride.departureDate ? new Date(ride.departureDate) : null;
+  const sc     = STATUS_COLORS[b.status] || STATUS_COLORS.cancelled;
+
+  const canReview = () => {
     if (tab === 'passenger') return b.status === 'accepted' && ride.status === 'completed';
     if (tab === 'driver')    return ride.status === 'completed';
     return false;
   };
 
-  const reviewUrl = (b) => {
-    const ride     = b.ride || {};
+  const reviewUrl = () => {
     const reviewed = tab === 'passenger' ? ride.driver : b.passenger;
     const type     = tab === 'passenger' ? 'driver' : 'passenger';
     return `/reviews/write?rideId=${ride.id}&reviewedId=${reviewed?.id}&type=${type}`;
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-black text-white mb-6">Réservations</h1>
+    <div style={{
+      borderRadius: 14, overflow: 'hidden', background: 'var(--card-bg)',
+      border: '1px solid var(--border-color)',
+      transition: 'transform .15s, box-shadow .15s',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${sc.border}18`; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+    >
+      {/* Status color stripe */}
+      <div style={{ height: 3, background: sc.border }} />
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4 bg-dark-800 border border-dark-500 rounded-xl p-1 w-fit">
-        {[['passenger','Mes voyages'],['driver','Demandes reçues']].map(([v, label]) => (
-          <button
-            key={v}
-            onClick={() => setTab(v)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
-              ${tab === v ? 'bg-primary-600 text-white' : 'text-slate-400 hover:text-white'}`}
-          >
+      <div style={{ padding: '14px 16px' }}>
+        {/* Top row: route + status + price */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Link to={`/rides/${ride.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{ride.from || '—'}</span>
+                <ArrowRight size={13} style={{ color: '#C1272D', flexShrink: 0 }} />
+                <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{ride.to || '—'}</span>
+              </div>
+            </Link>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+              <BookingStatusBadge status={b.status} />
+              {ride.status === 'completed' && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  Trajet terminé
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Price */}
+          {ride.price && (
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ fontSize: 20, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
+                {Number(ride.price * (b.seats || 1)).toFixed(0)}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>DH</p>
+            </div>
+          )}
+        </div>
+
+        {/* Meta row: date + person */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 10 }}>
+          {date && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-muted)' }}>
+              <Clock size={12} style={{ color: '#C1272D' }} />
+              {date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+            </span>
+          )}
+          {other && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {other.photo
+                ? <img src={other.photo} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
+                : <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff' }}>{other.firstName?.[0]}</div>
+              }
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{other.firstName} {other.lastName}</span>
+            </div>
+          )}
+          {b.seats > 1 && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.seats} places</span>
+          )}
+        </div>
+
+        {b.message && (
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 10, padding: '8px 10px', borderRadius: 8, background: 'var(--bg-700)', borderLeft: `2px solid ${sc.border}` }}>
+            "{b.message}"
+          </p>
+        )}
+
+        {/* Cash payment status */}
+        {b.paymentMethod === 'cash' && b.status === 'accepted' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            padding: '10px 12px', borderRadius: 10, marginBottom: 10,
+            background: b.cashConfirmed ? 'rgba(16,185,129,0.08)' : 'rgba(212,137,10,0.08)',
+            border: `1px solid ${b.cashConfirmed ? 'rgba(16,185,129,0.25)' : 'rgba(212,137,10,0.25)'}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Banknote size={14} style={{ color: b.cashConfirmed ? '#10B981' : '#D4890A' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: b.cashConfirmed ? '#10B981' : '#D4890A' }}>
+                {b.cashConfirmed ? '✓ Paiement espèces confirmé' : 'Paiement en espèces en attente'}
+              </span>
+            </div>
+            {!b.cashConfirmed && (
+              <button onClick={() => onCashConfirm(b.id)}
+                style={{
+                  padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 800, background: '#D4890A', color: '#fff',
+                }}>
+                {tab === 'driver' ? 'Confirmer reçu' : 'Confirmer payé'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Actions row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border-color)' }}>
+          {/* Left: links */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            {tab === 'passenger' && b.status === 'accepted' && (
+              <button onClick={() => onQR(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#60A5FA' }}>
+                <ScanLine size={13} /> Billet QR
+              </button>
+            )}
+            {tab === 'passenger' && b.status === 'accepted' && ride.id && (
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/track/${ride.id}`;
+                  navigator.clipboard.writeText(link)
+                    .then(() => toast.success('Lien de suivi copié ! Envoyez-le à votre famille 📍'));
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#C1272D' }}>
+                <MapPin size={13} /> Partager le suivi
+              </button>
+            )}
+
+            {canReview() && (
+              <Link to={reviewUrl()} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#F59E0B' }}>
+                <Star size={13} fill="currentColor" /> Laisser un avis
+              </Link>
+            )}
+
+            {other && other.id !== me?.id && ['pending', 'accepted'].includes(b.status) && (
+              <Link
+                to={`/messages?with=${other.id}&name=${encodeURIComponent(`${other.firstName} ${other.lastName}`)}&photo=${encodeURIComponent(other.photo || '')}`}
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#C1272D' }}
+              >
+                <MessageSquare size={13} />
+                {tab === 'passenger' ? 'Conducteur' : 'Passager'}
+              </Link>
+            )}
+
+            {tab === 'passenger' && b.status === 'accepted' && b.ride?.driver && (
+              <button onClick={() => onReport({ id: b.ride.driver.id, name: `${b.ride.driver.firstName} ${b.ride.driver.lastName}`, rideId: b.ride?.id })}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-muted)' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F87171'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                <Flag size={12} /> Signaler
+              </button>
+            )}
+          </div>
+
+          {/* Right: accept/refuse/cancel */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {tab === 'driver' && b.status === 'pending' && (
+              <>
+                <button onClick={() => onAction(b.id, 'accept')} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 800, background: 'rgba(16,185,129,0.12)', color: '#10B981',
+                }}>
+                  <Check size={13} /> Accepter
+                </button>
+                <button onClick={() => onAction(b.id, 'refuse')} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 800, background: 'rgba(239,68,68,0.10)', color: '#F87171',
+                }}>
+                  <X size={13} /> Refuser
+                </button>
+              </>
+            )}
+            {tab === 'passenger' && ['pending', 'accepted'].includes(b.status) && (
+              <button onClick={() => onAction(b.id, 'cancel')} style={{
+                padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.25)',
+                cursor: 'pointer', fontSize: 12, fontWeight: 700, background: 'rgba(239,68,68,0.06)', color: '#F87171',
+              }}>
+                Annuler
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function MyBookings() {
+  const { user: me }             = useAuth();
+  const [tab,      setTab]       = useState('passenger');
+  const [bookings, setBookings]  = useState([]);
+  const [loading,  setLoading]   = useState(true);
+  const [report,      setReport]      = useState(null);
+  const [qrBooking,   setQrBooking]   = useState(null);
+  const [viewMode,    setViewMode]    = useState('list');
+  const [cancelModal, setCancelModal] = useState(null); // booking object | null
+
+  const fetchBookings = (t = tab) => {
+    setLoading(true);
+    const url = t === 'passenger' ? '/bookings/me' : '/bookings/driver';
+    api.get(url).then(({ data }) => setBookings(data.bookings || [])).catch(() => setBookings([])).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchBookings(); }, [tab]);
+
+  const handleCashConfirm = async (id) => {
+    try {
+      await api.put(`/bookings/${id}/confirm-cash`);
+      toast.success('Paiement espèces confirmé !');
+      setBookings(bs => bs.map(b => b.id === id ? { ...b, cashConfirmed: true } : b));
+    } catch {
+      toast.error('Erreur lors de la confirmation');
+    }
+  };
+
+  const handleCancelConfirm = async (id) => {
+    setCancelModal(null);
+    try {
+      const { data } = await api.put(`/bookings/${id}/cancel`);
+      const refundMsg = data?.refund ? ` · ${data.refund} DH remboursés` : '';
+      toast.success(`Réservation annulée${refundMsg}`);
+      setBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
+    } catch {
+      toast.error('Erreur lors de l\'annulation');
+    }
+  };
+
+  const handleAction = async (id, action) => {
+    if (action === 'cancel') {
+      const booking = bookings.find(b => b.id === id);
+      setCancelModal(booking);
+      return;
+    }
+    try {
+      const { data } = await api.put(`/bookings/${id}/${action}`);
+      toast.success(action === 'accept' ? 'Acceptée !' : action === 'refuse' ? 'Refusée' : (data?.message || 'Réservation annulée'));
+      fetchBookings();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur');
+    }
+  };
+
+  const counts = {
+    accepted:  bookings.filter(b => b.status === 'accepted').length,
+    pending:   bookings.filter(b => b.status === 'pending').length,
+    total:     bookings.length,
+  };
+
+  return (
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px 48px' }}>
+
+      {/* ── Cancel modal ── */}
+      {cancelModal && (
+        <CancelModal
+          booking={cancelModal}
+          onConfirm={handleCancelConfirm}
+          onClose={() => setCancelModal(null)}
+        />
+      )}
+
+      {/* ── Header card ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)', marginBottom: 20 }}>
+        <ZelligeStripe />
+        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Ticket size={20} style={{ color: '#C1272D' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+              <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Réservations</p>
+              {!loading && counts.total > 0 && (
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  {counts.total} au total · {counts.accepted} confirmée{counts.accepted > 1 ? 's' : ''}
+                  {counts.pending > 0 && ` · ${counts.pending} en attente`}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* View toggle */}
+          <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 10, background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>
+            {[['list', <List size={15} />], ['calendar', <CalendarDays size={15} />]].map(([mode, icon]) => (
+              <button key={mode} onClick={() => setViewMode(mode)} title={mode === 'list' ? 'Vue liste' : 'Vue agenda'}
+                style={{
+                  padding: '6px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  background: viewMode === mode ? 'var(--card-bg)' : 'transparent',
+                  color: viewMode === mode ? '#C1272D' : 'var(--text-muted)',
+                  transition: 'all .15s',
+                }}>
+                {icon}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tab bar ── */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 4, width: 'fit-content' }}>
+        {[['passenger', '🧳 Mes voyages'], ['driver', '🚗 Demandes reçues']].map(([v, label]) => (
+          <button key={v} onClick={() => setTab(v)} style={{
+            padding: '8px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 700, transition: 'all .15s',
+            background: tab === v ? '#C1272D' : 'transparent',
+            color: tab === v ? '#fff' : 'var(--text-muted)',
+          }}>
             {label}
           </button>
         ))}
       </div>
 
-      {tab === 'passenger' && (
-        <>
-          <div className="card flex items-center gap-3 mb-4" style={{ borderColor: 'rgba(16,185,129,0.25)' }}>
-            <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center flex-shrink-0">
-              <Leaf size={18} className="text-green-400" />
-            </div>
-            <p className="text-sm text-slate-300">
-              <span className="font-bold text-white">{co2Saved} kg</span> de CO₂ économisés en covoiturant au lieu de rouler seul
-            </p>
-          </div>
-
-          <div className="flex gap-2 mb-6">
-            {[['upcoming','À venir'],['past','Historique']].map(([v, label]) => (
-              <button
-                key={v}
-                onClick={() => setPeriod(v)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
-                  ${period === v ? 'bg-dark-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </>
+      {/* ── Content ── */}
+      {loading ? <SkeletonList count={3} /> : bookings.length === 0 ? (
+        <EmptyState
+          icon={tab === 'passenger' ? <Ticket size={28} style={{ color: 'var(--text-muted)' }} /> : <Car size={28} style={{ color: 'var(--text-muted)' }} />}
+          title="Aucune réservation"
+          description={tab === 'passenger'
+            ? "Vous n'avez pas encore réservé de trajet. Trouvez votre prochain voyage !"
+            : "Vous n'avez pas encore reçu de demandes de réservation."}
+          actionLabel={tab === 'passenger' ? 'Rechercher un trajet' : 'Publier un trajet'}
+          actionTo={tab === 'passenger' ? '/rides/search' : '/rides/publish'}
+        />
+      ) : viewMode === 'calendar' ? (
+        <CalendarView bookings={bookings} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {bookings.map(b => (
+            <BookingCard
+              key={b.id}
+              b={b}
+              tab={tab}
+              me={me}
+              onAction={handleAction}
+              onQR={setQrBooking}
+              onReport={setReport}
+              onCashConfirm={handleCashConfirm}
+            />
+          ))}
+        </div>
       )}
 
-      {loading ? <Spinner /> : visibleBookings.length === 0 ? (
-        <div className="text-center py-16 card">
-          <MapPin size={40} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">{tab === 'passenger' && period === 'past' ? 'Aucun trajet passé' : 'Aucune réservation'}</p>
+      {qrBooking && <BookingQR booking={qrBooking} onClose={() => setQrBooking(null)} />}
+      {report && (
+        <ReportModal
+          reportedId={report.id}
+          reportedName={report.name}
+          rideId={report.rideId}
+          onClose={() => setReport(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CalendarView({ bookings }) {
+  const now  = new Date();
+  const [month, setMonth] = useState(now.getMonth());
+  const [year,  setYear]  = useState(now.getFullYear());
+
+  const firstDay    = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const MONTHS   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const DAYS_HDR = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+  const byDay = {};
+  bookings.forEach(b => {
+    if (!b.ride?.departureDate) return;
+    const d = new Date(b.ride.departureDate);
+    if (d.getMonth() === month && d.getFullYear() === year) {
+      const key = d.getDate();
+      if (!byDay[key]) byDay[key] = [];
+      byDay[key].push(b);
+    }
+  });
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const SC = { pending: '#F59E0B', accepted: '#10B981', refused: '#EF4444', cancelled: '#6B7280' };
+
+  return (
+    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
+      <ZelligeStripe />
+      <div style={{ padding: '16px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <button onClick={() => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); }}
+            style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 18 }}>‹</button>
+          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{MONTHS[month]} {year}</span>
+          <button onClick={() => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); }}
+            style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 18 }}>›</button>
         </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {visibleBookings.map((b) => {
-            const ride  = b.ride || {};
-            const other = tab === 'passenger' ? ride.driver : b.passenger;
-            const date  = ride.departureDate ? new Date(ride.departureDate) : null;
 
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
+          {DAYS_HDR.map(d => <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', paddingBottom: 4 }}>{d}</div>)}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          {cells.map((day, i) => {
+            if (!day) return <div key={`e-${i}`} />;
+            const items   = byDay[day] || [];
+            const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear();
             return (
-              <div key={b.id} className="card">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <Link to={`/rides/${ride.id}`} className="font-bold text-white hover:text-primary-400 transition">
-                        {ride.from} → {ride.to}
-                      </Link>
-                      <BookingStatusBadge status={b.status} />
-                      {ride.status === 'completed' && (
-                        <span className="badge-accepted">Trajet terminé</span>
-                      )}
-                    </div>
-
-                    {date && (
-                      <p className="text-sm text-slate-400 flex items-center gap-1 mb-2">
-                        <Clock size={13} />
-                        {date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
-                      </p>
-                    )}
-
-                    {other && (
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
-                        {other.photo
-                          ? <img src={other.photo} alt="" className="w-6 h-6 rounded-full object-cover" />
-                          : (
-                            <div className="w-6 h-6 rounded-full bg-dark-600 flex items-center justify-center text-xs font-bold text-white">
-                              {other.firstName?.[0]}
-                            </div>
-                          )
-                        }
-                        {other.firstName} {other.lastName}
-                      </div>
-                    )}
-
-                    {b.message && (
-                      <p className="text-slate-500 text-sm mt-2 italic">"{b.message}"</p>
-                    )}
-
-                    {/* Laisser un avis */}
-                    {canReview(b) && (
-                      <Link
-                        to={reviewUrl(b)}
-                        className="inline-flex items-center gap-1.5 text-sm text-yellow-400 hover:text-yellow-300 font-semibold mt-3 transition-colors"
-                      >
-                        <Star size={14} fill="currentColor" /> Laisser un avis
-                      </Link>
-                    )}
-
-                    {/* Contacter */}
-                    {other && other.id !== me?.id && ['pending', 'accepted'].includes(b.status) && (
-                      <Link
-                        to={`/messages?with=${other.id}&name=${encodeURIComponent(`${other.firstName} ${other.lastName}`)}&photo=${encodeURIComponent(other.photo || '')}`}
-                        className="inline-flex items-center gap-1.5 text-sm text-primary-400 hover:text-primary-300 font-semibold mt-2 transition-colors"
-                      >
-                        <MessageSquare size={14} />
-                        {tab === 'passenger' ? 'Contacter le conducteur' : 'Contacter le passager'}
-                      </Link>
-                    )}
+              <div key={day} style={{
+                minHeight: 52, borderRadius: 10, padding: '4px 3px', display: 'flex', flexDirection: 'column', gap: 2,
+                background: isToday ? 'rgba(193,39,45,0.07)' : 'var(--bg-700)',
+                border: `1px solid ${isToday ? 'rgba(193,39,45,0.35)' : 'var(--border-color)'}`,
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', display: 'block', color: isToday ? '#C1272D' : 'var(--text-muted)' }}>{day}</span>
+                {items.map(b => (
+                  <div key={b.id} style={{ borderRadius: 4, fontSize: 9, fontWeight: 700, padding: '1px 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: `${SC[b.status] || '#6B7280'}22`, color: SC[b.status] || '#6B7280' }}>
+                    {b.ride?.from?.slice(0,3)}→{b.ride?.to?.slice(0,3)}
                   </div>
-
-                  <div className="flex flex-col gap-2 shrink-0">
-                    {tab === 'driver' && b.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => handleAction(b.id, 'accept')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-green-400 bg-green-400/10 border border-green-400/25 hover:bg-green-400/20 transition-all min-w-[90px]"
-                        >
-                          <Check size={15} /> Accepter
-                        </button>
-                        <button
-                          onClick={() => handleAction(b.id, 'refuse')}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-red-400 bg-red-400/10 border border-red-400/25 hover:bg-red-400/20 transition-all min-w-[90px]"
-                        >
-                          <X size={15} /> Refuser
-                        </button>
-                      </>
-                    )}
-                    {tab === 'passenger' && ['pending', 'accepted'].includes(b.status) && (
-                      <button
-                        onClick={() => handleAction(b.id, 'cancel')}
-                        className="flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-bold text-red-400 bg-red-400/10 border border-red-400/25 hover:bg-red-400/20 transition-all min-w-[90px]"
-                      >
-                        Annuler
-                      </button>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
             );
           })}
         </div>
-      )}
+
+        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 12 }}>
+          {Object.values(byDay).flat().length} réservation{Object.values(byDay).flat().length > 1 ? 's' : ''} ce mois
+        </p>
+      </div>
     </div>
   );
 }

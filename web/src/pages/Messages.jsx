@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Send, MessageSquare, Users, Smile } from 'lucide-react';
+import { Send, MessageSquare, Users, Smile, Search, Phone, Video, MoreVertical, ArrowLeft, Check, CheckCheck } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
@@ -10,23 +10,53 @@ import Spinner from '../components/Spinner';
 const SOCKET_URL = 'http://localhost:4000';
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
-/* ── helpers ─────────────────────────────────────────── */
-function Avatar({ user, size = 'w-10 h-10', fontSize = 'text-sm' }) {
-  return user?.photo
-    ? <img src={user.photo} alt="" className={`${size} rounded-full object-cover flex-shrink-0`} />
-    : <div className={`${size} rounded-full flex items-center justify-center text-white font-black flex-shrink-0 ${fontSize}`}
-        style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
-        {user?.firstName?.[0] || '?'}
-      </div>;
+function Avatar({ user, size = 40, online = false }) {
+  return (
+    <div style={{ position: 'relative', flexShrink: 0, width: size, height: size }}>
+      {user?.photo
+        ? <img src={user.photo} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+        : <div style={{
+            width: size, height: size, borderRadius: '50%',
+            background: 'linear-gradient(135deg,#C1272D,#D4890A)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: size * 0.38, fontWeight: 900, color: '#fff',
+          }}>
+            {user?.firstName?.[0] || '?'}
+          </div>
+      }
+      {online && (
+        <div style={{ position: 'absolute', bottom: 1, right: 1, width: size * 0.28, height: size * 0.28, borderRadius: '50%', background: '#22C55E', border: '2px solid var(--card-bg)' }} />
+      )}
+    </div>
+  );
 }
 
-function GroupIcon({ members = [] }) {
-  const shown = members.slice(0, 3);
+function DateSeparator({ iso }) {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const isYesterday = new Date(now - 86400000).toDateString() === d.toDateString();
+  const label = isToday ? "Aujourd'hui" : isYesterday ? 'Hier' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
   return (
-    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-      style={{ background: 'rgba(193,39,45,0.15)' }}>
-      <Users size={18} style={{ color: '#C1272D' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
+      <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', padding: '2px 10px', borderRadius: 99, background: 'var(--bg-700)', border: '1px solid var(--border-color)' }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
     </div>
+  );
+}
+
+function TimeStamp({ iso }) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  return (
+    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+      {isToday
+        ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+        : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+    </span>
   );
 }
 
@@ -37,62 +67,56 @@ export default function Messages() {
   const withName  = searchParams.get('name')  || '';
   const withPhoto = searchParams.get('photo') || '';
 
-  const [convs,    setConvs]    = useState([]);
-  const [active,   setActive]   = useState(null);
-  const [msgs,     setMsgs]     = useState([]);
-  const [text,     setText]     = useState('');
-  const [loading,  setLoading]  = useState(true);
-  const [sending,  setSending]  = useState(false);
-  const [pending,  setPending]  = useState(null);
-  const [typing,   setTyping]   = useState(false);
-  const [emojiPicker, setEmojiPicker] = useState(null); // messageId
+  const [convs,       setConvs]       = useState([]);
+  const [active,      setActive]      = useState(null);
+  const [msgs,        setMsgs]        = useState([]);
+  const [text,        setText]        = useState('');
+  const [loading,     setLoading]     = useState(true);
+  const [sending,     setSending]     = useState(false);
+  const [pending,     setPending]     = useState(null);
+  const [typing,      setTyping]      = useState(false);
+  const [emojiPicker, setEmojiPicker] = useState(null);
+  const [search,      setSearch]      = useState('');
+  const [mobileView,  setMobileView]  = useState('list'); // 'list' | 'chat'
+  const [hoveredMsg,  setHoveredMsg]  = useState(null);
 
-  const bottomRef    = useRef();
-  const activeIdRef  = useRef(null);
-  const socketRef    = useRef(null);
-  const typingTimer  = useRef(null);
+  const bottomRef   = useRef();
+  const activeIdRef = useRef(null);
+  const socketRef   = useRef(null);
+  const typingTimer = useRef(null);
 
-  /* ── Socket.io ─────────────────────────────────────── */
+  /* ── Socket.io ── */
   useEffect(() => {
     if (!user) return;
     const socket = io(SOCKET_URL, { query: { userId: user.id }, transports: ['websocket', 'polling'] });
     socketRef.current = socket;
-
     socket.on('new_message', ({ message, conversationId }) => {
-      if (conversationId === activeIdRef.current) {
-        setMsgs(prev => [...prev, message]);
-      }
+      if (conversationId === activeIdRef.current) setMsgs(prev => [...prev, message]);
       setConvs(prev => prev.map(c =>
         c.id === conversationId ? { ...c, messages: [message], lastMessageAt: message.createdAt } : c
       ));
     });
-
     socket.on('message_reaction', ({ messageId, reactions }) => {
       setMsgs(prev => prev.map(m => m.id === messageId ? { ...m, reactions } : m));
     });
-
     socket.on('user_typing',      ({ conversationId }) => { if (conversationId === activeIdRef.current) setTyping(true); });
     socket.on('user_stop_typing', ({ conversationId }) => { if (conversationId === activeIdRef.current) setTyping(false); });
-
     return () => { socket.disconnect(); socketRef.current = null; };
   }, [user]);
 
-  /* ── Join / leave conversation room ────────────────── */
   useEffect(() => {
     if (!active || !socketRef.current) return;
     socketRef.current.emit('join_conversation', active.id);
     return () => socketRef.current?.emit('leave_conversation', active.id);
   }, [active?.id]);
 
-  /* ── Load conversations ─────────────────────────────── */
   const loadConversations = useCallback(() =>
-    api.get('/messages/conversations').then(({ data }) => data.conversations), []);
+    api.get('/messages/conversations').then(({ data }) => data.conversations || []).catch(() => []), []);
 
   useEffect(() => {
     loadConversations().then(conversations => {
       const filtered = conversations.filter(c => c.participant1Id !== c.participant2Id || c.type === 'group');
       setConvs(filtered);
-
       if (withId) {
         const existing = conversations.find(c =>
           c.type === 'direct' && (c.participant1Id === withId || c.participant2Id === withId)
@@ -103,29 +127,23 @@ export default function Messages() {
     }).finally(() => setLoading(false));
   }, []);
 
-  /* ── Load messages ──────────────────────────────────── */
-  const fetchMsgs = useCallback((convId, markRead = false) => {
-    const url = `/messages/conversations/${convId}${markRead ? '' : '?markRead=false'}`;
-    api.get(url).then(({ data }) => setMsgs(data.messages || []));
+  const fetchMsgs = useCallback((convId) => {
+    api.get(`/messages/conversations/${convId}`).then(({ data }) => setMsgs(data.messages || []));
   }, []);
 
   useEffect(() => {
     if (!active) { activeIdRef.current = null; return; }
     activeIdRef.current = active.id;
-    fetchMsgs(active.id, true);
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    fetchMsgs(active.id);
   }, [active]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
 
-  /* ── Helpers ─────────────────────────────────────────── */
-  const getOther = (conv) =>
-    conv.participant1Id === user.id ? conv.participant2 : conv.participant1;
+  const getOther = (conv) => conv.participant1Id === user.id ? conv.participant2 : conv.participant1;
 
   const getConvInfo = (conv) => {
     if (conv?.type === 'group') {
-      const memberUsers = conv.members?.map(m => m.user) || [];
-      return { name: conv.name || 'Groupe', photo: null, isGroup: true, members: memberUsers };
+      return { name: conv.name || 'Groupe', photo: null, isGroup: true, members: conv.members?.map(m => m.user) || [] };
     }
     const other = getOther(conv);
     return { name: `${other?.firstName || ''} ${other?.lastName || ''}`.trim(), photo: other?.photo, isGroup: false, other };
@@ -135,7 +153,6 @@ export default function Messages() {
     : pending ? { name: withName, photo: withPhoto, isGroup: false }
     : null;
 
-  /* ── Send message ────────────────────────────────────── */
   const handleSend = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
@@ -146,20 +163,17 @@ export default function Messages() {
         : active?.type === 'group'
           ? { conversationId: active.id, content: text.trim() }
           : { receiverId: getOther(active).id, content: text.trim() };
-
       const { data } = await api.post('/messages', body);
       setText('');
-
       if (pending) {
         const convs2 = await loadConversations();
         setConvs(convs2.filter(c => c.participant1Id !== c.participant2Id || c.type === 'group'));
         const created = convs2.find(c => c.id === data.conversationId);
         if (created) { setActive(created); setPending(null); }
-        fetchMsgs(data.conversationId, true);
+        fetchMsgs(data.conversationId);
       } else {
         setMsgs(prev => [...prev, data.message]);
       }
-
       clearTimeout(typingTimer.current);
       if (active && socketRef.current) socketRef.current.emit('stop_typing', { conversationId: active.id });
     } catch (err) {
@@ -167,19 +181,16 @@ export default function Messages() {
     } finally { setSending(false); }
   };
 
-  /* ── Typing ──────────────────────────────────────────── */
   const handleTextChange = (e) => {
     setText(e.target.value);
     if (active && socketRef.current) {
       socketRef.current.emit('typing', { conversationId: active.id, userId: user.id });
       clearTimeout(typingTimer.current);
       typingTimer.current = setTimeout(() =>
-        socketRef.current?.emit('stop_typing', { conversationId: active.id }), 1500
-      );
+        socketRef.current?.emit('stop_typing', { conversationId: active.id }), 1500);
     }
   };
 
-  /* ── Reactions ───────────────────────────────────────── */
   const reactToMessage = async (msgId, emoji) => {
     try { await api.post(`/messages/${msgId}/react`, { emoji }); }
     catch { toast.error('Erreur réaction'); }
@@ -189,123 +200,195 @@ export default function Messages() {
   const groupedReactions = (reactions = []) =>
     reactions.reduce((acc, r) => ({ ...acc, [r.emoji]: (acc[r.emoji] || []).concat(r.userId) }), {});
 
+  const filteredConvs = convs.filter(c => {
+    if (!search) return true;
+    const info = getConvInfo(c);
+    return info.name.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const openConv = (conv) => { setActive(conv); setPending(null); setMobileView('chat'); };
+
   if (loading) return <Spinner />;
 
-  /* ─── Render ──────────────────────────────────────── */
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 h-[calc(100vh-90px)] flex flex-col">
-      <h1 className="text-2xl font-black text-white mb-4">Messages</h1>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '20px 16px', height: 'calc(100vh - 90px)', display: 'flex', flexDirection: 'column' }}>
 
-      <div className="flex gap-4 flex-1 min-h-0">
+      {/* Header ZelligeStripe */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, flexShrink: 0, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
+        </div>
+        <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(193,39,45,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageSquare size={20} style={{ color: '#C1272D' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+            <p style={{ margin: '2px 0 0', fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Messages</p>
+          </div>
+          <Link to="/friends" style={{ fontSize: 12, fontWeight: 800, color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#C1272D,#9e1f24)', boxShadow: '0 4px 12px rgba(193,39,45,0.3)' }}>
+            + Nouveau
+          </Link>
+        </div>
+      </div>
 
-        {/* ── Sidebar ── */}
-        <div className="w-72 shrink-0 flex flex-col gap-2 overflow-y-auto">
-          {pending && (
-            <div className="card border-primary-500/60 bg-primary-500/5">
-              <div className="flex items-center gap-3">
-                {withPhoto ? <img src={withPhoto} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  : <div className="w-10 h-10 rounded-full bg-primary-700 flex items-center justify-center font-bold text-white">{withName?.[0]}</div>}
-                <div>
-                  <p className="font-semibold text-white text-sm">{withName}</p>
-                  <p className="text-slate-500 text-xs">Nouvelle conversation</p>
+      <div style={{ flex: 1, display: 'flex', gap: 14, minHeight: 0, overflow: 'hidden' }}>
+
+        {/* ── Conversation list ── */}
+        <div style={{
+          width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0,
+          background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 16,
+          overflow: 'hidden',
+        }}>
+          {/* Search bar */}
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher…" style={{
+                  width: '100%', paddingLeft: 32, paddingRight: 12, height: 36,
+                  borderRadius: 10, background: 'var(--bg-700)', border: '1px solid var(--border-color)',
+                  fontSize: 13, color: 'var(--text-base)', outline: 'none', boxSizing: 'border-box',
+                }} />
+            </div>
+          </div>
+
+          {/* List */}
+          <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
+            {pending && (
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-color)', background: 'rgba(193,39,45,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {withPhoto ? <img src={withPhoto} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                    : <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#C1272D,#D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#fff', fontSize: 16 }}>{withName?.[0]}</div>}
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{withName}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: '#C1272D' }}>Nouvelle conversation</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {convs.length === 0 && !pending ? (
-            <div className="card text-center py-8">
-              <MessageSquare size={32} className="text-slate-600 mx-auto mb-2" />
-              <p className="text-slate-400 text-sm">Aucune conversation</p>
-              <Link to="/friends" className="text-xs text-primary-400 hover:underline mt-1 block">
-                Trouver des amis →
-              </Link>
-            </div>
-          ) : convs.map(conv => {
-            const info    = getConvInfo(conv);
-            const lastMsg = conv.messages?.[0];
-            const isAct   = active?.id === conv.id;
-            return (
-              <button key={conv.id} onClick={() => { setActive(conv); setPending(null); }}
-                className="card text-left transition-all"
-                style={{ borderColor: isAct ? 'rgba(193,39,45,0.6)' : 'var(--border-color)', background: isAct ? 'rgba(193,39,45,0.05)' : 'var(--card-bg)' }}>
-                <div className="flex items-center gap-3">
-                  {info.isGroup ? <GroupIcon members={info.members} /> : <Avatar user={{ firstName: info.name, photo: info.photo }} />}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-white text-sm truncate">{info.name}</p>
-                    {lastMsg && <p className="text-slate-500 text-xs truncate">{lastMsg.content}</p>}
-                  </div>
-                  {info.isGroup && <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold"
-                    style={{ background: 'rgba(193,39,45,0.1)', color: '#C1272D' }}>Groupe</span>}
+            {filteredConvs.length === 0 && !pending ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(193,39,45,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <MessageSquare size={24} style={{ color: 'rgba(193,39,45,0.4)' }} />
                 </div>
-              </button>
-            );
-          })}
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Aucune conversation</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>Commencez à discuter avec vos amis</p>
+                <Link to="/friends" style={{ fontSize: 12, color: '#C1272D', textDecoration: 'none', fontWeight: 700, padding: '7px 16px', borderRadius: 10, background: 'rgba(193,39,45,0.08)', border: '1px solid rgba(193,39,45,0.2)', display: 'inline-block' }}>
+                  Trouver des amis →
+                </Link>
+              </div>
+            ) : filteredConvs.map(conv => {
+              const info      = getConvInfo(conv);
+              const lastMsg   = conv.messages?.[0];
+              const isAct     = active?.id === conv.id;
+              const unread    = conv.unreadCount || 0;
+              const isFromMe  = lastMsg?.senderId === user?.id;
+              return (
+                <button key={conv.id} onClick={() => openConv(conv)} style={{
+                  width: '100%', padding: '11px 14px', border: 'none', cursor: 'pointer',
+                  background: isAct ? 'rgba(193,39,45,0.08)' : 'transparent',
+                  borderLeft: `3px solid ${isAct ? '#C1272D' : 'transparent'}`,
+                  borderBottom: '1px solid var(--border-color)',
+                  textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                  transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { if (!isAct) e.currentTarget.style.background = 'var(--bg-700)'; }}
+                  onMouseLeave={e => { if (!isAct) e.currentTarget.style.background = 'transparent'; }}>
+                  {info.isGroup
+                    ? <div style={{ position: 'relative', width: 42, height: 42, flexShrink: 0 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(193,39,45,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users size={18} style={{ color: '#C1272D' }} /></div>
+                      </div>
+                    : <Avatar user={{ firstName: info.name, photo: info.photo }} size={42} online={!info.isGroup && conv.isOnline} />
+                  }
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <p style={{ margin: 0, fontWeight: unread > 0 ? 900 : 700, fontSize: 13, color: unread > 0 ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>{info.name}</p>
+                      <TimeStamp iso={conv.lastMessageAt || lastMsg?.createdAt} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                      <p style={{ margin: 0, fontSize: 12, color: unread > 0 ? 'var(--text-secondary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, fontWeight: unread > 0 ? 600 : 400 }}>
+                        {isFromMe && <span style={{ color: 'var(--text-muted)' }}>Vous: </span>}
+                        {lastMsg?.content || (info.isGroup ? 'Groupe' : 'Nouvelle conversation')}
+                      </p>
+                      {unread > 0 && (
+                        <div style={{ flexShrink: 0, minWidth: 18, height: 18, borderRadius: 99, background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#fff', padding: '0 5px' }}>
+                          {unread}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Chat window ── */}
-        <div className="flex-1 flex flex-col card min-h-0">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden', minWidth: 0 }}>
           {(active || pending) ? (
             <>
               {/* Header */}
-              <div className="border-b pb-3 mb-3 flex items-center gap-3" style={{ borderColor: 'var(--border-color)' }}>
+              <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, background: 'var(--bg-800)' }}>
                 {activeInfo?.isGroup
-                  ? <GroupIcon />
-                  : <Avatar user={{ firstName: activeInfo?.name, photo: activeInfo?.photo }} size="w-8 h-8" fontSize="text-xs" />
+                  ? <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(193,39,45,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Users size={17} style={{ color: '#C1272D' }} /></div>
+                  : <Avatar user={{ firstName: activeInfo?.name, photo: activeInfo?.photo }} size={38} />
                 }
-                <div>
-                  <p className="font-semibold text-white">{activeInfo?.name}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-primary)' }}>{activeInfo?.name}</p>
                   {activeInfo?.isGroup && activeInfo.members?.length > 0 && (
-                    <p className="text-xs text-slate-500">
-                      {activeInfo.members.map(m => m.firstName).join(', ')}
-                    </p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>{activeInfo.members.map(m => m.firstName).join(', ')}</p>
                   )}
+                  {typing && <p style={{ margin: 0, fontSize: 11, color: '#22C55E', fontStyle: 'italic' }}>en train d'écrire…</p>}
                 </div>
                 {activeInfo?.other && (
-                  <Link to={`/profile/${activeInfo.other.id}`}
-                    className="ml-auto text-xs px-2 py-1 rounded-lg transition-all"
-                    style={{ color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
-                    Voir profil
+                  <Link to={`/profile/${activeInfo.other.id}`} style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none', padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                    Profil
                   </Link>
                 )}
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto flex flex-col gap-2 mb-3 px-1">
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6, scrollbarWidth: 'thin' }}>
                 {msgs.length === 0 && pending && (
-                  <p className="text-slate-600 text-sm text-center mt-8">
-                    Envoyez votre premier message à {pending.name.split(' ')[0]}
-                  </p>
+                  <div style={{ textAlign: 'center', marginTop: 40 }}>
+                    <Avatar user={{ firstName: withName, photo: withPhoto }} size={56} />
+                    <p style={{ marginTop: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{withName}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Envoyez votre premier message</p>
+                  </div>
                 )}
-                {msgs.map(m => {
+                {msgs.map((m, idx) => {
+                  const prevMsg = msgs[idx - 1];
+                  const showDate = !prevMsg || new Date(m.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString();
                   const mine = m.senderId === user.id;
                   const grouped = groupedReactions(m.reactions || []);
                   const showPicker = emojiPicker === m.id;
                   return (
-                    <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'} group`}>
-                      {/* Sender name for groups */}
+                    <div key={m.id}>
+                      {showDate && m.createdAt && <DateSeparator iso={m.createdAt} />}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}
+                      onMouseEnter={() => setHoveredMsg(m.id)}
+                      onMouseLeave={() => setHoveredMsg(null)}>
                       {active?.type === 'group' && !mine && (
-                        <p className="text-xs text-slate-500 mb-0.5 px-1">{m.sender?.firstName}</p>
+                        <p style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2, paddingLeft: 4 }}>{m.sender?.firstName}</p>
                       )}
-
-                      <div className="relative max-w-[70%]">
-                        {/* Emoji picker toggle */}
-                        <button
-                          onClick={() => setEmojiPicker(showPicker ? null : m.id)}
-                          className="absolute opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity top-0 z-10 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10"
-                          style={{ [mine ? 'left' : 'right']: '-32px' }}
-                          aria-label="Réagir avec un emoji">
-                          <Smile size={16} className="text-slate-500 hover:text-white" />
+                      <div style={{ position: 'relative', maxWidth: '72%' }}>
+                        {/* Emoji trigger */}
+                        <button onClick={() => setEmojiPicker(showPicker ? null : m.id)}
+                          style={{ position: 'absolute', top: 6, [mine ? 'left' : 'right']: -26, background: 'none', border: 'none', cursor: 'pointer', padding: 2, transition: 'opacity 0.15s', opacity: hoveredMsg === m.id ? 1 : 0 }}>
+                          <Smile size={14} style={{ color: 'var(--text-muted)' }} />
                         </button>
 
-                        {/* Emoji picker */}
                         {showPicker && (
-                          <div className="absolute z-20 flex gap-1 p-2 rounded-xl shadow-xl"
-                            style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', [mine ? 'right' : 'left']: 0, top: '-48px' }}>
+                          <div style={{ position: 'absolute', zIndex: 20, display: 'flex', gap: 4, padding: '8px 10px', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', background: 'var(--card-bg)', border: '1px solid var(--border-color)', [mine ? 'right' : 'left']: 0, top: -46 }}>
                             {EMOJIS.map(e => (
                               <button key={e} onClick={() => reactToMessage(m.id, e)}
-                                className="w-8 h-8 flex items-center justify-center text-base hover:scale-125 transition-transform rounded-lg hover:bg-white/10"
-                                aria-label={`Réagir avec ${e}`}>
+                                style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 2, transition: 'transform 0.15s' }}
+                                onMouseEnter={el => el.currentTarget.style.transform = 'scale(1.3)'}
+                                onMouseLeave={el => el.currentTarget.style.transform = 'scale(1)'}>
                                 {e}
                               </button>
                             ))}
@@ -313,24 +396,34 @@ export default function Messages() {
                         )}
 
                         {/* Bubble */}
-                        <div className={`px-4 py-2 rounded-2xl text-sm ${mine ? 'rounded-br-md' : 'rounded-bl-md'}`}
-                          style={{ background: mine ? '#C1272D' : 'var(--bg-700)', color: mine ? 'white' : 'var(--text-base)' }}>
+                        <div style={{
+                          padding: '10px 14px', borderRadius: mine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                          fontSize: 13, lineHeight: 1.5, wordBreak: 'break-word',
+                          background: mine ? 'linear-gradient(135deg, #C1272D, #9e1f24)' : 'var(--bg-700)',
+                          color: mine ? '#fff' : 'var(--text-base)',
+                          boxShadow: mine ? '0 2px 8px rgba(193,39,45,0.25)' : 'none',
+                        }}>
                           {m.content}
+                        </div>
+
+                        {/* Timestamp + seen */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                          <TimeStamp iso={m.createdAt} />
+                          {mine && <CheckCheck size={12} style={{ color: '#22C55E' }} />}
                         </div>
 
                         {/* Reactions */}
                         {Object.keys(grouped).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
                             {Object.entries(grouped).map(([emoji, uids]) => {
                               const myReaction = uids.includes(user.id);
                               return (
-                                <button key={emoji} onClick={() => reactToMessage(m.id, emoji)}
-                                  className="text-xs px-1.5 py-0.5 rounded-full transition-all"
-                                  style={{
-                                    background: myReaction ? 'rgba(193,39,45,0.18)' : 'var(--bg-700)',
-                                    border: `1px solid ${myReaction ? 'rgba(193,39,45,0.4)' : 'var(--border-color)'}`,
-                                    color: 'var(--text-base)',
-                                  }}>
+                                <button key={emoji} onClick={() => reactToMessage(m.id, emoji)} style={{
+                                  fontSize: 11, padding: '2px 7px', borderRadius: 99, cursor: 'pointer',
+                                  background: myReaction ? 'rgba(193,39,45,0.15)' : 'var(--bg-700)',
+                                  border: `1px solid ${myReaction ? 'rgba(193,39,45,0.4)' : 'var(--border-color)'}`,
+                                  color: 'var(--text-base)',
+                                }}>
                                   {emoji}{uids.length > 1 ? ` ${uids.length}` : ''}
                                 </button>
                               );
@@ -339,40 +432,57 @@ export default function Messages() {
                         )}
                       </div>
                     </div>
+                    </div>
                   );
                 })}
 
-                {/* Typing indicator */}
+                {/* Typing dots */}
                 {typing && (
-                  <div className="flex items-start gap-2">
-                    <div className="px-4 py-2 rounded-2xl rounded-bl-md flex gap-1 items-center"
-                      style={{ background: 'var(--bg-700)' }}>
-                      {[0, 1, 2].map(i => (
-                        <span key={i} className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"
-                          style={{ animationDelay: `${i * 150}ms` }} />
-                      ))}
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '10px 14px', background: 'var(--bg-700)', borderRadius: '18px 18px 18px 4px', width: 'fit-content' }}>
+                    {[0, 1, 2].map(i => (
+                      <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-muted)', display: 'inline-block', animation: 'bounce 1s infinite', animationDelay: `${i * 150}ms` }} />
+                    ))}
                   </div>
                 )}
                 <div ref={bottomRef} />
               </div>
 
               {/* Input */}
-              <form onSubmit={handleSend} className="flex gap-2">
-                <input value={text} onChange={handleTextChange}
-                  placeholder="Écrire un message…" className="input flex-1 text-sm" />
-                <button type="submit" disabled={sending || !text.trim()} className="btn-primary px-4 py-2.5">
-                  <Send size={16} />
-                </button>
-              </form>
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-800)', flexShrink: 0 }}>
+                <form onSubmit={handleSend} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input value={text} onChange={handleTextChange}
+                    placeholder="Écrire un message…"
+                    style={{
+                      flex: 1, height: 42, paddingInline: 16, borderRadius: 24,
+                      background: 'var(--bg-700)', border: '1px solid var(--border-color)',
+                      fontSize: 13, color: 'var(--text-base)', outline: 'none',
+                    }}
+                    onFocus={e => e.target.style.borderColor = 'rgba(193,39,45,0.4)'}
+                    onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                  />
+                  <button type="submit" disabled={sending || !text.trim()} style={{
+                    width: 42, height: 42, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                    background: text.trim() ? 'linear-gradient(135deg, #C1272D, #9e1f24)' : 'var(--bg-700)',
+                    color: text.trim() ? '#fff' : 'var(--text-muted)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s', flexShrink: 0,
+                    boxShadow: text.trim() ? '0 4px 14px rgba(193,39,45,0.35)' : 'none',
+                  }}>
+                    <Send size={16} />
+                  </button>
+                </form>
+              </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare size={48} className="text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 mb-2">Sélectionnez une conversation</p>
-                <Link to="/friends" className="text-sm text-primary-400 hover:underline">
-                  Voir mes amis →
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(193,39,45,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <MessageSquare size={32} style={{ color: 'rgba(193,39,45,0.4)' }} />
+                </div>
+                <p style={{ fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Sélectionnez une conversation</p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>ou commencez une nouvelle discussion</p>
+                <Link to="/friends" style={{ fontSize: 13, color: '#C1272D', textDecoration: 'none', fontWeight: 700, padding: '8px 18px', borderRadius: 10, background: 'rgba(193,39,45,0.08)', border: '1px solid rgba(193,39,45,0.2)' }}>
+                  Trouver des amis →
                 </Link>
               </div>
             </div>

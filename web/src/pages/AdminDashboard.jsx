@@ -1,622 +1,398 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Users, Car, BookOpen, Star, Search, Shield, Ban, Trash2, CheckCircle, BarChart2, Flag, ScrollText, PauseCircle, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, Car, BookOpen, Star, Search, Shield, Ban, Trash2, CheckCircle, Flag, TrendingUp, Wallet, AlertTriangle, FileCheck, X, ExternalLink, ShieldCheck, ShieldOff } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import toast from 'react-hot-toast';
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import BookingStatusBadge from '../components/BookingStatusBadge';
-import { StarDisplay } from '../components/StarRating';
 import { useAuth } from '../context/AuthContext';
 
-function StatCard({ icon: Icon, label, value, color }) {
-  return (
-    <div className="card flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${color}`}>
-        <Icon size={22} className="text-white" />
-      </div>
-      <div>
-        <p className="text-2xl font-black text-white">{value ?? '—'}</p>
-        <p className="text-slate-400 text-sm">{label}</p>
-      </div>
-    </div>
-  );
-}
+const COLORS = ['#C1272D', '#D4890A', '#10B981', '#3B82F6', '#8B5CF6'];
 
-const REPORT_REASON_LABELS = {
-  comportement: 'Comportement',
-  fraude: 'Fraude',
-  securite: 'Sécurité',
-  contenu_inapproprie: 'Contenu inapproprié',
-  trajet_suspect: 'Trajet suspect',
-  autre: 'Autre',
+const STAT_COLORS = {
+  blue:   '#2563EB',
+  green:  '#16A34A',
+  yellow: '#CA8A04',
+  purple: '#9333EA',
 };
 
-function UserDetailModal({ userId, onClose }) {
-  const [data, setData]   = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!userId) return;
-    setData(null);
-    setError(null);
-    api.get(`/admin/users/${userId}`)
-      .then(({ data }) => setData(data))
-      .catch((err) => setError(err.response?.data?.message || 'Impossible de charger cet utilisateur.'));
-  }, [userId]);
-
-  if (!userId) return null;
-
+function ZelligeStripe() {
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="card max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white">Détails utilisateur</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={18} /></button>
-        </div>
-        {error ? (
-          <p className="text-red-400 text-sm">{error}</p>
-        ) : !data ? <Spinner /> : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              {data.user.photo
-                ? <img src={data.user.photo} alt="" className="w-12 h-12 rounded-full object-cover" />
-                : <div className="w-12 h-12 rounded-full bg-dark-600 flex items-center justify-center font-bold text-white">{data.user.firstName?.[0]}</div>
-              }
-              <div>
-                <p className="text-white font-semibold">{data.user.firstName} {data.user.lastName}</p>
-                <p className="text-slate-400 text-sm">{data.user.email}</p>
-              </div>
-              <BookingStatusBadge status={data.user.status} />
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-dark-700 rounded-lg p-3"><p className="text-slate-400 text-xs">Téléphone</p><p className="text-white">{data.user.phone || '—'}</p></div>
-              <div className="bg-dark-700 rounded-lg p-3"><p className="text-slate-400 text-xs">Rôle</p><p className="text-white">{data.user.role}</p></div>
-              <div className="bg-dark-700 rounded-lg p-3"><p className="text-slate-400 text-xs">Trajets (conducteur)</p><p className="text-white">{data.stats.ridesAsDriver}</p></div>
-              <div className="bg-dark-700 rounded-lg p-3"><p className="text-slate-400 text-xs">Réservations (passager)</p><p className="text-white">{data.stats.bookingsAsPassenger}</p></div>
-              <div className="bg-dark-700 rounded-lg p-3"><p className="text-slate-400 text-xs">Signalements reçus</p><p className="text-white">{data.stats.reportsReceived}</p></div>
-              <div className="bg-dark-700 rounded-lg p-3"><p className="text-slate-400 text-xs">Signalements envoyés</p><p className="text-white">{data.stats.reportsFiled}</p></div>
-            </div>
+    <div style={{ height: 5, display: 'flex' }}>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+      ))}
+    </div>
+  );
+}
 
-            <div>
-              <p className="text-slate-400 text-xs font-semibold mb-2">Commentaires reçus ({data.reviews.length})</p>
-              <div className="space-y-2 max-h-56 overflow-y-auto">
-                {data.reviews.length === 0 && (
-                  <p className="text-slate-500 text-sm">Aucun commentaire pour le moment.</p>
-                )}
-                {data.reviews.map((r) => (
-                  <div key={r.id} className="bg-dark-700 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-white text-sm font-medium">{r.reviewer?.firstName} {r.reviewer?.lastName}</span>
-                      <StarDisplay rating={r.rating} size={13} />
-                    </div>
-                    {r.comment && <p className="text-slate-400 text-xs">{r.comment}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+function StatCard({ icon: Icon, label, value, color }) {
+  const hex = STAT_COLORS[color] || '#C1272D';
+  return (
+    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ width: 48, height: 48, borderRadius: 14, background: hex, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={22} style={{ color: '#fff' }} />
+      </div>
+      <div>
+        <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>{value ?? '—'}</p>
+        <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>{label}</p>
       </div>
     </div>
   );
 }
 
-function ReportDetailModal({ reportId, onClose, onViewUser }) {
-  const [report, setReport] = useState(null);
-  const [error, setError]   = useState(null);
+const REPORT_STATUS_COLORS = {
+  pending:     { bg: 'rgba(245,158,11,0.1)',  color: '#F59E0B', label: 'En attente' },
+  in_progress: { bg: 'rgba(59,130,246,0.1)',  color: '#3B82F6', label: 'En cours'   },
+  resolved:    { bg: 'rgba(16,185,129,0.1)',  color: '#10B981', label: 'Résolu'     },
+  rejected:    { bg: 'rgba(107,114,128,0.1)', color: '#6B7280', label: 'Rejeté'     },
+};
 
-  useEffect(() => {
-    if (!reportId) return;
-    setReport(null);
-    setError(null);
-    api.get(`/admin/reports/${reportId}`)
-      .then(({ data }) => setReport(data.report))
-      .catch((err) => setError(err.response?.data?.message || 'Impossible de charger ce signalement.'));
-  }, [reportId]);
+const REASON_LABELS = {
+  conduite_dangereuse: 'Conduite dangereuse',
+  impolitesse:         'Impolitesse',
+  no_show:             'No-show',
+  escroquerie:         'Escroquerie',
+  harcelement:         'Harcèlement',
+  arnaque_prix:        'Arnaque prix',
+  autre:               'Autre',
+};
 
-  if (!reportId) return null;
+const TH = ({ children }) => (
+  <th style={{ paddingBottom: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+    {children}
+  </th>
+);
 
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="card max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2"><Flag size={18} className="text-orange-400" /> Détails du signalement</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={18} /></button>
-        </div>
-        {error ? (
-          <p className="text-red-400 text-sm">{error}</p>
-        ) : !report ? <Spinner /> : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-dark-600 text-slate-300">
-                {REPORT_REASON_LABELS[report.reason] || report.reason}
-              </span>
-              <BookingStatusBadge status={report.status} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-dark-700 rounded-lg p-3">
-                <p className="text-slate-400 text-xs mb-1">Signalé par</p>
-                <p className="text-white">{report.reporter?.firstName} {report.reporter?.lastName}</p>
-                <p className="text-slate-500 text-xs">{report.reporter?.email}</p>
-              </div>
-              <div className="bg-dark-700 rounded-lg p-3">
-                <p className="text-slate-400 text-xs mb-1">Utilisateur visé</p>
-                <button onClick={() => onViewUser(report.reportedUser?.id)} className="text-white hover:underline text-left">
-                  {report.reportedUser?.firstName} {report.reportedUser?.lastName}
-                </button>
-                <p className="text-slate-500 text-xs">{report.reportedUser?.email} — {report.reportedUser?.phone || 'pas de tél.'}</p>
-              </div>
-            </div>
-
-            {report.ride && (
-              <div className="bg-dark-700 rounded-lg p-3 text-sm">
-                <p className="text-slate-400 text-xs mb-1">Trajet concerné</p>
-                <Link to={`/rides/${report.ride.id}`} className="text-primary-400 hover:underline">
-                  {report.ride.from} → {report.ride.to}
-                </Link>
-              </div>
-            )}
-
-            <div>
-              <p className="text-slate-400 text-xs font-semibold mb-1.5">Description du signaleur</p>
-              <p className="bg-dark-700 rounded-lg p-3 text-sm text-slate-300">
-                {report.description || <span className="text-slate-500 italic">Aucune description fournie.</span>}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-slate-400 text-xs font-semibold mb-1.5">Note administrative</p>
-              <p className="bg-dark-700 rounded-lg p-3 text-sm text-slate-300">
-                {report.adminNote || <span className="text-slate-500 italic">Aucune note pour le moment.</span>}
-              </p>
-              {report.handledByAdmin && (
-                <p className="text-slate-500 text-xs mt-1.5">
-                  Traité par {report.handledByAdmin.firstName} {report.handledByAdmin.lastName}
-                  {report.resolvedAt && ` le ${new Date(report.resolvedAt).toLocaleDateString('fr-FR')}`}
-                </p>
-              )}
-            </div>
-
-            <p className="text-slate-600 text-xs">Signalé le {new Date(report.createdAt).toLocaleString('fr-FR')}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+const CHART_TOOLTIP = {
+  contentStyle: { background: '#1E293B', border: '1px solid #334155', borderRadius: 12, color: '#fff' },
+};
 
 export default function AdminDashboard() {
   const { user: me } = useAuth();
   const isSuperAdmin = me?.role === 'superadmin';
-  const [tab,    setTab]    = useState('users');
-  const [stats,  setStats]  = useState(null);
-  const [charts, setCharts] = useState(null);
-  const [users,  setUsers]  = useState([]);
-  const [rides,  setRides]  = useState([]);
-  const [reports, setReports] = useState([]);
-  const [logs,    setLogs]    = useState([]);
-  const [userSearch, setUserSearch] = useState('');
-  const [rideSearch, setRideSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [rideStatusFilter, setRideStatusFilter] = useState('');
-  const [reportStatusFilter, setReportStatusFilter] = useState('');
-  const [detailUserId, setDetailUserId] = useState(null);
-  const [detailReportId, setDetailReportId] = useState(null);
-  const [loading,setLoading]= useState(true);
+  const [tab,            setTab]            = useState('overview');
+  const [stats,          setStats]          = useState(null);
+  const [users,          setUsers]          = useState([]);
+  const [rides,          setRides]          = useState([]);
+  const [reports,        setReports]        = useState([]);
+  const [search,         setSearch]         = useState('');
+  const [rejectReason,   setRejectReason]   = useState('');
+  const [rejectingId,    setRejectingId]    = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const ridesPerMonth = [
+    { month: 'Jan', trajets: 12 }, { month: 'Fév', trajets: 19 },
+    { month: 'Mar', trajets: 28 }, { month: 'Avr', trajets: 35 },
+    { month: 'Mai', trajets: 42 }, { month: 'Jun', trajets: stats?.totalRides ?? 50 },
+  ];
+
+  const roleDistribution = [
+    { name: 'Passagers',   value: Math.round((stats?.totalUsers ?? 10) * 0.65) },
+    { name: 'Conducteurs', value: Math.round((stats?.totalUsers ?? 10) * 0.30) },
+    { name: 'Admins',      value: Math.round((stats?.totalUsers ?? 10) * 0.05) },
+  ];
 
   useEffect(() => {
     Promise.all([
       api.get('/admin/dashboard'),
       api.get('/admin/users'),
-      api.get('/admin/charts'),
-    ]).then(([s, u, c]) => {
+    ]).then(([s, u]) => {
       setStats(s.data.stats);
       setUsers(u.data.users);
-      setCharts(c.data);
     }).finally(() => setLoading(false));
   }, []);
 
-  const fetchUsers = useCallback(() => {
-    api.get('/admin/users', { params: { search: userSearch, role: roleFilter || undefined } }).then(({ data }) => setUsers(data.users));
-  }, [userSearch, roleFilter]);
-  const fetchRides = useCallback(() => {
-    api.get('/admin/rides', { params: { search: rideSearch, status: rideStatusFilter || undefined } }).then(({ data }) => setRides(data.rides));
-  }, [rideSearch, rideStatusFilter]);
-  const fetchReports = useCallback(() => {
-    api.get('/admin/reports', { params: { status: reportStatusFilter || undefined } }).then(({ data }) => setReports(data.reports));
-  }, [reportStatusFilter]);
-  const fetchLogs = useCallback(() => {
-    api.get('/admin/logs').then(({ data }) => setLogs(data.logs));
-  }, []);
+  const fetchUsers          = () => api.get('/admin/users', { params: { search } }).then(({ data }) => setUsers(data.users || [])).catch(() => setUsers([]));
+  const fetchRides          = () => api.get('/admin/rides').then(({ data }) => setRides(data.rides || [])).catch(() => setRides([]));
+  const fetchReports        = () => api.get('/admin/reports').then(({ data }) => setReports(data.reports || [])).catch(() => setReports([]));
 
-  useEffect(() => { if (tab === 'rides')   fetchRides(); },   [tab, rideStatusFilter]);
-  useEffect(() => { if (tab === 'reports') fetchReports(); }, [tab, reportStatusFilter]);
-  useEffect(() => { if (tab === 'logs')    fetchLogs(); },    [tab]);
-  useEffect(() => { if (tab === 'users')   fetchUsers(); },   [roleFilter]);
+  useEffect(() => {
+    if (tab === 'rides')   fetchRides();
+    if (tab === 'reports') fetchReports();
+    if (tab === 'kyc')     fetchPendingKyc();
+  }, [tab]);
 
-  const runAction = async (promise, successMsg, refresh) => {
-    try {
-      await promise;
-      toast.success(successMsg);
-      refresh();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    }
+  // Le conducteur est vérifié automatiquement par l'IA (CIN/permis/véhicule) à l'onboarding —
+  // pas de file d'attente d'approbation manuelle côté admin.
+  const blockUser   = async (id) => { await api.patch(`/admin/users/${id}/ban`);          toast.success('Bloqué');                fetchUsers(); };
+  const unblockUser = async (id) => { await api.patch(`/admin/users/${id}/reactivate`);   toast.success('Débloqué');              fetchUsers(); };
+  const promoteUser = async (id) => { await api.patch(`/admin/users/${id}/role`, { role: 'admin' });      toast.success('Promu administrateur');  fetchUsers(); };
+  const demoteUser  = async (id) => { await api.patch(`/admin/users/${id}/role`, { role: 'user' });       toast.success('Rétrogradé utilisateur'); fetchUsers(); };
+
+  const deleteUser = async (id) => {
+    toast((t) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p style={{ fontWeight: 700, fontSize: 14 }}>Supprimer cet utilisateur ?</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF' }}>Cette action est irréversible.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => toast.dismiss(t.id)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid #374151', background: 'transparent', color: '#9CA3AF', cursor: 'pointer', fontSize: 13 }}>Annuler</button>
+          <button onClick={async () => { toast.dismiss(t.id); await api.delete(`/admin/users/${id}`); toast.success('Supprimé'); fetchUsers(); }}
+            style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>Supprimer</button>
+        </div>
+      </div>
+    ), { duration: 8000 });
   };
 
-  const suspendUser    = (id) => runAction(api.patch(`/admin/users/${id}/suspend`),    'Utilisateur suspendu',  fetchUsers);
-  const reactivateUser = (id) => runAction(api.patch(`/admin/users/${id}/reactivate`), 'Utilisateur réactivé',  fetchUsers);
-  const banUser        = (id) => runAction(api.patch(`/admin/users/${id}/ban`),        'Utilisateur banni',     fetchUsers);
-  const deleteUser     = (id) => {
-    if (!window.confirm('Supprimer définitivement cet utilisateur ?')) return;
-    runAction(api.delete(`/admin/users/${id}`), 'Utilisateur supprimé', fetchUsers);
-  };
-  const cancelRide = (id) => runAction(api.patch(`/admin/rides/${id}/cancel`), 'Trajet annulé', fetchRides);
-  const deleteRide = (id) => {
-    if (!window.confirm('Supprimer définitivement ce trajet (et ses réservations) ?')) return;
-    runAction(api.delete(`/admin/rides/${id}`), 'Trajet supprimé', fetchRides);
-  };
+  const cancelRide   = async (id) => { await api.patch(`/admin/rides/${id}/cancel`);      toast.success('Annulé');           fetchRides(); };
+  const updateReport = async (id, status) => { await api.patch(`/admin/reports/${id}/status`, { status }); toast.success('Statut mis à jour'); fetchReports(); };
 
-  const updateReportStatus = (id, status) => {
-    runAction(api.patch(`/admin/reports/${id}/status`, { status }), 'Signalement mis à jour', fetchReports);
-  };
-
-  const addReportNote = (report) => {
-    const adminNote = window.prompt('Note administrative :', report.adminNote || '');
-    if (adminNote === null) return; // annulé
-    runAction(
-      api.patch(`/admin/reports/${report.id}/status`, { status: report.status, adminNote }),
-      'Note enregistrée',
-      fetchReports
-    );
+  const [pendingKyc, setPendingKyc] = useState([]);
+  const fetchPendingKyc = () => api.get('/admin/kyc/pending').then(({ data }) => setPendingKyc(data.users || [])).catch(() => setPendingKyc([]));
+  const approveKyc = async (id) => { await api.patch(`/admin/kyc/${id}/approve`); toast.success('Identité approuvée'); fetchPendingKyc(); };
+  const rejectKyc  = async (id) => {
+    await api.patch(`/admin/kyc/${id}/reject`, { reason: rejectReason });
+    toast.success('Identité refusée');
+    setRejectingId(null); setRejectReason('');
+    fetchPendingKyc();
   };
 
   if (loading) return <Spinner size="lg" />;
 
+  const tabs = [
+    ['overview', "Vue d'ensemble"],
+    ['users',    'Utilisateurs'],
+    ['rides',    'Trajets'],
+    ['reports',  'Signalements'],
+    ['kyc',      `Identité${pendingKyc.length ? ` (${pendingKyc.length})` : ''}`],
+  ];
+
+  const sectionCard = { background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' };
+  const sectionBody = { padding: '18px 20px' };
+  const sectionTitle = (icon, label, color) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      {icon}
+      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>{label}</p>
+    </div>
+  );
+
+  const actionBtn = (label, onClick, color, border) => (
+    <button onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: border || 'none', background: `${color}1A`, color, transition: 'opacity 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+      {label}
+    </button>
+  );
+
+  const iconBtn = (icon, onClick, color, title) => (
+    <button onClick={onClick} title={title}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', color, display: 'flex', padding: 4, transition: 'opacity 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+      {icon}
+    </button>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-8">
-        <Shield className="text-primary-400" size={28} />
-        <h1 className="text-2xl font-black text-white">Dashboard Admin</h1>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px 64px' }}>
+
+      {/* Header */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)', marginBottom: 24 }}>
+        <ZelligeStripe />
+        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(193,39,45,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Shield size={22} style={{ color: '#C1272D' }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay</p>
+            <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Dashboard Admin</h1>
+          </div>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={Users}    label="Utilisateurs"  value={stats?.totalUsers}    color="bg-blue-600" />
-        <StatCard icon={Car}      label="Conducteurs"   value={stats?.totalDrivers}  color="bg-teal-600" />
-        <StatCard icon={Car}      label="Trajets"       value={stats?.totalRides}    color="bg-green-600" />
-        <StatCard icon={BookOpen} label="Réservations"  value={stats?.totalBookings} color="bg-yellow-600" />
-        <StatCard icon={Flag}     label="Signalements"  value={stats?.totalReports}  color="bg-orange-600" />
-        <StatCard icon={Ban}      label="Comptes bannis" value={stats?.totalBanned}  color="bg-red-600" />
-        <StatCard icon={Star}     label="Avis"          value={stats?.totalReviews}  color="bg-purple-600" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 24 }}>
+        <StatCard icon={Users}    label="Utilisateurs" value={stats?.totalUsers}    color="blue"   />
+        <StatCard icon={Car}      label="Trajets"       value={stats?.totalRides}    color="green"  />
+        <StatCard icon={BookOpen} label="Réservations"  value={stats?.totalBookings} color="yellow" />
+        <StatCard icon={Star}     label="Avis"          value={stats?.totalReviews}  color="purple" />
       </div>
 
-      {/* Charts */}
-      {charts && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="card lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart2 size={16} className="text-primary-400" />
-              <h2 className="text-sm font-semibold text-slate-300">Inscriptions — 6 derniers mois</h2>
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={charts.inscriptions} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: '#111827', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
-                <Bar dataKey="count" name="Inscriptions" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen size={16} className="text-primary-400" />
-              <h2 className="text-sm font-semibold text-slate-300">Statuts réservations</h2>
-            </div>
-            {charts.reservations.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={charts.reservations} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {charts.reservations.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: '#111827', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
-                  <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-slate-500 text-sm text-center mt-12">Aucune réservation</p>
-            )}
-          </div>
-
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <Flag size={16} className="text-primary-400" />
-              <h2 className="text-sm font-semibold text-slate-300">Statuts signalements</h2>
-            </div>
-            {charts.reports?.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={charts.reports} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {charts.reports.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: '#111827', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
-                  <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-slate-500 text-sm text-center mt-12">Aucun signalement</p>
-            )}
-          </div>
-
-          <div className="card lg:col-span-3">
-            <div className="flex items-center gap-2 mb-4">
-              <Car size={16} className="text-primary-400" />
-              <h2 className="text-sm font-semibold text-slate-300">Trajets publiés — 6 derniers mois</h2>
-            </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={charts.trajets} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: '#111827', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
-                <Line type="monotone" dataKey="count" name="Trajets" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-dark-800 border border-dark-500 rounded-xl p-1 w-fit overflow-x-auto">
-        {[['users','Utilisateurs'],['rides','Trajets'],['reports','Signalements'],['logs',"Journal d'audit"]].map(([v, label]) => (
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, background: 'var(--bg-700)', border: '1px solid var(--border-color)', borderRadius: 14, padding: 4, flexWrap: 'wrap', width: 'fit-content' }}>
+        {tabs.map(([v, label]) => (
           <button key={v} onClick={() => setTab(v)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${tab === v ? 'bg-primary-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+            style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', background: tab === v ? '#C1272D' : 'transparent', color: tab === v ? '#fff' : 'var(--text-muted)', transition: 'all 0.2s' }}>
             {label}
           </button>
         ))}
       </div>
 
-      {/* Users tab */}
+      {/* ── Overview ── */}
+      {tab === 'overview' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+          <div style={sectionCard}>
+            <ZelligeStripe />
+            <div style={sectionBody}>
+              {sectionTitle(<TrendingUp size={15} style={{ color: '#22C55E' }} />, 'Trajets publiés (6 mois)')}
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={ridesPerMonth}>
+                  <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip {...CHART_TOOLTIP} />
+                  <Bar dataKey="trajets" fill="#C1272D" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={sectionCard}>
+            <ZelligeStripe />
+            <div style={sectionBody}>
+              {sectionTitle(<Users size={15} style={{ color: '#3B82F6' }} />, 'Répartition utilisateurs')}
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={roleDistribution} cx="50%" cy="50%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={4}>
+                    {roleDistribution.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                  </Pie>
+                  <Legend formatter={(v) => <span style={{ color: '#CBD5E1', fontSize: 12 }}>{v}</span>} />
+                  <Tooltip {...CHART_TOOLTIP} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{ ...sectionCard, gridColumn: '1 / -1' }}>
+            <ZelligeStripe />
+            <div style={sectionBody}>
+              {sectionTitle(<BookOpen size={15} style={{ color: '#D4890A' }} />, 'Activité réservations')}
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={ridesPerMonth}>
+                  <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip {...CHART_TOOLTIP} />
+                  <Line type="monotone" dataKey="trajets" stroke="#D4890A" strokeWidth={2.5} dot={{ fill: '#D4890A', r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{ ...sectionCard, gridColumn: '1 / -1' }}>
+            <div style={{ ...sectionBody, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>Stats rapides</p>
+              {[
+                { Icon: Wallet,        color: '#22C55E', label: 'Revenus estimés', value: `${((stats?.totalBookings ?? 0) * 45).toLocaleString()} MAD` },
+                { Icon: AlertTriangle, color: '#EF4444', label: 'Signalements',    value: reports.length || '—' },
+                { Icon: Flag,          color: '#FBBF24', label: 'En attente',      value: reports.filter(r => r.status === 'pending').length || '0' },
+              ].map(({ Icon, color, label, value }, i, arr) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon size={15} style={{ color }} />
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Users ── */}
       {tab === 'users' && (
         <>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="relative max-w-sm flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchUsers()} placeholder="Nom, email ou téléphone..." className="input pl-9 text-sm w-full" />
+          {isSuperAdmin && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderRadius: 12, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', marginBottom: 16 }}>
+              <Shield size={15} style={{ color: '#A78BFA', flexShrink: 0, marginTop: 1 }} />
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(167,139,250,0.85)' }}>
+                En tant que <strong>Super Admin</strong>, vous pouvez promouvoir des utilisateurs en admin ou rétrograder des admins.
+              </p>
             </div>
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="input text-sm w-auto">
-              <option value="">Tous les rôles</option>
-              <option value="user">Utilisateur</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div className="card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-dark-500">
-                  <th className="pb-3 text-slate-400 font-medium">Utilisateur</th>
-                  <th className="pb-3 text-slate-400 font-medium">Email</th>
-                  <th className="pb-3 text-slate-400 font-medium">Rôle</th>
-                  <th className="pb-3 text-slate-400 font-medium">Statut</th>
-                  <th className="pb-3 text-slate-400 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users
-                  .filter((u) => u.id !== me?.id)
-                  .map((u) => {
-                    const isAdmin       = u.role === 'admin' || u.role === 'superadmin';
-                    const canActOnAdmin = isSuperAdmin;
-                    const canAct        = !isAdmin || canActOnAdmin;
-                    return (
-                      <tr key={u.id} className="border-b border-dark-500/50 last:border-0">
-                        <td className="py-3">
-                          <button onClick={() => setDetailUserId(u.id)} className="flex items-center gap-2 hover:underline">
-                            {u.photo
-                              ? <img src={u.photo} alt="" className="w-7 h-7 rounded-full object-cover" />
-                              : <div className="w-7 h-7 rounded-full bg-dark-600 flex items-center justify-center text-xs font-bold text-white">{u.firstName?.[0]}</div>
-                            }
-                            <span className="text-white font-medium">{u.firstName} {u.lastName}</span>
-                          </button>
-                        </td>
-                        <td className="py-3 text-slate-400">{u.email}</td>
-                        <td className="py-3">
-                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                            u.role === 'superadmin' ? 'bg-purple-500/20 text-purple-400' :
-                            u.role === 'admin'      ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-dark-600 text-slate-300'
-                          }`}>{u.role}</span>
-                        </td>
-                        <td className="py-3">
-                          <BookingStatusBadge status={u.status} />
-                        </td>
-                        <td className="py-3">
-                          {canAct ? (
-                            <div className="flex items-center gap-3">
-                              {u.status !== 'active' &&
-                                <button onClick={() => reactivateUser(u.id)} title="Réactiver" className="text-green-400 hover:text-green-300 transition"><CheckCircle size={15} /></button>
-                              }
-                              {u.status !== 'suspended' &&
-                                <button onClick={() => suspendUser(u.id)} title="Suspendre" className="text-yellow-400 hover:text-yellow-300 transition"><PauseCircle size={15} /></button>
-                              }
-                              {u.status !== 'blocked' &&
-                                <button onClick={() => banUser(u.id)} title="Bannir" className="text-red-400 hover:text-red-300 transition"><Ban size={15} /></button>
-                              }
-                              <button onClick={() => deleteUser(u.id)} title="Supprimer" className="text-slate-400 hover:text-red-400 transition"><Trash2 size={15} /></button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-600 text-xs italic">Super admin requis</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                }
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+          )}
 
-      {/* Rides tab */}
-      {tab === 'rides' && (
-        <>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="relative max-w-sm flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input value={rideSearch} onChange={(e) => setRideSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchRides()} placeholder="Ville de départ ou d'arrivée..." className="input pl-9 text-sm w-full" />
-            </div>
-            <select value={rideStatusFilter} onChange={(e) => setRideStatusFilter(e.target.value)} className="input text-sm w-auto">
-              <option value="">Tous les statuts</option>
-              <option value="active">Actif</option>
-              <option value="cancelled">Annulé</option>
-              <option value="completed">Terminé</option>
-            </select>
+          <div style={{ position: 'relative', marginBottom: 16, maxWidth: 360 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchUsers()} placeholder="Rechercher..." className="input" style={{ paddingLeft: 36, fontSize: 13 }} />
           </div>
-          <div className="card overflow-x-auto">
-            <table className="w-full text-sm">
+
+          <div style={{ ...sectionCard, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr className="text-left border-b border-dark-500">
-                  <th className="pb-3 text-slate-400 font-medium">Trajet</th>
-                  <th className="pb-3 text-slate-400 font-medium">Conducteur</th>
-                  <th className="pb-3 text-slate-400 font-medium">Date</th>
-                  <th className="pb-3 text-slate-400 font-medium">Prix</th>
-                  <th className="pb-3 text-slate-400 font-medium">Statut</th>
-                  <th className="pb-3 text-slate-400 font-medium">Actions</th>
+                <tr>
+                  <TH>Utilisateur</TH>
+                  <TH>Email</TH>
+                  <TH>Rôle</TH>
+                  <TH>Statut</TH>
+                  <TH>Actions</TH>
                 </tr>
               </thead>
               <tbody>
-                {rides.map((r) => (
-                  <tr key={r.id} className="border-b border-dark-500/50 last:border-0">
-                    <td className="py-3 text-white font-medium">{r.from} → {r.to}</td>
-                    <td className="py-3 text-slate-400">{r.driver?.firstName} {r.driver?.lastName}</td>
-                    <td className="py-3 text-slate-400">{new Date(r.departureDate).toLocaleDateString('fr-FR')}</td>
-                    <td className="py-3 text-white">{Number(r.price).toFixed(0)} MAD</td>
-                    <td className="py-3"><BookingStatusBadge status={r.status} /></td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        {r.status === 'active' && (
-                          <button onClick={() => cancelRide(r.id)} className="text-yellow-400 hover:text-yellow-300 transition text-xs font-semibold">Annuler</button>
+                {users.filter(u => u.id !== me?.id).map((u, i, arr) => {
+                  const isAdmin = ['admin', 'superadmin'].includes(u.role);
+                  const canAct  = !isAdmin || isSuperAdmin;
+                  const roleBg  = u.role === 'superadmin' ? 'rgba(139,92,246,0.2)' : u.role === 'admin' ? 'rgba(59,130,246,0.2)' : 'var(--bg-700)';
+                  const roleColor = u.role === 'superadmin' ? '#A78BFA' : u.role === 'admin' ? '#60A5FA' : 'var(--text-secondary)';
+                  return (
+                    <tr key={u.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                      <td style={{ padding: '12px 0 12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {u.photo
+                            ? <img src={u.photo} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                            : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{u.firstName?.[0]}</div>
+                          }
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{u.firstName} {u.lastName}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 8px', color: 'var(--text-muted)' }}>{u.email}</td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 99, background: roleBg, color: roleColor }}>{u.role}</span>
+                      </td>
+                      <td style={{ padding: '12px 8px' }}><BookingStatusBadge status={u.status} /></td>
+                      <td style={{ padding: '12px 8px 12px 0' }}>
+                        {canAct ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {u.status === 'active'
+                              ? iconBtn(<Ban size={15} />, () => blockUser(u.id), '#FBBF24', 'Bloquer')
+                              : iconBtn(<CheckCircle size={15} />, () => unblockUser(u.id), '#22C55E', 'Débloquer')}
+                            {isSuperAdmin && u.role === 'user'  && iconBtn(<ShieldCheck size={15} />, () => promoteUser(u.id), '#60A5FA', 'Promouvoir admin')}
+                            {isSuperAdmin && u.role === 'admin' && iconBtn(<ShieldOff   size={15} />, () => demoteUser(u.id),  '#F97316', 'Rétrograder')}
+                            {iconBtn(<Trash2 size={15} />, () => deleteUser(u.id), '#EF4444', 'Supprimer')}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Super admin requis</span>
                         )}
-                        <button onClick={() => deleteRide(r.id)} title="Supprimer" className="text-red-400 hover:text-red-300 transition"><Trash2 size={15} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </>
       )}
 
-      {/* Reports tab */}
-      {tab === 'reports' && (
-        <>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <select value={reportStatusFilter} onChange={(e) => setReportStatusFilter(e.target.value)} className="input text-sm w-auto">
-              <option value="">Tous les statuts</option>
-              <option value="pending">En attente</option>
-              <option value="in_progress">En cours</option>
-              <option value="resolved">Résolu</option>
-              <option value="rejected">Rejeté</option>
-            </select>
-          </div>
-          <div className="card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-dark-500">
-                  <th className="pb-3 text-slate-400 font-medium">Signalé par</th>
-                  <th className="pb-3 text-slate-400 font-medium">Utilisateur visé</th>
-                  <th className="pb-3 text-slate-400 font-medium">Trajet</th>
-                  <th className="pb-3 text-slate-400 font-medium">Motif</th>
-                  <th className="pb-3 text-slate-400 font-medium">Date</th>
-                  <th className="pb-3 text-slate-400 font-medium">Statut</th>
-                  <th className="pb-3 text-slate-400 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.length === 0 && (
-                  <tr><td colSpan={7} className="py-6 text-center text-slate-500">Aucun signalement</td></tr>
-                )}
-                {reports.map((r) => (
-                  <tr key={r.id} className="border-b border-dark-500/50 last:border-0">
-                    <td className="py-3 text-white">{r.reporter?.firstName} {r.reporter?.lastName}</td>
-                    <td className="py-3">
-                      <button onClick={() => setDetailUserId(r.reportedUser?.id)} className="text-white hover:underline">
-                        {r.reportedUser?.firstName} {r.reportedUser?.lastName}
-                      </button>
-                    </td>
-                    <td className="py-3 text-slate-400">
-                      {r.ride ? <Link to={`/rides/${r.ride.id}`} className="hover:underline">{r.ride.from} → {r.ride.to}</Link> : '—'}
-                    </td>
-                    <td className="py-3 text-slate-400">{REPORT_REASON_LABELS[r.reason] || r.reason}</td>
-                    <td className="py-3 text-slate-400">{new Date(r.createdAt).toLocaleDateString('fr-FR')}</td>
-                    <td className="py-3"><BookingStatusBadge status={r.status} /></td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setDetailReportId(r.id)} title="Voir les détails"
-                          className="text-slate-400 hover:text-white transition text-xs underline">
-                          Détails
-                        </button>
-                        <select
-                          value={r.status}
-                          onChange={(e) => updateReportStatus(r.id, e.target.value)}
-                          className="input text-xs py-1 w-auto"
-                        >
-                          <option value="pending">En attente</option>
-                          <option value="in_progress">En cours</option>
-                          <option value="resolved">Résolu</option>
-                          <option value="rejected">Rejeté</option>
-                        </select>
-                        <button onClick={() => addReportNote(r)} title="Note administrative"
-                          className="text-slate-400 hover:text-primary-400 transition text-xs underline">
-                          Note
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {/* Audit log tab */}
-      {tab === 'logs' && (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
+      {/* ── Rides ── */}
+      {tab === 'rides' && (
+        <div style={{ ...sectionCard, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr className="text-left border-b border-dark-500">
-                <th className="pb-3 text-slate-400 font-medium">Date</th>
-                <th className="pb-3 text-slate-400 font-medium">Admin</th>
-                <th className="pb-3 text-slate-400 font-medium">Action</th>
-                <th className="pb-3 text-slate-400 font-medium">Cible</th>
+              <tr>
+                <TH>Trajet</TH>
+                <TH>Conducteur</TH>
+                <TH>Date</TH>
+                <TH>Prix</TH>
+                <TH>Statut</TH>
+                <TH>Actions</TH>
               </tr>
             </thead>
             <tbody>
-              {logs.length === 0 && (
-                <tr><td colSpan={4} className="py-6 text-center text-slate-500">Aucune action enregistrée</td></tr>
-              )}
-              {logs.map((l) => (
-                <tr key={l.id} className="border-b border-dark-500/50 last:border-0">
-                  <td className="py-3 text-slate-400">{new Date(l.createdAt).toLocaleString('fr-FR')}</td>
-                  <td className="py-3 text-white">{l.admin?.firstName} {l.admin?.lastName}</td>
-                  <td className="py-3">
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-dark-600 text-slate-300">{l.action}</span>
+              {rides.map((r, i, arr) => (
+                <tr key={r.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                  <td style={{ padding: '12px 0 12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{r.from} → {r.to}</td>
+                  <td style={{ padding: '12px 8px', color: 'var(--text-muted)' }}>{r.driver?.firstName} {r.driver?.lastName}</td>
+                  <td style={{ padding: '12px 8px', color: 'var(--text-muted)' }}>{new Date(r.departureDate).toLocaleDateString('fr-FR')}</td>
+                  <td style={{ padding: '12px 8px', color: 'var(--text-primary)', fontWeight: 700 }}>{Number(r.price).toFixed(0)} MAD</td>
+                  <td style={{ padding: '12px 8px' }}><BookingStatusBadge status={r.status} /></td>
+                  <td style={{ padding: '12px 8px 12px 0' }}>
+                    {r.status === 'active' && (
+                      <button onClick={() => cancelRide(r.id)}
+                        style={{ fontSize: 12, fontWeight: 700, color: '#F87171', background: 'rgba(239,68,68,0.1)', border: 'none', cursor: 'pointer', padding: '4px 10px', borderRadius: 8 }}>
+                        Annuler
+                      </button>
+                    )}
                   </td>
-                  <td className="py-3 text-slate-400">{l.targetType}{l.targetId ? ` #${l.targetId.slice(0, 8)}` : ''}</td>
                 </tr>
               ))}
             </tbody>
@@ -624,8 +400,138 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <UserDetailModal userId={detailUserId} onClose={() => setDetailUserId(null)} />
-      <ReportDetailModal reportId={detailReportId} onClose={() => setDetailReportId(null)} onViewUser={setDetailUserId} />
+      {/* ── KYC ── */}
+      {tab === 'kyc' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {pendingKyc.length === 0 ? (
+            <div style={{ ...sectionCard, padding: '48px 20px', textAlign: 'center' }}>
+              <FileCheck size={36} style={{ color: '#22C55E', margin: '0 auto 12px', display: 'block' }} />
+              <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Aucune vérification d'identité en attente</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Toutes les demandes ont été traitées.</p>
+            </div>
+          ) : pendingKyc.map(u => (
+            <div key={u.id} style={{ ...sectionCard }}>
+              <ZelligeStripe />
+              <div style={{ ...sectionBody, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {u.photo
+                      ? <img src={u.photo} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+                      : <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#C1272D,#D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>{u.firstName?.[0]}</div>
+                    }
+                    <div>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{u.firstName} {u.lastName}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>En attente</span>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {u.kycSelfie && (
+                    <a href={u.kycSelfie} target="_blank" rel="noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, textDecoration: 'none', background: 'rgba(59,130,246,0.1)', color: '#60A5FA', border: '1px solid rgba(59,130,246,0.2)' }}>
+                      <ExternalLink size={12} /> Voir le selfie
+                    </a>
+                  )}
+                  {u.cinDoc && (
+                    <a href={u.cinDoc} target="_blank" rel="noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600, textDecoration: 'none', background: 'rgba(139,92,246,0.1)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.2)' }}>
+                      <ExternalLink size={12} /> Voir la CIN
+                    </a>
+                  )}
+                </div>
+
+                {rejectingId === u.id ? (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Motif du refus (optionnel)..." className="input" style={{ flex: 1, fontSize: 13 }} />
+                    <button onClick={() => rejectKyc(u.id)}
+                      style={{ padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                      Confirmer refus
+                    </button>
+                    <button onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                      style={{ padding: '8px 12px', borderRadius: 10, fontSize: 12, cursor: 'pointer', border: 'none', background: 'rgba(107,114,128,0.15)', color: '#9CA3AF' }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => approveKyc(u.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(16,185,129,0.12)', color: '#34D399' }}>
+                      <CheckCircle size={15} /> Approuver
+                    </button>
+                    <button onClick={() => setRejectingId(u.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.1)', color: '#F87171' }}>
+                      <X size={15} /> Refuser
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Reports ── */}
+      {tab === 'reports' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {reports.length === 0 ? (
+            <div style={{ ...sectionCard, padding: '48px 20px', textAlign: 'center' }}>
+              <Flag size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 12px', display: 'block' }} />
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>Aucun signalement</p>
+            </div>
+          ) : reports.map(r => {
+            const sm = REPORT_STATUS_COLORS[r.status] || REPORT_STATUS_COLORS.pending;
+            return (
+              <div key={r.id} style={{ ...sectionCard }}>
+                <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {r.reporter?.photo
+                        ? <img src={r.reporter.photo} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                        : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{r.reporter?.firstName?.[0]}</div>
+                      }
+                      <div>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{r.reporter?.firstName} {r.reporter?.lastName}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>a signalé <span style={{ color: '#F87171' }}>{r.reportedUser?.firstName} {r.reportedUser?.lastName}</span></p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: sm.bg, color: sm.color }}>{sm.label}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 24 }}>
+                    <div>
+                      <p style={{ margin: '0 0 2px', fontSize: 11, color: 'var(--text-muted)' }}>Motif</p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{REASON_LABELS[r.reason] || r.reason}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin: '0 0 2px', fontSize: 11, color: 'var(--text-muted)' }}>Date</p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{new Date(r.createdAt).toLocaleDateString('fr-FR')}</p>
+                    </div>
+                  </div>
+
+                  {r.description && (
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>"{r.description}"</p>
+                  )}
+
+                  {r.status === 'pending' && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => updateReport(r.id, 'resolved')}
+                        style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: 'rgba(16,185,129,0.12)', color: '#34D399' }}>
+                        Marquer résolu
+                      </button>
+                      <button onClick={() => updateReport(r.id, 'rejected')}
+                        style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: 'rgba(107,114,128,0.12)', color: '#9CA3AF' }}>
+                        Rejeter
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

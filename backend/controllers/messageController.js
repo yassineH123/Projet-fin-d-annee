@@ -1,8 +1,7 @@
-const { Op } = require('sequelize');
 const { Conversation, ConversationMember, Message, User } = require('../models');
 const { getIO } = require('../socket');
 
-const USER_ATTRS = ['id', 'firstName', 'lastName', 'photo'];
+const USER_ATTRS = 'id firstName lastName photo';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 function isMember(conv, userId) {
@@ -10,24 +9,23 @@ function isMember(conv, userId) {
 }
 
 async function isGroupMember(conversationId, userId) {
-  return !!(await ConversationMember.findOne({ where: { conversationId, userId } }));
+  return !!(await ConversationMember.findOne({ conversationId, userId }));
 }
 
 /* ── unread count ─────────────────────────────────────────────── */
 async function unreadCount(req, res, next) {
   try {
     const userId = req.user.id;
-    const directConvs = await Conversation.findAll({
-      where: { [Op.or]: [{ participant1Id: userId }, { participant2Id: userId }] },
-      attributes: ['id'],
-    });
-    const groupConvs = await ConversationMember.findAll({ where: { userId }, attributes: ['conversationId'] });
+    const directConvs = await Conversation.find({
+      $or: [{ participant1Id: userId }, { participant2Id: userId }],
+    }).select('_id');
+    const groupConvs = await ConversationMember.find({ userId }).select('conversationId');
     const convIds = [
       ...directConvs.map(c => c.id),
       ...groupConvs.map(c => c.conversationId),
     ];
     const count = convIds.length
-      ? await Message.count({ where: { conversationId: { [Op.in]: convIds }, senderId: { [Op.ne]: userId }, read: false } })
+      ? await Message.countDocuments({ conversationId: { $in: convIds }, senderId: { $ne: userId }, read: false })
       : 0;
     return res.json({ count });
   } catch (err) { return next(err); }
@@ -38,28 +36,31 @@ async function getConversations(req, res, next) {
   try {
     const userId = req.user.id;
 
-    const direct = await Conversation.findAll({
-      where: { type: 'direct', [Op.or]: [{ participant1Id: userId }, { participant2Id: userId }] },
-      include: [
-        { model: User, as: 'participant1', attributes: USER_ATTRS },
-        { model: User, as: 'participant2', attributes: USER_ATTRS },
-        { model: Message, as: 'messages', limit: 1, order: [['createdAt', 'DESC']], separate: true },
-      ],
-      order: [['lastMessageAt', 'DESC']],
-    });
+    const direct = await Conversation.find({
+      type: 'direct', $or: [{ participant1Id: userId }, { participant2Id: userId }],
+    })
+      .populate({ path: 'participant1', select: USER_ATTRS })
+      .populate({ path: 'participant2', select: USER_ATTRS })
+      .sort({ lastMessageAt: -1 });
 
-    const memberships = await ConversationMember.findAll({ where: { userId }, attributes: ['conversationId'] });
+    const memberships = await ConversationMember.find({ userId }).select('conversationId');
     const groupIds = memberships.map(m => m.conversationId);
-    const groups = groupIds.length ? await Conversation.findAll({
-      where: { id: groupIds, type: 'group' },
-      include: [
-        { model: ConversationMember, as: 'members', include: [{ model: User, as: 'user', attributes: USER_ATTRS }] },
-        { model: Message, as: 'messages', limit: 1, order: [['createdAt', 'DESC']], separate: true },
-      ],
-      order: [['lastMessageAt', 'DESC']],
-    }) : [];
+    const groups = groupIds.length ? await Conversation.find({
+      _id: { $in: groupIds }, type: 'group',
+    })
+      .populate({ path: 'members', populate: { path: 'user', select: USER_ATTRS } })
+      .sort({ lastMessageAt: -1 }) : [];
 
-    const conversations = [...direct, ...groups].sort(
+    let conversations = [...direct, ...groups];
+
+    // `separate: true` last-message preview (équivalent : 1 message le plus
+    // récent par conversation, attaché en tant qu'array `messages` de 0 ou 1 élément).
+    await Promise.all(conversations.map(async (conv) => {
+      const msg = await Message.findOne({ conversationId: conv.id }).sort({ createdAt: -1 });
+      conv.messages = msg ? [msg] : [];
+    }));
+
+    conversations.sort(
       (a, b) => new Date(b.lastMessageAt || b.createdAt) - new Date(a.lastMessageAt || a.createdAt)
     );
     return res.json({ conversations });
@@ -70,7 +71,7 @@ async function getConversations(req, res, next) {
 async function getMessages(req, res, next) {
   try {
     const userId = req.user.id;
-    const conv = await Conversation.findByPk(req.params.conversationId);
+    const conv = await Conversation.findById(req.params.conversationId);
     if (!conv) return res.status(404).json({ message: 'Conversation introuvable.' });
 
     const allowed = conv.type === 'group'
@@ -78,16 +79,14 @@ async function getMessages(req, res, next) {
       : isMember(conv, userId);
     if (!allowed) return res.status(403).json({ message: 'Accès refusé.' });
 
-    const messages = await Message.findAll({
-      where: { conversationId: conv.id },
-      include: [{ model: User, as: 'sender', attributes: USER_ATTRS }],
-      order: [['createdAt', 'ASC']],
-    });
+    const messages = await Message.find({ conversationId: conv.id })
+      .populate({ path: 'sender', select: USER_ATTRS })
+      .sort({ createdAt: 1 });
 
     if (req.query.markRead !== 'false') {
-      await Message.update(
-        { read: true },
-        { where: { conversationId: conv.id, senderId: { [Op.ne]: userId }, read: false } }
+      await Message.updateMany(
+        { conversationId: conv.id, senderId: { $ne: userId }, read: false },
+        { read: true }
       );
     }
     return res.json({ messages });
@@ -104,7 +103,7 @@ async function sendMessage(req, res, next) {
 
     if (convId) {
       // Sending to an existing group conversation
-      conv = await Conversation.findByPk(convId);
+      conv = await Conversation.findById(convId);
       if (!conv) return res.status(404).json({ message: 'Conversation introuvable.' });
       const allowed = conv.type === 'group'
         ? await isGroupMember(conv.id, senderId)
@@ -115,23 +114,21 @@ async function sendMessage(req, res, next) {
       if (senderId === receiverId) return res.status(400).json({ message: 'Vous ne pouvez pas vous envoyer un message.' });
 
       conv = await Conversation.findOne({
-        where: {
-          type: 'direct',
-          [Op.or]: [
-            { participant1Id: senderId, participant2Id: receiverId },
-            { participant1Id: receiverId, participant2Id: senderId },
-          ],
-        },
+        type: 'direct',
+        $or: [
+          { participant1Id: senderId, participant2Id: receiverId },
+          { participant1Id: receiverId, participant2Id: senderId },
+        ],
       });
       if (!conv) conv = await Conversation.create({ participant1Id: senderId, participant2Id: receiverId, rideId, type: 'direct' });
     }
 
     const message = await Message.create({ conversationId: conv.id, senderId, content });
-    await conv.update({ lastMessageAt: new Date() });
+    conv.set({ lastMessageAt: new Date() });
+    await conv.save();
 
-    const fullMsg = await Message.findByPk(message.id, {
-      include: [{ model: User, as: 'sender', attributes: USER_ATTRS }],
-    });
+    const fullMsg = await Message.findById(message.id)
+      .populate({ path: 'sender', select: USER_ATTRS });
 
     const io = getIO();
     if (io) io.to(`conv:${conv.id}`).emit('new_message', { message: fullMsg, conversationId: conv.id });
@@ -145,7 +142,7 @@ async function reactToMessage(req, res, next) {
   try {
     const { emoji } = req.body;
     const userId = req.user.id;
-    const msg = await Message.findByPk(req.params.id);
+    const msg = await Message.findById(req.params.id);
     if (!msg) return res.status(404).json({ message: 'Message introuvable.' });
 
     const reactions = Array.isArray(msg.reactions) ? [...msg.reactions] : [];
@@ -155,7 +152,8 @@ async function reactToMessage(req, res, next) {
     } else {
       reactions.push({ userId, emoji });
     }
-    await msg.update({ reactions });
+    msg.set({ reactions });
+    await msg.save();
 
     const io = getIO();
     if (io) io.to(`conv:${msg.conversationId}`).emit('message_reaction', { messageId: msg.id, reactions });
@@ -172,7 +170,7 @@ async function createGroup(req, res, next) {
 
     const conv = await Conversation.create({ type: 'group', name, rideId: rideId || null, participant1Id: req.user.id, participant2Id: req.user.id });
     const allIds = [...new Set([req.user.id, ...memberIds])];
-    await ConversationMember.bulkCreate(
+    await ConversationMember.insertMany(
       allIds.map(uid => ({ conversationId: conv.id, userId: uid, role: uid === req.user.id ? 'admin' : 'member' }))
     );
     return res.status(201).json({ conversation: conv });

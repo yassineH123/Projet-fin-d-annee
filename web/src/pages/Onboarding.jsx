@@ -1,56 +1,100 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Car, Users, Camera, ArrowRight, ArrowLeft, CheckCircle, MapPin, Shield, Star } from 'lucide-react';
+import { Car, Users, Camera, ArrowRight, ArrowLeft, CheckCircle, MapPin, Shield, Star, Zap, CreditCard, FileText, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const STEPS = { CHOICE: 'choice', DRIVER_INFO: 'driver_info', DRIVER_CAR: 'driver_car' };
+const STEPS = { CHOICE: 'choice', DRIVER_INFO: 'driver_info', DRIVER_CAR: 'driver_car', DRIVER_DOCS: 'driver_docs' };
+const STEP_ORDER = [STEPS.CHOICE, STEPS.DRIVER_INFO, STEPS.DRIVER_CAR, STEPS.DRIVER_DOCS];
+
+const CITIES = ['Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger', 'Agadir', 'Meknès', 'Oujda'];
+const CITY_COLORS = ['#C1272D','#D4890A','#006233','#C1272D','#D4890A','#006233','#C1272D','#D4890A'];
+
+function ZelligeStripe() {
+  return (
+    <div style={{ height: 5, display: 'flex', flexShrink: 0 }}>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+      ))}
+    </div>
+  );
+}
+
+function StepBar({ step, isDriver }) {
+  const total   = isDriver ? 4 : 1;
+  const current = isDriver ? STEP_ORDER.indexOf(step) : 0;
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          flex: 1, height: 4, borderRadius: 99, transition: 'all 0.3s',
+          background: i <= current ? '#C1272D' : 'var(--bg-600)',
+        }} />
+      ))}
+    </div>
+  );
+}
 
 export default function Onboarding() {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
-  const [step,        setStep]        = useState(STEPS.CHOICE);
-  const [choice,      setChoice]      = useState(null); // 'passenger' | 'driver'
-  const [saving,      setSaving]      = useState(false);
-  const [form,        setForm]        = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '', licensePlate: '' });
-  const [photoFile,   setPhotoFile]   = useState(null);
+  const [step,         setStep]         = useState(STEPS.CHOICE);
+  const [choice,       setChoice]       = useState(null);
+  const [saving,       setSaving]       = useState(false);
+  const [verifying,    setVerifying]    = useState(false);
+  const [verifyErrors, setVerifyErrors] = useState({});
+  const [direction,    setDirection]    = useState('right');
+  const [form,         setForm]         = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '', licensePlate: '' });
+  const [photoFile,    setPhotoFile]    = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [carFile,     setCarFile]     = useState(null);
-  const [carPreview,  setCarPreview]  = useState(null);
+  const [carFile,      setCarFile]      = useState(null);
+  const [carPreview,   setCarPreview]   = useState(null);
+  const [cinFile,      setCinFile]      = useState(null);
+  const [cinPreview,   setCinPreview]   = useState(null);
+  const [permisFile,   setPermisFile]   = useState(null);
+  const [permisPreview, setPermisPreview] = useState(null);
 
-  const photoRef = useRef();
-  const carRef   = useRef();
+  const photoRef  = useRef();
+  const carRef    = useRef();
+  const cinRef    = useRef();
+  const permisRef = useRef();
+
+  const goTo = (next, dir = 'right') => { setDirection(dir); setStep(next); };
+
+  // Reprise : un conducteur a déjà choisi son profil mais n'est pas encore vérifié.
+  useEffect(() => {
+    if (!user?.onboardingDone) return;
+    if (user.isDriver && !user.driverVerified) {
+      setChoice('driver');
+      setStep(STEPS.DRIVER_DOCS);
+    } else {
+      navigate('/');
+    }
+  }, [user]);
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    if (type === 'photo') { setPhotoFile(file); setPhotoPreview(url); }
-    else                  { setCarFile(file);   setCarPreview(url);   }
+    if (type === 'photo')       { setPhotoFile(file);   setPhotoPreview(url); }
+    else if (type === 'car')    { setCarFile(file);     setCarPreview(url); }
+    else if (type === 'cin')    { setCinFile(file);     setCinPreview(url); }
+    else if (type === 'permis') { setPermisFile(file);  setPermisPreview(url); }
   };
 
-  const handleSubmit = async () => {
-    if (choice === 'driver') {
-      if (!form.firstName.trim() || !form.lastName.trim()) { toast.error('Prénom et nom requis.'); return; }
-      if (!form.licensePlate.trim()) { toast.error('Numéro de plaque requis.'); return; }
-      if (!carFile) { toast.error('Photo de voiture requise.'); return; }
-    }
-
+  const handlePassengerSubmit = async () => {
     setSaving(true);
     try {
       const fd = new FormData();
-      fd.append('type', choice);
+      fd.append('type', 'passenger');
       fd.append('firstName', form.firstName);
       fd.append('lastName',  form.lastName);
-      if (form.licensePlate) fd.append('licensePlate', form.licensePlate);
       if (photoFile) fd.append('photo', photoFile);
-      if (carFile)   fd.append('carPhoto', carFile);
-
       const { data } = await api.put('/users/onboarding', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       updateUser(data.user);
-      toast.success(choice === 'driver' ? 'Bienvenue conducteur !' : 'Bienvenue sur AtlasWay !');
+      toast.success('Bienvenue sur AtlasWay !');
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
@@ -59,125 +103,201 @@ export default function Onboarding() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+  const handleSaveDriverInfo = async () => {
+    if (!form.firstName.trim() || !form.lastName.trim()) { toast.error('Prénom et nom requis.'); return; }
+    if (!form.licensePlate.trim()) { toast.error('Numéro de plaque requis.'); return; }
+    if (!carFile) { toast.error('Photo de voiture requise.'); return; }
 
-      {/* Header */}
-      <div className="flex items-center justify-center py-8 border-b border-dark-700">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
-            <Car className="text-primary-400" size={22} />
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('type', 'driver');
+      fd.append('firstName', form.firstName);
+      fd.append('lastName',  form.lastName);
+      fd.append('licensePlate', form.licensePlate);
+      if (photoFile) fd.append('photo', photoFile);
+      if (carFile)   fd.append('carPhoto', carFile);
+
+      const { data } = await api.put('/users/onboarding', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      updateUser(data.user);
+      goTo(STEPS.DRIVER_DOCS, 'right');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVerifyDocs = async () => {
+    if (!cinFile)    { toast.error('Photo de la CIN requise.'); return; }
+    if (!permisFile) { toast.error('Photo du permis requise.'); return; }
+
+    setVerifying(true);
+    setVerifyErrors({});
+    try {
+      const fd = new FormData();
+      fd.append('cinDoc', cinFile);
+      fd.append('permisDoc', permisFile);
+      if (carFile) fd.append('carPhoto', carFile);
+
+      const { data } = await api.post('/verify-driver', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      updateUser(data.user);
+      toast.success('Documents validés, bienvenue conducteur !');
+      navigate('/');
+    } catch (err) {
+      const results = err.response?.data?.results;
+      if (results) {
+        setVerifyErrors({
+          cin:    !results.cin?.valide    ? results.cin?.raison    : '',
+          permis: !results.permis?.valide ? results.permis?.raison : '',
+          voiture:!results.voiture?.valide ? results.voiture?.raison : '',
+        });
+      }
+      toast.error(err.response?.data?.message || 'Vérification impossible.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-900)' }}>
+
+      {/* ── Top bar ── */}
+      <div>
+        <ZelligeStripe />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(193,39,45,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Car size={18} style={{ color: '#C1272D' }} />
+            </div>
+            <span style={{ fontWeight: 900, fontSize: 20, color: 'var(--text-primary)' }}>
+              Atlas<span style={{ color: '#C1272D' }}>Way</span>
+            </span>
           </div>
-          <span className="font-black text-2xl">
-            <span className="text-white">Atlas</span><span className="text-primary-400">Way</span>
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px #22C55E80' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>Compte créé</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px 48px' }}>
 
         {/* ─── STEP 1: CHOICE ─── */}
         {step === STEPS.CHOICE && (
-          <div className="w-full max-w-3xl">
-            {/* Welcome */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-2 mb-6">
-                <CheckCircle size={16} className="text-primary-400" />
-                <span className="text-primary-400 text-sm font-semibold">Compte créé avec succès</span>
-              </div>
-              <h1 className="text-4xl font-black text-white mb-4">
-                Bienvenue, {user?.firstName} !
+          <div style={{ width: '100%', maxWidth: 680, animation: `slide${direction === 'right' ? 'Right' : 'Left'} 0.3s ease-out` }}>
+            <StepBar step={step} isDriver={choice === 'driver'} />
+
+            {/* Titre */}
+            <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#C1272D' }}>✦ AtlasWay · Configuration</p>
+              <h1 style={{ margin: '0 0 10px', fontSize: 30, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                Bienvenue, {user?.firstName || 'voyageur'} 👋
               </h1>
-              <p className="text-slate-400 text-lg max-w-xl mx-auto">
-                AtlasWay connecte les voyageurs à travers tout le Maroc. Comment voulez-vous utiliser la plateforme ?
+              <p style={{ margin: 0, fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                AtlasWay connecte les voyageurs à travers tout le Maroc.<br />Comment souhaitez-vous utiliser la plateforme ?
               </p>
             </div>
 
-            {/* Trust stats */}
-            <div className="flex justify-center gap-8 mb-10">
-              {[['12 000+', 'Voyageurs'],['45+', 'Villes'],['4.8/5', 'Note moyenne']].map(([val, label]) => (
-                <div key={label} className="text-center">
-                  <p className="text-2xl font-black text-primary-400">{val}</p>
-                  <p className="text-slate-500 text-sm">{label}</p>
-                </div>
+            {/* Cities flow */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28, opacity: 0.65 }}>
+              {CITIES.map((city, i) => (
+                <span key={city} style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: CITY_COLORS[i] }}>{city}</span>
+                  {i < CITIES.length - 1 && <span style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 6px' }}>—</span>}
+                </span>
               ))}
             </div>
 
-            {/* Choice cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Cartes de choix */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
+
               {/* Passager */}
-              <button
-                onClick={() => setChoice('passenger')}
-                className={`group p-8 rounded-2xl border-2 text-left transition-all duration-200 ${
-                  choice === 'passenger'
-                    ? 'border-primary-500 bg-primary-500/10'
-                    : 'border-dark-500 bg-dark-800 hover:border-primary-500/50 hover:bg-dark-700'
-                }`}
-              >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-colors ${choice === 'passenger' ? 'bg-primary-500' : 'bg-dark-600 group-hover:bg-dark-500'}`}>
-                  <Users size={26} className="text-white" />
+              <button onClick={() => setChoice('passenger')} style={{
+                padding: '24px 20px', borderRadius: 18, border: '2px solid',
+                borderColor: choice === 'passenger' ? '#C1272D' : 'var(--border-color)',
+                background: choice === 'passenger' ? 'rgba(193,39,45,0.06)' : 'var(--card-bg)',
+                transform: choice === 'passenger' ? 'translateY(-3px)' : 'none',
+                boxShadow: choice === 'passenger' ? '0 10px 32px rgba(193,39,45,0.2)' : 'none',
+                cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+              }}>
+                <div style={{ width: 50, height: 50, borderRadius: 14, background: choice === 'passenger' ? '#C1272D' : 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, transition: 'all 0.2s' }}>
+                  <Users size={22} style={{ color: '#fff' }} />
                 </div>
-                <h2 className="text-xl font-black text-white mb-2">Je suis voyageur</h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                  Je veux trouver des trajets, réserver des places et voyager à moindre coût à travers le Maroc.
+                <p style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 900, color: 'var(--text-primary)' }}>Je suis voyageur</p>
+                <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  Trouver des trajets, réserver et voyager à moindre coût.
                 </p>
-                <ul className="space-y-2">
-                  {['Rechercher des trajets', 'Réserver en un clic', 'Communiquer avec le conducteur'].map(f => (
-                    <li key={f} className="flex items-center gap-2 text-slate-400 text-xs">
-                      <CheckCircle size={13} className="text-primary-400 shrink-0" /> {f}
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {['Rechercher des trajets', 'Réserver en 1 clic', 'Chat avec le conducteur'].map(f => (
+                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <CheckCircle size={12} style={{ color: '#C1272D', flexShrink: 0 }} /> {f}
                     </li>
                   ))}
                 </ul>
                 {choice === 'passenger' && (
-                  <div className="mt-4 flex items-center gap-1.5 text-primary-400 text-sm font-semibold">
-                    <CheckCircle size={16} /> Sélectionné
+                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#C1272D' }}>
+                    <CheckCircle size={13} /> Sélectionné
                   </div>
                 )}
               </button>
 
               {/* Conducteur */}
-              <button
-                onClick={() => setChoice('driver')}
-                className={`group p-8 rounded-2xl border-2 text-left transition-all duration-200 ${
-                  choice === 'driver'
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-dark-500 bg-dark-800 hover:border-green-500/50 hover:bg-dark-700'
-                }`}
-              >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-colors ${choice === 'driver' ? 'bg-green-500' : 'bg-dark-600 group-hover:bg-dark-500'}`}>
-                  <Car size={26} className="text-white" />
+              <button onClick={() => setChoice('driver')} style={{
+                padding: '24px 20px', borderRadius: 18, border: '2px solid',
+                borderColor: choice === 'driver' ? '#006233' : 'var(--border-color)',
+                background: choice === 'driver' ? 'rgba(0,98,51,0.06)' : 'var(--card-bg)',
+                transform: choice === 'driver' ? 'translateY(-3px)' : 'none',
+                boxShadow: choice === 'driver' ? '0 10px 32px rgba(0,98,51,0.2)' : 'none',
+                cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+              }}>
+                <div style={{ width: 50, height: 50, borderRadius: 14, background: choice === 'driver' ? '#006233' : 'var(--bg-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, transition: 'all 0.2s' }}>
+                  <Car size={22} style={{ color: '#fff' }} />
                 </div>
-                <h2 className="text-xl font-black text-white mb-2">Je suis conducteur</h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                  Je veux proposer mes trajets, transporter des passagers et couvrir mes frais de route.
+                <p style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 900, color: 'var(--text-primary)' }}>Je suis conducteur</p>
+                <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  Proposer mes trajets, transporter des passagers, couvrir mes frais.
                 </p>
-                <ul className="space-y-2">
-                  {['Publier vos trajets', 'Choisir vos passagers', 'Économiser sur l\'essence'].map(f => (
-                    <li key={f} className="flex items-center gap-2 text-slate-400 text-xs">
-                      <CheckCircle size={13} className="text-green-400 shrink-0" /> {f}
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {['Publier vos trajets', 'Choisir vos passagers', "Réduire vos coûts d'essence"].map(f => (
+                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--text-muted)' }}>
+                      <CheckCircle size={12} style={{ color: '#006233', flexShrink: 0 }} /> {f}
                     </li>
                   ))}
                 </ul>
                 {choice === 'driver' && (
-                  <div className="mt-4 flex items-center gap-1.5 text-green-400 text-sm font-semibold">
-                    <CheckCircle size={16} /> Sélectionné
+                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#006233' }}>
+                    <CheckCircle size={13} /> Sélectionné
                   </div>
                 )}
               </button>
             </div>
 
-            <div className="flex justify-center">
-              <button
-                onClick={() => {
-                  if (!choice) { toast.error('Choisissez un profil.'); return; }
-                  if (choice === 'passenger') handleSubmit();
-                  else setStep(STEPS.DRIVER_INFO);
-                }}
-                disabled={!choice || saving}
-                className="btn-primary px-10 py-3.5 text-base font-bold flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? 'Enregistrement...' : 'Continuer'}
-                <ArrowRight size={18} />
+            {/* Stats */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 28 }}>
+              {[['12 000+', 'Voyageurs', '#C1272D'], ['48', 'Villes', '#D4890A'], ['4.8★', 'Note moy.', '#006233']].map(([val, label, color]) => (
+                <div key={label} style={{ textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color }}>{val}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>{label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button onClick={() => {
+                if (!choice) { toast.error('Choisissez un profil.'); return; }
+                if (choice === 'passenger') handlePassengerSubmit();
+                else goTo(STEPS.DRIVER_INFO, 'right');
+              }} disabled={!choice || saving} style={{
+                height: 52, padding: '0 40px', borderRadius: 14, border: 'none',
+                background: !choice || saving ? 'var(--bg-700)' : choice === 'driver' ? 'linear-gradient(135deg,#006233,#004d26)' : 'linear-gradient(135deg,#C1272D,#9e1f24)',
+                color: !choice || saving ? 'var(--text-muted)' : '#fff',
+                fontSize: 15, fontWeight: 800, cursor: !choice || saving ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 9,
+                boxShadow: choice && !saving ? `0 6px 20px ${choice === 'driver' ? 'rgba(0,98,51,0.35)' : 'rgba(193,39,45,0.35)'}` : 'none',
+                transition: 'all 0.2s',
+              }}>
+                {saving ? 'Enregistrement…' : <>Continuer <ArrowRight size={17} /></>}
               </button>
             </div>
           </div>
@@ -185,79 +305,57 @@ export default function Onboarding() {
 
         {/* ─── STEP 2: DRIVER INFO ─── */}
         {step === STEPS.DRIVER_INFO && (
-          <div className="w-full max-w-md">
-            {/* Progress */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="flex-1 h-1.5 bg-green-500 rounded-full" />
-              <div className="flex-1 h-1.5 bg-dark-600 rounded-full" />
-              <span className="text-slate-500 text-xs ml-1">Étape 1 / 2</span>
-            </div>
+          <div style={{ width: '100%', maxWidth: 440, animation: `slide${direction === 'right' ? 'Right' : 'Left'} 0.3s ease-out` }}>
+            <StepBar step={step} isDriver />
 
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                <Shield size={26} className="text-green-400" />
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(0,98,51,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Shield size={24} style={{ color: '#006233' }} />
               </div>
-              <h2 className="text-2xl font-black text-white mb-2">Votre profil conducteur</h2>
-              <p className="text-slate-400 text-sm">Ces informations rassureront vos futurs passagers.</p>
+              <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#006233' }}>✦ Étape 2/3</p>
+              <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>Votre profil conducteur</h2>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Ces infos rassurent vos futurs passagers.</p>
             </div>
 
-            <div className="card flex flex-col gap-5">
+            <div style={{ borderRadius: 18, border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Photo de profil */}
-              <div className="flex flex-col items-center gap-3">
-                <div
-                  onClick={() => photoRef.current.click()}
-                  className="relative w-24 h-24 rounded-full cursor-pointer group"
-                >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <div onClick={() => photoRef.current.click()} style={{ position: 'relative', cursor: 'pointer' }}>
                   {photoPreview
-                    ? <img src={photoPreview} alt="" className="w-24 h-24 rounded-full object-cover ring-2 ring-green-500" />
-                    : <div className="w-24 h-24 rounded-full bg-dark-600 border-2 border-dashed border-dark-400 flex flex-col items-center justify-center group-hover:border-green-500 transition">
-                        <Camera size={22} className="text-slate-500 group-hover:text-green-400 transition" />
-                        <span className="text-[10px] text-slate-500 mt-1">Photo</span>
+                    ? <img src={photoPreview} alt="" style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '3px solid #006233' }} />
+                    : <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'var(--bg-700)', border: '2px dashed var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <Camera size={20} style={{ color: 'var(--text-muted)' }} />
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>Photo</span>
                       </div>
                   }
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-dark-800">
-                    <Camera size={13} className="text-white" />
+                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderRadius: '50%', background: '#006233', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-900)' }}>
+                    <Camera size={12} style={{ color: '#fff' }} />
                   </div>
                 </div>
-                <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'photo')} />
-                <p className="text-slate-500 text-xs">Photo de profil (optionnelle)</p>
+                <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFileChange(e, 'photo')} />
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Photo de profil (optionnelle)</p>
               </div>
 
-              {/* Nom */}
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Prénom</label>
-                  <input
-                    value={form.firstName}
-                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                    className="input"
-                    required
-                  />
+                  <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Prénom</label>
+                  <input value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} className="input" required />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">Nom</label>
-                  <input
-                    value={form.lastName}
-                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                    className="input"
-                    required
-                  />
+                  <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Nom</label>
+                  <input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} className="input" required />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setStep(STEPS.CHOICE)} className="btn-secondary flex-1 flex items-center justify-center gap-2">
-                  <ArrowLeft size={16} /> Retour
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button onClick={() => goTo(STEPS.CHOICE, 'left')} style={{ flex: 1, height: 46, borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-700)', color: 'var(--text-muted)', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                  <ArrowLeft size={15} /> Retour
                 </button>
-                <button
-                  onClick={() => {
-                    if (!form.firstName.trim() || !form.lastName.trim()) { toast.error('Remplissez votre nom.'); return; }
-                    setStep(STEPS.DRIVER_CAR);
-                  }}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
-                >
-                  Suivant <ArrowRight size={16} />
+                <button onClick={() => {
+                  if (!form.firstName.trim() || !form.lastName.trim()) { toast.error('Remplissez votre nom.'); return; }
+                  goTo(STEPS.DRIVER_CAR, 'right');
+                }} style={{ flex: 2, height: 46, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#006233,#004d26)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 16px rgba(0,98,51,0.3)' }}>
+                  Suivant <ArrowRight size={15} />
                 </button>
               </div>
             </div>
@@ -266,82 +364,179 @@ export default function Onboarding() {
 
         {/* ─── STEP 3: DRIVER CAR ─── */}
         {step === STEPS.DRIVER_CAR && (
-          <div className="w-full max-w-md">
-            {/* Progress */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="flex-1 h-1.5 bg-green-500 rounded-full" />
-              <div className="flex-1 h-1.5 bg-green-500 rounded-full" />
-              <span className="text-slate-500 text-xs ml-1">Étape 2 / 2</span>
-            </div>
+          <div style={{ width: '100%', maxWidth: 440, animation: `slide${direction === 'right' ? 'Right' : 'Left'} 0.3s ease-out` }}>
+            <StepBar step={step} isDriver />
 
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                <Car size={26} className="text-green-400" />
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(0,98,51,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Car size={24} style={{ color: '#006233' }} />
               </div>
-              <h2 className="text-2xl font-black text-white mb-2">Votre véhicule</h2>
-              <p className="text-slate-400 text-sm">Les passagers verront ces informations avant de réserver.</p>
+              <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#006233' }}>✦ Étape 3/4</p>
+              <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>Votre véhicule</h2>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Les passagers voient ces infos avant de réserver.</p>
             </div>
 
-            <div className="card flex flex-col gap-5">
+            <div style={{ borderRadius: 18, border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Photo voiture */}
               <div>
-                <label className="text-sm text-slate-400 mb-2 block">Photo du véhicule</label>
-                <div
-                  onClick={() => carRef.current.click()}
-                  className={`relative w-full h-44 rounded-xl cursor-pointer border-2 border-dashed overflow-hidden transition group ${
-                    carPreview ? 'border-green-500' : 'border-dark-400 hover:border-green-500 bg-dark-700'
-                  }`}
-                >
+                <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>
+                  Photo du véhicule <span style={{ color: '#C1272D' }}>*</span>
+                </label>
+                <div onClick={() => carRef.current.click()} style={{
+                  width: '100%', height: 160, borderRadius: 14, cursor: 'pointer', overflow: 'hidden',
+                  border: `2px dashed ${carPreview ? '#006233' : 'var(--border-color)'}`,
+                  background: 'var(--bg-700)', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all 0.2s',
+                }}>
                   {carPreview
-                    ? <img src={carPreview} alt="" className="w-full h-full object-cover" />
-                    : <div className="flex flex-col items-center justify-center h-full gap-2">
-                        <Camera size={32} className="text-slate-500 group-hover:text-green-400 transition" />
-                        <p className="text-slate-500 text-sm">Cliquez pour ajouter une photo</p>
-                        <p className="text-slate-600 text-xs">JPG, PNG · max 3 Mo</p>
-                      </div>
+                    ? <img src={carPreview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <>
+                        <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Camera size={20} style={{ color: 'var(--text-muted)' }} />
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>Cliquer pour ajouter une photo</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>JPG, PNG · max 3 Mo</p>
+                      </>
                   }
-                  {carPreview && (
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                      <span className="text-white text-sm font-semibold">Changer la photo</span>
-                    </div>
-                  )}
                 </div>
-                <input ref={carRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'car')} />
+                <input ref={carRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFileChange(e, 'car')} />
               </div>
 
               {/* Plaque */}
               <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">Numéro de plaque d'immatriculation</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: 8 }}>
+                  Numéro de plaque <span style={{ color: '#C1272D' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <MapPin size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
                     value={form.licensePlate}
-                    onChange={(e) => setForm({ ...form, licensePlate: e.target.value.toUpperCase() })}
+                    onChange={e => setForm({ ...form, licensePlate: e.target.value.toUpperCase() })}
                     placeholder="Ex : 12345-A-1"
-                    className="input pl-9 font-mono tracking-wider"
+                    className="input"
+                    style={{ paddingLeft: 36, fontFamily: 'monospace', letterSpacing: '0.1em' }}
                     required
                   />
                 </div>
-                <p className="text-slate-600 text-xs mt-1">Format marocain : 12345-A-1</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>Format marocain : 12345-A-1</p>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setStep(STEPS.DRIVER_INFO)} className="btn-secondary flex-1 flex items-center justify-center gap-2">
-                  <ArrowLeft size={16} /> Retour
+              {/* Trust badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'rgba(0,98,51,0.06)', border: '1px solid rgba(0,98,51,0.15)' }}>
+                <Shield size={16} style={{ color: '#006233', flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  Vos informations sont <strong style={{ color: 'var(--text-secondary)' }}>vérifiées par notre équipe</strong> et ne sont partagées qu'avec vos passagers.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => goTo(STEPS.DRIVER_INFO, 'left')} style={{ flex: 1, height: 46, borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-700)', color: 'var(--text-muted)', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                  <ArrowLeft size={15} /> Retour
                 </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={saving}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
-                >
-                  {saving ? 'Enregistrement...' : <><CheckCircle size={16} /> Terminer</>}
+                <button onClick={handleSaveDriverInfo} disabled={saving} style={{ flex: 2, height: 46, borderRadius: 12, border: 'none', background: saving ? 'var(--bg-700)' : 'linear-gradient(135deg,#006233,#004d26)', color: saving ? 'var(--text-muted)' : '#fff', fontSize: 14, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: saving ? 'none' : '0 4px 16px rgba(0,98,51,0.3)', transition: 'all 0.2s' }}>
+                  {saving
+                    ? <><span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> Enregistrement…</>
+                    : <>Suivant <ArrowRight size={15} /></>
+                  }
                 </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* ─── STEP 4: DRIVER DOCS (vérification IA) ─── */}
+        {step === STEPS.DRIVER_DOCS && (
+          <div style={{ width: '100%', maxWidth: 440, animation: `slide${direction === 'right' ? 'Right' : 'Left'} 0.3s ease-out` }}>
+            <StepBar step={step} isDriver />
+
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(0,98,51,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <CreditCard size={24} style={{ color: '#006233' }} />
+              </div>
+              <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#006233' }}>✦ Étape 4/4</p>
+              <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>Vérification d'identité</h2>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+                Obligatoire pour publier des trajets. Vos documents sont analysés automatiquement (IA locale), ce n'est pas une vérification officielle.
+              </p>
+            </div>
+
+            <div style={{ borderRadius: 18, border: '1px solid var(--border-color)', background: 'var(--card-bg)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* CIN */}
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <CreditCard size={13} /> Carte d'identité nationale (CIN)
+                </label>
+                <div onClick={() => cinRef.current.click()} style={{
+                  width: '100%', height: 140, borderRadius: 14, cursor: 'pointer', overflow: 'hidden',
+                  border: `2px dashed ${verifyErrors.cin ? '#C1272D' : cinPreview ? '#006233' : 'var(--border-color)'}`,
+                  background: 'var(--bg-700)', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  transition: 'all 0.2s',
+                }}>
+                  {cinPreview
+                    ? <img src={cinPreview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <>
+                        <Camera size={20} style={{ color: 'var(--text-muted)' }} />
+                        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Photo recto de la CIN</p>
+                      </>
+                  }
+                </div>
+                <input ref={cinRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFileChange(e, 'cin')} />
+                {verifyErrors.cin && (
+                  <p style={{ margin: '6px 0 0', fontSize: 11, color: '#C1272D', display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} /> {verifyErrors.cin}</p>
+                )}
+              </div>
+
+              {/* Permis */}
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <FileText size={13} /> Permis de conduire
+                </label>
+                <div onClick={() => permisRef.current.click()} style={{
+                  width: '100%', height: 140, borderRadius: 14, cursor: 'pointer', overflow: 'hidden',
+                  border: `2px dashed ${verifyErrors.permis ? '#C1272D' : permisPreview ? '#006233' : 'var(--border-color)'}`,
+                  background: 'var(--bg-700)', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  transition: 'all 0.2s',
+                }}>
+                  {permisPreview
+                    ? <img src={permisPreview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <>
+                        <Camera size={20} style={{ color: 'var(--text-muted)' }} />
+                        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Photo du permis de conduire</p>
+                      </>
+                  }
+                </div>
+                <input ref={permisRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFileChange(e, 'permis')} />
+                {verifyErrors.permis && (
+                  <p style={{ margin: '6px 0 0', fontSize: 11, color: '#C1272D', display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} /> {verifyErrors.permis}</p>
+                )}
+              </div>
+
+              {verifyErrors.voiture && (
+                <p style={{ margin: 0, fontSize: 11, color: '#C1272D', display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} /> Photo véhicule : {verifyErrors.voiture}</p>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => goTo(STEPS.DRIVER_CAR, 'left')} style={{ flex: 1, height: 46, borderRadius: 12, border: '1px solid var(--border-color)', background: 'var(--bg-700)', color: 'var(--text-muted)', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                  <ArrowLeft size={15} /> Retour
+                </button>
+                <button onClick={handleVerifyDocs} disabled={verifying} style={{ flex: 2, height: 46, borderRadius: 12, border: 'none', background: verifying ? 'var(--bg-700)' : 'linear-gradient(135deg,#006233,#004d26)', color: verifying ? 'var(--text-muted)' : '#fff', fontSize: 14, fontWeight: 800, cursor: verifying ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: verifying ? 'none' : '0 4px 16px rgba(0,98,51,0.3)', transition: 'all 0.2s' }}>
+                  {verifying
+                    ? <><span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> Vérification…</>
+                    : <><CheckCircle size={15} /> Terminer</>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      <style>{`
+        @keyframes slideRight { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideLeft  { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes spin       { to   { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

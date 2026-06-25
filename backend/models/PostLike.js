@@ -1,12 +1,17 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
-const User = require('./User');
-const Post = require('./Post');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const PostLike = sequelize.define('PostLike', {
-  id:     { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  userId: { type: DataTypes.UUID, allowNull: false, references: { model: User, key: 'id' } },
-  postId: { type: DataTypes.UUID, allowNull: false, references: { model: Post, key: 'id' } },
-}, { timestamps: true, tableName: 'post_likes' });
+const postLikeSchema = new Schema({
+  userId: { type: String, ref: 'User', required: true },
+  postId: { type: String, ref: 'Post', required: true },
+});
 
-module.exports = PostLike;
+postLikeSchema.plugin(idPlugin);
+
+// Capitalized for consistency with the same unaliased Sequelize default-name
+// association pattern used by Post/PostComment (not directly confirmed in
+// Feed.jsx, but matches backend/index.js's original `PostLike.belongsTo(User, ...)`
+// with no `as:`).
+postLikeSchema.virtual('User', { ref: 'User', localField: 'userId', foreignField: '_id', justOne: true });
+
+module.exports = model('PostLike', postLikeSchema);

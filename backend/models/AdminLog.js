@@ -1,41 +1,21 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const AdminLog = sequelize.define('AdminLog', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  adminId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  action: {
-    type: DataTypes.STRING(60),
-    allowNull: false,
-  },
-  targetType: {
-    type: DataTypes.STRING(30),
-    allowNull: false,
-  },
-  targetId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  details: {
-    type: DataTypes.JSON,
-    allowNull: true,
-  },
-}, {
-  tableName: 'admin_logs',
-  timestamps: true,
-  updatedAt: false,
-  indexes: [
-    { fields: ['adminId'] },
-    { fields: ['action'] },
-    { fields: ['targetType', 'targetId'] },
-  ],
+const adminLogSchema = new Schema({
+  adminId: { type: String, ref: 'User', required: true },
+  action: { type: String, required: true, maxlength: 60 },
+  targetType: { type: String, required: true, maxlength: 30 },
+  targetId: { type: String, default: null },
+  details: { type: Schema.Types.Mixed, default: null },
 });
 
-module.exports = AdminLog;
+adminLogSchema.plugin(idPlugin);
+adminLogSchema.set('timestamps', { createdAt: true, updatedAt: false });
+
+adminLogSchema.index({ adminId: 1 });
+adminLogSchema.index({ action: 1 });
+adminLogSchema.index({ targetType: 1, targetId: 1 });
+
+adminLogSchema.virtual('admin', { ref: 'User', localField: 'adminId', foreignField: '_id', justOne: true });
+
+module.exports = model('AdminLog', adminLogSchema);

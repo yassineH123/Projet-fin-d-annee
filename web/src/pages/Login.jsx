@@ -1,204 +1,214 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowRight, Car, Train, Bus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage, LANGS } from '../context/LanguageContext';
+import SEO from '../components/SEO';
 
-/* Étoile marocaine SVG */
-function MoroccanStar({ size = 28, color = '#D4890A' }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20">
-      <path d="M10,1 L12.94,8.29 L19.51,8.62 L14.78,13.06 L16.18,19.51 L10,15.88 L3.82,19.51 L5.22,13.06 L0.49,8.62 L7.06,8.29Z" fill={color} />
-    </svg>
-  );
-}
+const STATS = [
+  { val: '12K+', label: 'Voyageurs' },
+  { val: '3K+',  label: 'Conducteurs' },
+  { val: '48',   label: 'Villes' },
+];
+
+const CITIES_FLOW = ['Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger', 'Agadir', 'Meknès', 'Oujda'];
 
 export default function Login() {
   const { login }   = useAuth();
   const navigate    = useNavigate();
-  const { lang, setLang, t: globalT } = useLanguage();
+  const [form, setForm]       = useState({ email: '', password: '' });
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+  const [fErr, setFErr]       = useState({});
 
-  const t      = globalT.login;
-  const isRtl  = globalT.dir === 'rtl';
+  const set = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value });
+    if (error) setError('');
+    if (fErr[k]) setFErr((prev) => ({ ...prev, [k]: undefined }));
+  };
 
-  const [form, setForm]         = useState({ email: '', password: '' });
-  const [showPwd, setShowPwd]   = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-
-  const set = (k) => (e) => { setForm({ ...form, [k]: e.target.value }); if (error) setError(''); };
+  const validate = () => {
+    const e = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Adresse email invalide';
+    if (!form.password) e.password = 'Mot de passe requis';
+    setFErr(e);
+    return Object.keys(e).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     setError('');
     try {
       const { data } = await api.post('/auth/login', form);
       login(data.token, data.user);
-      toast.success(t.welcome);
-      navigate(data.user.role === 'admin' || data.user.role === 'superadmin' ? '/admin/home' : '/');
+      toast.success('Connexion réussie !');
+      navigate(data.user.role === 'admin' || data.user.role === 'superadmin' ? '/admin' : '/');
     } catch (err) {
-      setError(err.response?.data?.message || t.errorDefault);
+      setError(err.response?.data?.message || 'Email ou mot de passe incorrect');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 64px)',
-      background: 'linear-gradient(150deg, #0F0704 0%, #1E0D07 50%, #160905 100%)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '2rem 1rem', position: 'relative', overflow: 'hidden',
-    }}>
-      {/* Lueur safran */}
-      <div style={{ position: 'absolute', top: '-15%', right: '-5%', width: '50%', height: '60%', background: 'radial-gradient(ellipse, rgba(212,137,10,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+    <div style={{ minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', background: 'var(--bg-900)' }}>
+      <SEO title="Connexion" description="Connectez-vous à votre compte AtlasWay pour réserver ou proposer un covoiturage au Maroc." path="/login" noIndex />
 
-      {/* Texte arabe fantôme */}
-      <div style={{
-        position: 'absolute', bottom: '-2%', left: 0, right: 0, textAlign: 'center',
-        fontSize: 'clamp(40px,7vw,90px)', fontFamily: 'Amiri, serif', fontWeight: 700,
-        color: 'transparent', WebkitTextStroke: '1px rgba(212,137,10,0.05)',
-        userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap',
-      }}>مرحباً بك في المغرب</div>
-
-      <div style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
-
-        {/* ── Sélecteur de langue ── */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
-          {Object.entries(LANGS).map(([key, l]) => (
-            <button key={key} onClick={() => setLang(key)} className={`lang-btn${lang === key ? ' active' : ''}`}>
-              <span>{l.flag}</span> {l.name}
-            </button>
+      {/* ── Hero band ── */}
+      <div style={{ background: 'linear-gradient(135deg, #0f0505 0%, #1f0808 40%, #0a1a0a 100%)', borderBottom: '1px solid var(--border-color)', padding: '28px 20px 24px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        {/* Zellige stripe */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, display: 'flex' }}>
+          {Array.from({ length: 80 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
           ))}
         </div>
 
-        {/* ── Entête ── */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }} dir={globalT.dir}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 60, height: 60, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#B8232A,#8A1520)',
-            border: '1px solid rgba(212,137,10,0.4)',
-            boxShadow: '0 0 20px rgba(184,35,42,0.35)',
-            marginBottom: 16,
-          }}>
-            <MoroccanStar size={30} color="#D4890A" />
-          </div>
-          <h1 style={{ fontFamily: "'Amiri', Georgia, serif", fontSize: '2rem', fontWeight: 700, color: '#F5EDD8', letterSpacing: '0.03em', margin: 0 }}>
-            {t.title}
-          </h1>
-          <p style={{ color: 'rgba(245,237,216,0.5)', fontSize: '0.85rem', marginTop: 6 }}>{t.subtitle}</p>
+        {/* Geometric accents */}
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{ position: 'absolute', width: 60 + i * 20, height: 60 + i * 20, border: '1px solid rgba(193,39,45,0.08)', borderRadius: 12, transform: `rotate(${i * 20}deg)`, top: -10 + i * 5, right: -15 + i * 8, pointerEvents: 'none' }} />
+        ))}
 
-          {/* Diviseur étoile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px auto 0', maxWidth: 200, color: 'rgba(212,137,10,0.4)' }}>
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right,transparent,rgba(212,137,10,0.35))' }} />
-            <MoroccanStar size={11} color="#D4890A" />
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to left,transparent,rgba(212,137,10,0.35))' }} />
+        <div style={{ maxWidth: 440, margin: '0 auto', position: 'relative' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(193,39,45,0.15)', border: '1px solid rgba(193,39,45,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Car size={22} style={{ color: '#C1272D' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', color: '#D4890A', textTransform: 'uppercase' }}>✦ AtlasWay</p>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Bon retour 👋</p>
+            </div>
+          </div>
+
+          {/* Route animation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 4 }}>
+            {CITIES_FLOW.map((city, i) => (
+              <div key={city} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: i % 3 === 0 ? '#C1272D' : i % 3 === 1 ? '#D4890A' : '#22C55E', whiteSpace: 'nowrap' }}>{city}</span>
+                {i < CITIES_FLOW.length - 1 && (
+                  <div style={{ width: 20, height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 4px', flexShrink: 0 }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
+            {STATS.map(({ val, label }) => (
+              <div key={label}>
+                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff' }}>{val}</p>
+                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>{label}</p>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* ── Carte formulaire ── */}
-        <div style={{
-          background: 'linear-gradient(160deg,#1C0C07,#200F08)',
-          border: '1px solid rgba(212,137,10,0.25)',
-          borderRadius: 20, padding: '1.75rem',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(212,137,10,0.08)',
-          position: 'relative', overflow: 'hidden',
-        }}>
-          {/* Arc mauresque décoratif */}
-          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 70, height: 32, borderRadius: '0 0 35px 35px', background: 'linear-gradient(to bottom,rgba(212,137,10,0.12),transparent)', borderLeft: '1px solid rgba(212,137,10,0.18)', borderRight: '1px solid rgba(212,137,10,0.18)', borderBottom: '1px solid rgba(212,137,10,0.12)', pointerEvents: 'none' }} />
-          {/* Ligne drapeau */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '20px 20px 0 0', background: 'linear-gradient(to right,transparent,#B8232A,#D4890A,#005A2E,#D4890A,#B8232A,transparent)' }} />
+      {/* ── Form ── */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 16px 48px' }}>
+        <div style={{ width: '100%', maxWidth: 440 }}>
 
-          {/* Erreur */}
-          {error && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(193,39,45,0.1)', border: '1px solid rgba(193,39,45,0.3)', color: '#f87171', borderRadius: 12, padding: '10px 14px', marginBottom: 18, fontSize: '0.82rem' }} dir={globalT.dir}>
-              <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{error}</span>
-            </div>
-          )}
+          {/* Card */}
+          <div style={{ background: 'var(--card-bg)', borderRadius: 20, border: '1px solid var(--border-color)', padding: '28px 26px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+            <p style={{ margin: '0 0 22px', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>
+              Connexion à votre compte
+            </p>
 
-          <form onSubmit={handleSubmit} dir={globalT.dir} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-
-            {/* Email */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'rgba(245,237,216,0.65)', marginBottom: 6, fontFamily: isRtl ? "'Amiri',serif" : "'Cairo',sans-serif", letterSpacing: isRtl ? 0 : '0.04em' }}>
-                {t.emailLabel}
-              </label>
-              <input
-                type="email" value={form.email} onChange={set('email')}
-                placeholder={t.emailPlaceholder}
-                className="input" required autoComplete="email"
-                style={{ direction: 'ltr', textAlign: isRtl ? 'right' : 'left' }}
-              />
-            </div>
-
-            {/* Mot de passe */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexDirection: isRtl ? 'row-reverse' : 'row' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(245,237,216,0.65)', fontFamily: isRtl ? "'Amiri',serif" : "'Cairo',sans-serif", letterSpacing: isRtl ? 0 : '0.04em' }}>
-                  {t.passwordLabel}
-                </label>
-                <Link to="/forgot-password" style={{ fontSize: '0.72rem', color: '#D4890A', textDecoration: 'none', fontFamily: isRtl ? "'Amiri',serif" : 'inherit' }}>
-                  {t.forgot}
-                </Link>
+            {error && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 18 }}>
+                <AlertCircle size={15} style={{ color: '#F87171', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: '#F87171', fontWeight: 600 }}>{error}</span>
               </div>
-              <div style={{ position: 'relative' }}>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Email */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.04em' }}>ADRESSE EMAIL</label>
                 <input
-                  type={showPwd ? 'text' : 'password'}
-                  value={form.password} onChange={set('password')}
-                  placeholder="••••••••"
-                  className={`input pr-11${error ? ' border-red-500/60' : ''}`}
-                  required autoComplete="current-password"
-                  style={{ direction: 'ltr' }}
+                  type="email" value={form.email} onChange={set('email')}
+                  placeholder="vous@example.com" autoComplete="email"
+                  className={`input ${fErr.email ? 'input-error' : ''}`}
+                  style={{ height: 46 }}
                 />
-                <button type="button" onClick={() => setShowPwd(!showPwd)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(245,237,216,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                  {showPwd ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
+                {fErr.email && <p className="field-error" style={{ marginTop: 4 }}><AlertCircle size={11} /> {fErr.email}</p>}
               </div>
+
+              {/* Password */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>MOT DE PASSE</label>
+                  <Link to="/forgot-password" style={{ fontSize: 11, color: '#C1272D', fontWeight: 700, textDecoration: 'none' }}>
+                    Oublié ?
+                  </Link>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPwd ? 'text' : 'password'} value={form.password} onChange={set('password')}
+                    placeholder="••••••••" autoComplete="current-password"
+                    className={`input ${(fErr.password || error) ? 'input-error' : ''}`}
+                    style={{ height: 46, paddingRight: 44 }}
+                  />
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
+                    {showPwd ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+                {fErr.password && <p className="field-error" style={{ marginTop: 4 }}><AlertCircle size={11} /> {fErr.password}</p>}
+              </div>
+
+              {/* Submit */}
+              <button type="submit" disabled={loading} style={{
+                height: 50, borderRadius: 14, border: 'none', marginTop: 4,
+                background: loading ? 'var(--bg-700)' : 'linear-gradient(135deg, #C1272D, #9e1f24)',
+                color: loading ? 'var(--text-muted)' : '#fff', fontSize: 15, fontWeight: 800,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: loading ? 'none' : '0 6px 20px rgba(193,39,45,0.35)',
+                transition: 'all 0.2s',
+              }}>
+                {loading
+                  ? <span style={{ width: 20, height: 20, borderRadius: '50%', border: '2.5px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                  : <><span>Se connecter</span> <ArrowRight size={16} /></>
+                }
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ou</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
             </div>
 
-            {/* Bouton submit */}
-            <button
-              type="submit" disabled={loading}
-              className="btn-primary"
-              style={{ height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: '0.95rem', fontFamily: isRtl ? "'Amiri',serif" : "'Cairo',sans-serif", fontWeight: 800, marginTop: 4, flexDirection: isRtl ? 'row-reverse' : 'row' }}
-            >
-              {loading
-                ? <span style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                : <><ArrowRight size={16} />{t.submit}</>
-              }
-            </button>
-          </form>
-
-          {/* Séparateur */}
-          <div style={{ position: 'relative', margin: '20px 0' }}>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center' }}>
-              <div style={{ width: '100%', height: 1, background: 'rgba(212,137,10,0.15)' }} />
-            </div>
-            <div style={{ position: 'relative', textAlign: 'center' }}>
-              <span style={{ background: '#1C0C07', padding: '0 12px', color: 'rgba(245,237,216,0.3)', fontSize: '0.75rem', fontFamily: isRtl ? "'Amiri',serif" : 'inherit' }}>{t.or}</span>
-            </div>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+              Pas encore de compte ?{' '}
+              <Link to="/register" style={{ color: '#C1272D', fontWeight: 800, textDecoration: 'none' }}>
+                Créer un compte →
+              </Link>
+            </p>
           </div>
 
-          {/* Lien inscription */}
-          <p style={{ textAlign: 'center', fontSize: '0.83rem', color: 'rgba(245,237,216,0.45)', fontFamily: isRtl ? "'Amiri',serif" : 'inherit' }} dir={globalT.dir}>
-            {t.noAccount}{' '}
-            <Link to="/register" style={{ color: '#D4890A', fontWeight: 700, textDecoration: 'none' }}>
-              {t.register}
-            </Link>
+          {/* Modes de transport */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 24 }}>
+            {[{ Icon: Car, label: 'Covoiturage' }, { Icon: Train, label: 'Train' }, { Icon: Bus, label: 'Bus' }].map(({ Icon, label }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)', fontSize: 11, fontWeight: 600 }}>
+                <Icon size={13} /> {label}
+              </div>
+            ))}
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 14 }}>
+            En vous connectant, vous acceptez nos conditions d'utilisation.
           </p>
         </div>
-
-        {/* Mentions légales */}
-        <p style={{ textAlign: 'center', color: 'rgba(245,237,216,0.2)', fontSize: '0.7rem', marginTop: 16, fontFamily: isRtl ? "'Amiri',serif" : 'inherit' }} dir={globalT.dir}>
-          {t.terms}
-        </p>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
 const { User, VerificationCode } = require('../models');
+const { record: recordLogin } = require('./loginHistoryController');
 const { sendVerificationEmail } = require('../services/emailService');
 const { sendVerificationSMS }   = require('../services/smsService');
 
@@ -34,7 +35,7 @@ async function register(req, res, next) {
     }
 
     const { firstName, lastName, email, password, phone, referralCode: refCode, verificationMethod } = req.body;
-    const existing = await User.findOne({ where: { email } });
+    const existing = await User.findOne({ email });
 
     if (existing && existing.verified) {
       return res.status(409).json({ message: 'Cet email est déjà utilisé.' });
@@ -42,26 +43,24 @@ async function register(req, res, next) {
 
     let referredById = null;
     if (refCode) {
-      const referrer = await User.findOne({ where: { referralCode: refCode } });
+      const referrer = await User.findOne({ referralCode: refCode });
       if (referrer) referredById = referrer.id;
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const newReferralCode = generateReferralCode();
 
-    await User.findOrCreate({
-      where: { email },
-      defaults: { firstName, lastName, email, password: hashedPassword, phone: phone || null, role: 'user', verified: false, referralCode: newReferralCode, referredBy: referredById },
-    });
-
-    if (existing && !existing.verified) {
-      await existing.update({ firstName, lastName, password: hashedPassword, phone: phone || null, referralCode: existing.referralCode || newReferralCode, referredBy: referredById || existing.referredBy });
+    if (!existing) {
+      await User.create({ firstName, lastName, email, password: hashedPassword, phone: phone || null, role: 'user', verified: false, referralCode: newReferralCode, referredBy: referredById });
+    } else {
+      existing.set({ firstName, lastName, password: hashedPassword, phone: phone || null, referralCode: existing.referralCode || newReferralCode, referredBy: referredById || existing.referredBy });
+      await existing.save();
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await VerificationCode.destroy({ where: { email } });
+    await VerificationCode.deleteMany({ email });
     await VerificationCode.create({ email, code, expiresAt });
 
     const useSMS = verificationMethod === 'sms' && phone;
@@ -94,24 +93,30 @@ async function verifyEmail(req, res, next) {
     }
 
     const { email, code } = req.body;
-    const entry = await VerificationCode.findOne({ where: { email, code } });
+    const entry = await VerificationCode.findOne({ email, code });
 
     if (!entry) {
       return res.status(400).json({ message: 'Code incorrect.' });
     }
 
     if (new Date(entry.expiresAt).getTime() < Date.now()) {
-      await entry.destroy();
+      await entry.deleteOne();
       return res.status(400).json({ message: 'Code expiré.' });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });
     }
 
-    await user.update({ verified: true, onboardingDone: false });
-    await entry.destroy();
+    user.set({ verified: true, onboardingDone: false });
+    await user.save();
+    await entry.deleteOne();
+
+    // Créditer le parrain de 10 DH
+    if (user.referredBy) {
+      await User.findByIdAndUpdate(user.referredBy, { $inc: { referralCredits: 10 } });
+    }
 
     return res.json({
       message: 'Email vérifié avec succès.',
@@ -139,7 +144,7 @@ async function resendCode(req, res, next) {
     }
 
     const { email } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
 
     if (!user || user.verified) {
       return res.status(404).json({ message: 'Utilisateur introuvable ou déjà vérifié.' });
@@ -148,7 +153,7 @@ async function resendCode(req, res, next) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await VerificationCode.destroy({ where: { email } });
+    await VerificationCode.deleteMany({ email });
     await VerificationCode.create({ email, code, expiresAt });
 
     res.json({ message: user.phone ? 'Nouveau code envoyé par SMS.' : 'Nouveau code envoyé par email.' });
@@ -175,7 +180,7 @@ async function login(req, res, next) {
     }
 
     const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
@@ -198,6 +203,13 @@ async function login(req, res, next) {
       return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
     }
 
+    if (!user.referralCode) {
+      user.set({ referralCode: generateReferralCode() });
+      await user.save();
+    }
+
+    recordLogin(user.id, req, true);
+
     return res.json({
       message: 'Connexion réussie.',
       token: signToken(user),
@@ -207,9 +219,13 @@ async function login(req, res, next) {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        walletBalance: user.walletBalance,
+        level: user.level,
+        badges: user.badges,
       },
     });
   } catch (error) {
+    recordLogin(null, req, false);
     return next(error);
   }
 }
@@ -217,13 +233,13 @@ async function login(req, res, next) {
 async function forgotPassword(req, res, next) {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'Aucun compte avec cet email.' });
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await VerificationCode.destroy({ where: { email } });
+    await VerificationCode.deleteMany({ email });
     await VerificationCode.create({ email, code, expiresAt });
 
     res.json({ message: 'Code de réinitialisation envoyé.' });
@@ -239,20 +255,21 @@ async function forgotPassword(req, res, next) {
 async function resetPassword(req, res, next) {
   try {
     const { email, code, newPassword } = req.body;
-    const entry = await VerificationCode.findOne({ where: { email, code } });
+    const entry = await VerificationCode.findOne({ email, code });
 
     if (!entry) return res.status(400).json({ message: 'Code incorrect.' });
     if (new Date(entry.expiresAt).getTime() < Date.now()) {
-      await entry.destroy();
+      await entry.deleteOne();
       return res.status(400).json({ message: 'Code expiré.' });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await user.update({ password: hashedPassword });
-    await entry.destroy();
+    user.set({ password: hashedPassword });
+    await user.save();
+    await entry.deleteOne();
 
     return res.json({ message: 'Mot de passe réinitialisé avec succès.' });
   } catch (error) {
@@ -268,7 +285,7 @@ async function changePassword(req, res, next) {
     }
 
     const { email, currentPassword, newPassword } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });
@@ -280,7 +297,8 @@ async function changePassword(req, res, next) {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await user.update({ password: hashedPassword });
+    user.set({ password: hashedPassword });
+    await user.save();
 
     return res.json({ message: 'Mot de passe mis à jour.' });
   } catch (error) {

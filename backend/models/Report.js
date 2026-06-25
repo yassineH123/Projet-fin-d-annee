@@ -1,56 +1,33 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Report = sequelize.define('Report', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  reporterId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  reportedUserId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  rideId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
+const reportSchema = new Schema({
+  reporterId: { type: String, ref: 'User', required: true },
+  reportedUserId: { type: String, ref: 'User', required: true },
+  rideId: { type: String, ref: 'Ride', default: null },
   reason: {
-    type: DataTypes.ENUM('comportement', 'fraude', 'securite', 'contenu_inapproprie', 'trajet_suspect', 'autre'),
-    allowNull: false,
+    type: String,
+    enum: [
+      'comportement', 'fraude', 'securite', 'contenu_inapproprie', 'trajet_suspect', 'autre',
+      'conduite_dangereuse', 'impolitesse', 'no_show', 'escroquerie', 'arnaque_prix', 'harcelement',
+    ],
+    required: true,
   },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.ENUM('pending', 'in_progress', 'resolved', 'rejected'),
-    defaultValue: 'pending',
-    allowNull: false,
-  },
-  adminNote: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  handledBy: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  resolvedAt: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-}, {
-  tableName: 'reports',
-  timestamps: true,
-  indexes: [
-    { fields: ['status'] },
-    { fields: ['reportedUserId'] },
-  ],
+  description: { type: String, default: null },
+  status: { type: String, enum: ['pending', 'in_progress', 'resolved', 'rejected'], default: 'pending', required: true },
+  adminNote: { type: String, default: null },
+  handledBy: { type: String, ref: 'User', default: null },
+  resolvedAt: { type: Date, default: null },
 });
 
-module.exports = Report;
+reportSchema.plugin(idPlugin);
+
+reportSchema.index({ status: 1 });
+reportSchema.index({ reportedUserId: 1 });
+
+reportSchema.virtual('reporter', { ref: 'User', localField: 'reporterId', foreignField: '_id', justOne: true });
+reportSchema.virtual('reportedUser', { ref: 'User', localField: 'reportedUserId', foreignField: '_id', justOne: true });
+reportSchema.virtual('handledByAdmin', { ref: 'User', localField: 'handledBy', foreignField: '_id', justOne: true });
+reportSchema.virtual('ride', { ref: 'Ride', localField: 'rideId', foreignField: '_id', justOne: true });
+
+module.exports = model('Report', reportSchema);

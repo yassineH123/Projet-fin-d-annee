@@ -12,13 +12,13 @@ async function authenticateToken(req, res, next) {
 
     // Vérifié en base (et non dans le JWT) pour révoquer immédiatement l'accès
     // d'un compte suspendu/banni après coup, sans attendre l'expiration du token.
-    const user = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'status'] });
+    const user = await User.findById(decoded.id).select('role status isDriver driverVerified');
     if (!user) return res.status(401).json({ message: 'Utilisateur introuvable.' });
     if (user.status !== 'active') {
       return res.status(403).json({ message: 'Compte suspendu ou banni.' });
     }
 
-    req.user = { id: user.id, role: user.role };
+    req.user = { id: user.id, role: user.role, isDriver: user.isDriver, driverVerified: user.driverVerified };
     return next();
   } catch {
     return res.status(401).json({ message: 'Token invalide.' });

@@ -1,21 +1,24 @@
-const { Op } = require('sequelize');
-const sequelize = require('../database');
-const { User, Ride, Booking, Review, Report, AdminLog } = require('../models');
-const REVIEWER_ATTRS = ['id', 'firstName', 'lastName', 'photo'];
+const mongoose = require('mongoose');
+const { User, Ride, Booking, Review, Report, AdminLog, Conversation, ConversationMember, Message, Notification, Friendship, SavedSearch } = require('../models');
+const Post = require('../models/Post');
+const PostLike = require('../models/PostLike');
+const PostComment = require('../models/PostComment');
+const REVIEWER_ATTRS = 'firstName lastName photo';
 const { logAdminAction } = require('../services/auditLogService');
+const { createNotification } = require('../services/notificationService');
 
-const SAFE_USER_ATTRS = { exclude: ['password'] };
+const SAFE_USER_ATTRS = '-password';
 
 async function getDashboard(req, res, next) {
   try {
     const [totalUsers, totalDrivers, totalRides, totalBookings, totalReviews, totalReports, totalBanned] = await Promise.all([
-      User.count({ where: { role: 'user' } }),
-      User.count({ where: { role: 'user', isDriver: true } }),
-      Ride.count(),
-      Booking.count(),
-      Review.count(),
-      Report.count(),
-      User.count({ where: { status: 'blocked' } }),
+      User.countDocuments({ role: 'user' }),
+      User.countDocuments({ role: 'user', isDriver: true }),
+      Ride.countDocuments(),
+      Booking.countDocuments(),
+      Review.countDocuments(),
+      Report.countDocuments(),
+      User.countDocuments({ status: 'blocked' }),
     ]);
     return res.json({
       stats: { totalUsers, totalDrivers, totalRides, totalBookings, totalReviews, totalReports, totalBanned },
@@ -31,26 +34,26 @@ async function getCharts(req, res, next) {
     sixMonthsAgo.setHours(0, 0, 0, 0);
 
     const [usersPerMonth, ridesPerMonth, bookingStatuses, reportStatuses] = await Promise.all([
-      sequelize.query(
-        `SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count
-         FROM users WHERE role = 'user' AND createdAt >= :from
-         GROUP BY month ORDER BY month ASC`,
-        { replacements: { from: sixMonthsAgo }, type: sequelize.QueryTypes.SELECT }
-      ),
-      sequelize.query(
-        `SELECT DATE_FORMAT(createdAt, '%Y-%m') as month, COUNT(*) as count
-         FROM rides WHERE createdAt >= :from
-         GROUP BY month ORDER BY month ASC`,
-        { replacements: { from: sixMonthsAgo }, type: sequelize.QueryTypes.SELECT }
-      ),
-      sequelize.query(
-        `SELECT status, COUNT(*) as count FROM bookings GROUP BY status`,
-        { type: sequelize.QueryTypes.SELECT }
-      ),
-      sequelize.query(
-        `SELECT status, COUNT(*) as count FROM reports GROUP BY status`,
-        { type: sequelize.QueryTypes.SELECT }
-      ),
+      User.aggregate([
+        { $match: { role: 'user', createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $project: { _id: 0, month: '$_id', count: 1 } },
+        { $sort: { month: 1 } },
+      ]),
+      Ride.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $project: { _id: 0, month: '$_id', count: 1 } },
+        { $sort: { month: 1 } },
+      ]),
+      Booking.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $project: { _id: 0, status: '$_id', count: 1 } },
+      ]),
+      Report.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $project: { _id: 0, status: '$_id', count: 1 } },
+      ]),
     ]);
 
     // Remplir les mois manquants avec 0
@@ -102,25 +105,23 @@ async function listUsers(req, res, next) {
     const offset = (page - 1) * limit;
 
     const allowedRoles = ['user', 'admin'];
-    const where = { role: { [Op.in]: allowedRoles } };
+    const where = { role: { $in: allowedRoles } };
     if (role && allowedRoles.includes(role)) {
       where.role = role;
     }
     if (search) {
-      where[Op.or] = [
-        { firstName: { [Op.like]: `%${search}%` } },
-        { lastName:  { [Op.like]: `%${search}%` } },
-        { email:     { [Op.like]: `%${search}%` } },
-        { phone:     { [Op.like]: `%${search}%` } },
+      where.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName:  { $regex: search, $options: 'i' } },
+        { email:     { $regex: search, $options: 'i' } },
+        { phone:     { $regex: search, $options: 'i' } },
       ];
     }
 
-    const { count, rows: users } = await User.findAndCountAll({
-      where,
-      attributes: SAFE_USER_ATTRS,
-      order: [['createdAt', 'DESC']],
-      limit, offset,
-    });
+    const [users, count] = await Promise.all([
+      User.find(where).select(SAFE_USER_ATTRS).sort({ createdAt: -1 }).skip(offset).limit(limit),
+      User.countDocuments(where),
+    ]);
 
     return res.json({ users, total: count, page, pages: Math.ceil(count / limit) });
   } catch (err) { return next(err); }
@@ -128,20 +129,18 @@ async function listUsers(req, res, next) {
 
 async function getUserDetail(req, res, next) {
   try {
-    const user = await User.findByPk(req.params.id, { attributes: SAFE_USER_ATTRS });
+    const user = await User.findById(req.params.id).select(SAFE_USER_ATTRS);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const [ridesAsDriver, bookingsAsPassenger, reportsReceived, reportsFiled, reviews] = await Promise.all([
-      Ride.count({ where: { driverId: user.id } }),
-      Booking.count({ where: { passengerId: user.id } }),
-      Report.count({ where: { reportedUserId: user.id } }),
-      Report.count({ where: { reporterId: user.id } }),
-      Review.findAll({
-        where: { reviewedId: user.id },
-        include: [{ model: User, as: 'reviewer', attributes: REVIEWER_ATTRS }],
-        order: [['createdAt', 'DESC']],
-        limit: 20,
-      }),
+      Ride.countDocuments({ driverId: user.id }),
+      Booking.countDocuments({ passengerId: user.id }),
+      Report.countDocuments({ reportedUserId: user.id }),
+      Report.countDocuments({ reporterId: user.id }),
+      Review.find({ reviewedId: user.id })
+        .populate({ path: 'reviewer', select: REVIEWER_ATTRS })
+        .sort({ createdAt: -1 })
+        .limit(20),
     ]);
 
     return res.json({
@@ -167,12 +166,13 @@ function assertCanActOnTarget(req, target) {
 
 async function suspendUser(req, res, next) {
   try {
-    const target = await User.findByPk(req.params.id);
+    const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'Utilisateur introuvable.' });
     const error = assertCanActOnTarget(req, target);
     if (error) return res.status(403).json({ message: error });
 
-    await target.update({ status: 'suspended' });
+    target.set({ status: 'suspended' });
+    await target.save();
     await logAdminAction({ adminId: req.user.id, action: 'SUSPEND_USER', targetType: 'User', targetId: target.id });
     return res.json({ message: 'Compte désactivé.' });
   } catch (err) { return next(err); }
@@ -180,12 +180,13 @@ async function suspendUser(req, res, next) {
 
 async function banUser(req, res, next) {
   try {
-    const target = await User.findByPk(req.params.id);
+    const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'Utilisateur introuvable.' });
     const error = assertCanActOnTarget(req, target);
     if (error) return res.status(403).json({ message: error });
 
-    await target.update({ status: 'blocked' });
+    target.set({ status: 'blocked' });
+    await target.save();
     await logAdminAction({ adminId: req.user.id, action: 'BAN_USER', targetType: 'User', targetId: target.id });
     return res.json({ message: 'Utilisateur banni.' });
   } catch (err) { return next(err); }
@@ -193,29 +194,101 @@ async function banUser(req, res, next) {
 
 async function reactivateUser(req, res, next) {
   try {
-    const target = await User.findByPk(req.params.id);
+    const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'Utilisateur introuvable.' });
     if (target.role === 'admin' && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Seul un super admin peut réactiver un compte admin.' });
     }
 
-    await target.update({ status: 'active' });
+    target.set({ status: 'active' });
+    await target.save();
     await logAdminAction({ adminId: req.user.id, action: 'REACTIVATE_USER', targetType: 'User', targetId: target.id });
     return res.json({ message: 'Compte réactivé.' });
   } catch (err) { return next(err); }
 }
 
-async function deleteUser(req, res, next) {
+async function changeUserRole(req, res, next) {
   try {
-    const target = await User.findByPk(req.params.id);
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Seul un super admin peut modifier les rôles.' });
+    }
+    const { role } = req.body;
+    if (!['user', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Rôle invalide.' });
+    }
+    const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'Utilisateur introuvable.' });
     const error = assertCanActOnTarget(req, target);
     if (error) return res.status(403).json({ message: error });
 
-    await target.destroy();
-    await logAdminAction({ adminId: req.user.id, action: 'DELETE_USER', targetType: 'User', targetId: target.id, details: { email: target.email } });
-    return res.json({ message: 'Utilisateur supprimé.' });
+    target.set({ role });
+    await target.save();
+    await logAdminAction({ adminId: req.user.id, action: 'CHANGE_USER_ROLE', targetType: 'User', targetId: target.id, details: { role } });
+    return res.json({ message: role === 'admin' ? 'Utilisateur promu administrateur.' : 'Administrateur rétrogradé.' });
   } catch (err) { return next(err); }
+}
+
+async function deleteUser(req, res, next) {
+  const session = await mongoose.startSession();
+  try {
+    let userId, email;
+    await session.withTransaction(async () => {
+      const target = await User.findById(req.params.id).session(session);
+      if (!target) throw { status: 404, message: 'Utilisateur introuvable.' };
+      const error = assertCanActOnTarget(req, target);
+      if (error) throw { status: 403, message: error };
+
+      userId = target.id;
+      email = target.email;
+
+      const rides = await Ride.find({ driverId: userId }).select('_id').session(session);
+      const rideIds = rides.map((r) => r.id);
+      const conversations = await Conversation.find({ $or: [{ participant1Id: userId }, { participant2Id: userId }] })
+        .select('_id').session(session);
+      const conversationIds = conversations.map((c) => c.id);
+
+      await Booking.deleteMany({
+        $or: [{ passengerId: userId }, ...(rideIds.length ? [{ rideId: { $in: rideIds } }] : [])],
+      }, { session });
+      await Review.deleteMany({ $or: [{ reviewerId: userId }, { reviewedId: userId }] }, { session });
+      await Report.deleteMany({ $or: [{ reporterId: userId }, { reportedUserId: userId }] }, { session });
+      if (conversationIds.length) {
+        await Message.deleteMany({ conversationId: { $in: conversationIds } }, { session });
+        await ConversationMember.deleteMany({ conversationId: { $in: conversationIds } }, { session });
+      }
+      await Message.deleteMany({ senderId: userId }, { session });
+      await ConversationMember.deleteMany({ userId }, { session });
+      await Conversation.deleteMany({ $or: [{ participant1Id: userId }, { participant2Id: userId }] }, { session });
+      await Notification.deleteMany({ userId }, { session });
+      await Friendship.deleteMany({ $or: [{ requesterId: userId }, { receiverId: userId }] }, { session });
+      await SavedSearch.deleteMany({ userId }, { session });
+      await AdminLog.deleteMany({ adminId: userId }, { session });
+
+      const posts = await Post.find({ userId }).select('_id').session(session);
+      const postIds = posts.map((p) => p.id);
+      await PostLike.deleteMany({
+        $or: [{ userId }, ...(postIds.length ? [{ postId: { $in: postIds } }] : [])],
+      }, { session });
+      await PostComment.deleteMany({
+        $or: [{ userId }, ...(postIds.length ? [{ postId: { $in: postIds } }] : [])],
+      }, { session });
+      await Post.deleteMany({ userId }, { session });
+
+      if (rideIds.length) {
+        await Ride.deleteMany({ _id: { $in: rideIds } }, { session });
+      }
+
+      await target.deleteOne({ session });
+    });
+
+    await logAdminAction({ adminId: req.user.id, action: 'DELETE_USER', targetType: 'User', targetId: userId, details: { email } });
+    return res.json({ message: 'Utilisateur supprimé.' });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    return next(err);
+  } finally {
+    await session.endSession();
+  }
 }
 
 async function listRides(req, res, next) {
@@ -230,30 +303,29 @@ async function listRides(req, res, next) {
       where.status = status;
     }
     if (search) {
-      where[Op.or] = [
-        { from: { [Op.like]: `%${search}%` } },
-        { to:   { [Op.like]: `%${search}%` } },
+      where.$or = [
+        { from: { $regex: search, $options: 'i' } },
+        { to:   { $regex: search, $options: 'i' } },
       ];
     }
 
-    const { count, rows: rides } = await Ride.findAndCountAll({
-      where,
-      include: [{ model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'email'] }],
-      order: [['createdAt', 'DESC']],
-      limit, offset: (page - 1) * limit,
-    });
+    const [rides, count] = await Promise.all([
+      Ride.find(where)
+        .populate({ path: 'driver', select: 'firstName lastName email' })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Ride.countDocuments(where),
+    ]);
     return res.json({ rides, total: count, page, pages: Math.ceil(count / limit) });
   } catch (err) { return next(err); }
 }
 
 async function getRideDetail(req, res, next) {
   try {
-    const ride = await Ride.findByPk(req.params.id, {
-      include: [
-        { model: User, as: 'driver', attributes: SAFE_USER_ATTRS },
-        { model: Booking, as: 'bookings', include: [{ model: User, as: 'passenger', attributes: ['id', 'firstName', 'lastName', 'email'] }] },
-      ],
-    });
+    const ride = await Ride.findById(req.params.id)
+      .populate({ path: 'driver', select: SAFE_USER_ATTRS })
+      .populate({ path: 'bookings', populate: { path: 'passenger', select: 'firstName lastName email' } });
     if (!ride) return res.status(404).json({ message: 'Trajet introuvable.' });
     return res.json({ ride });
   } catch (err) { return next(err); }
@@ -261,39 +333,42 @@ async function getRideDetail(req, res, next) {
 
 async function cancelRide(req, res, next) {
   try {
-    const ride = await Ride.findByPk(req.params.id);
+    const ride = await Ride.findById(req.params.id);
     if (!ride) return res.status(404).json({ message: 'Trajet introuvable.' });
 
-    await ride.update({ status: 'cancelled' });
+    ride.set({ status: 'cancelled' });
+    await ride.save();
     await logAdminAction({ adminId: req.user.id, action: 'CANCEL_RIDE', targetType: 'Ride', targetId: ride.id });
     return res.json({ message: 'Trajet annulé.' });
   } catch (err) { return next(err); }
 }
 
 async function deleteRide(req, res, next) {
-  const transaction = await sequelize.transaction();
+  const session = await mongoose.startSession();
   try {
-    const ride = await Ride.findByPk(req.params.id, { transaction });
-    if (!ride) {
-      await transaction.rollback();
-      return res.status(404).json({ message: 'Trajet introuvable.' });
-    }
+    let rideInfo;
+    await session.withTransaction(async () => {
+      const ride = await Ride.findById(req.params.id).session(session);
+      if (!ride) throw { status: 404, message: 'Trajet introuvable.' };
 
-    await Booking.destroy({ where: { rideId: ride.id }, transaction });
-    await ride.destroy({ transaction });
-    await transaction.commit();
+      await Booking.deleteMany({ rideId: ride.id }, { session });
+      rideInfo = { from: ride.from, to: ride.to };
+      await ride.deleteOne({ session });
+    });
 
     await logAdminAction({
       adminId: req.user.id,
       action: 'DELETE_RIDE',
       targetType: 'Ride',
       targetId: req.params.id,
-      details: { from: ride.from, to: ride.to },
+      details: rideInfo,
     });
     return res.json({ message: 'Trajet supprimé.' });
   } catch (err) {
-    await transaction.rollback();
+    if (err.status) return res.status(err.status).json({ message: err.message });
     return next(err);
+  } finally {
+    await session.endSession();
   }
 }
 
@@ -308,30 +383,27 @@ async function listReports(req, res, next) {
       where.status = status;
     }
 
-    const { count, rows: reports } = await Report.findAndCountAll({
-      where,
-      include: [
-        { model: User, as: 'reporter',     attributes: ['id', 'firstName', 'lastName', 'email'] },
-        { model: User, as: 'reportedUser', attributes: ['id', 'firstName', 'lastName', 'email', 'status'] },
-        { model: Ride, as: 'ride',         attributes: ['id', 'from', 'to'], required: false },
-      ],
-      order: [['createdAt', 'DESC']],
-      limit, offset: (page - 1) * limit,
-    });
+    const [reports, count] = await Promise.all([
+      Report.find(where)
+        .populate({ path: 'reporter', select: 'firstName lastName email' })
+        .populate({ path: 'reportedUser', select: 'firstName lastName email status' })
+        .populate({ path: 'ride', select: 'from to' })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Report.countDocuments(where),
+    ]);
     return res.json({ reports, total: count, page, pages: Math.ceil(count / limit) });
   } catch (err) { return next(err); }
 }
 
 async function getReportDetail(req, res, next) {
   try {
-    const report = await Report.findByPk(req.params.id, {
-      include: [
-        { model: User, as: 'reporter',      attributes: ['id', 'firstName', 'lastName', 'email', 'phone'] },
-        { model: User, as: 'reportedUser',  attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'status'] },
-        { model: User, as: 'handledByAdmin', attributes: ['id', 'firstName', 'lastName'] },
-        { model: Ride, as: 'ride', required: false },
-      ],
-    });
+    const report = await Report.findById(req.params.id)
+      .populate({ path: 'reporter', select: 'firstName lastName email phone' })
+      .populate({ path: 'reportedUser', select: 'firstName lastName email phone status' })
+      .populate({ path: 'handledByAdmin', select: 'firstName lastName' })
+      .populate('ride');
     if (!report) return res.status(404).json({ message: 'Signalement introuvable.' });
     return res.json({ report });
   } catch (err) { return next(err); }
@@ -345,7 +417,7 @@ async function updateReportStatus(req, res, next) {
       return res.status(400).json({ message: 'Statut invalide.' });
     }
 
-    const report = await Report.findByPk(req.params.id);
+    const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Signalement introuvable.' });
 
     const updates = { status };
@@ -353,7 +425,8 @@ async function updateReportStatus(req, res, next) {
     updates.handledBy = req.user.id;
     updates.resolvedAt = ['resolved', 'rejected'].includes(status) ? new Date() : null;
 
-    await report.update(updates);
+    report.set(updates);
+    await report.save();
     await logAdminAction({
       adminId: req.user.id,
       action: 'UPDATE_REPORT_STATUS',
@@ -374,20 +447,66 @@ async function listAdminLogs(req, res, next) {
     if (req.query.action)     where.action     = req.query.action;
     if (req.query.targetType) where.targetType = req.query.targetType;
 
-    const { count, rows: logs } = await AdminLog.findAndCountAll({
-      where,
-      include: [{ model: User, as: 'admin', attributes: ['id', 'firstName', 'lastName', 'email'] }],
-      order: [['createdAt', 'DESC']],
-      limit, offset: (page - 1) * limit,
-    });
+    const [logs, count] = await Promise.all([
+      AdminLog.find(where)
+        .populate({ path: 'admin', select: 'firstName lastName email' })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      AdminLog.countDocuments(where),
+    ]);
     return res.json({ logs, total: count, page, pages: Math.ceil(count / limit) });
+  } catch (err) { return next(err); }
+}
+
+// ── Vérification d'identité (KYC) ──
+async function listPendingKyc(req, res, next) {
+  try {
+    const users = await User.find({ kycStatus: 'pending' })
+      .select('firstName lastName email photo kycSelfie cinDoc kycStatus createdAt')
+      .sort({ updatedAt: -1 });
+    return res.json({ users });
+  } catch (err) { return next(err); }
+}
+
+async function approveKyc(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    user.set({ kycStatus: 'approved' });
+    await user.save();
+    createNotification(user.id, {
+      type: 'system',
+      title: 'Identité vérifiée',
+      message: 'Votre identité a été vérifiée avec succès. Un badge de confiance apparaît désormais sur votre profil.',
+      link: '/profile',
+    });
+    return res.json({ message: 'Identité approuvée.' });
+  } catch (err) { return next(err); }
+}
+
+async function rejectKyc(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    const { reason } = req.body;
+    user.set({ kycStatus: 'rejected', kycSelfie: null });
+    await user.save();
+    createNotification(user.id, {
+      type: 'system',
+      title: 'Vérification d\'identité refusée',
+      message: reason || 'Votre vérification d\'identité a été refusée. Veuillez soumettre des documents valides et lisibles.',
+      link: '/profile',
+    });
+    return res.json({ message: 'Identité refusée.' });
   } catch (err) { return next(err); }
 }
 
 module.exports = {
   getDashboard, getCharts,
-  listUsers, getUserDetail, suspendUser, banUser, reactivateUser, deleteUser,
+  listUsers, getUserDetail, suspendUser, banUser, reactivateUser, deleteUser, changeUserRole,
   listRides, getRideDetail, cancelRide, deleteRide,
   listReports, getReportDetail, updateReportStatus,
   listAdminLogs,
+  listPendingKyc, approveKyc, rejectKyc,
 };

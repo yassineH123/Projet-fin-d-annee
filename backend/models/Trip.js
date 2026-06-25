@@ -1,39 +1,15 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Trip = sequelize.define('Trip', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  from: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  to: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  date: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  price: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  driver: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  seats: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  tableName: 'trips',
+const tripSchema = new Schema({
+  from: { type: String, required: true },
+  to: { type: String, required: true },
+  date: { type: Date, default: null },
+  price: { type: String, default: null },
+  driver: { type: String, default: null },
+  seats: { type: Number, default: null },
 });
 
-module.exports = Trip;
+tripSchema.plugin(idPlugin);
+
+module.exports = model('Trip', tripSchema);

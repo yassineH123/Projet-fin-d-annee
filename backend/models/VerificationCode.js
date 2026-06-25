@@ -1,31 +1,12 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const VerificationCode = sequelize.define(
-  'VerificationCode',
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
-    email: {
-      type: DataTypes.STRING(160),
-      allowNull: false,
-    },
-    code: {
-      type: DataTypes.STRING(10),
-      allowNull: false,
-    },
-    expiresAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-  },
-  {
-    tableName: 'verification_codes',
-    timestamps: false,
-  }
-);
+const verificationCodeSchema = new Schema({
+  email: { type: String, required: true, maxlength: 160 },
+  code: { type: String, required: true, maxlength: 10 },
+  expiresAt: { type: Date, required: true },
+});
 
-module.exports = VerificationCode;
+verificationCodeSchema.plugin(idPlugin);
+
+module.exports = model('VerificationCode', verificationCodeSchema);

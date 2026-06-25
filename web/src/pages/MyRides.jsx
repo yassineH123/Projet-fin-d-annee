@@ -1,42 +1,72 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, MapPin, Clock, Users, Trash2, Edit, CheckCircle, History } from 'lucide-react';
+import { Plus, MapPin, Clock, Users, Trash2, Edit, CheckCircle, History, AlertTriangle } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import BookingStatusBadge from '../components/BookingStatusBadge';
 
+function ConfirmModal({ title, message, confirmLabel, confirmColor = '#EF4444', onConfirm, onClose }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 20, width: '100%', maxWidth: 380, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${confirmColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <AlertTriangle size={18} style={{ color: confirmColor }} />
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 900, color: 'var(--text-primary)' }}>{title}</p>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>{message}</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-700)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+            Annuler
+          </button>
+          <button onClick={onConfirm} style={{ flex: 1, padding: 11, borderRadius: 10, border: 'none', background: confirmColor, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 900 }}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyRides() {
   const navigate          = useNavigate();
   const [rides,   setRides]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab,     setTab]     = useState('active'); // active | completed | cancelled
+  const [tab,     setTab]     = useState('active');
+  const [modal,   setModal]   = useState(null); // { type: 'cancel'|'complete', id }
 
   const fetchRides = () => {
     setLoading(true);
     api.get('/rides/mine')
-      .then(({ data }) => setRides(data.rides))
+      .then(({ data }) => setRides(data.rides || []))
+      .catch(() => setRides([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchRides(); }, []);
 
   const handleCancel = async (id) => {
-    if (!window.confirm('Annuler ce trajet ?')) return;
-    try {
-      await api.delete(`/rides/${id}`);
-      toast.success('Trajet annulé');
-      fetchRides();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
-    }
+    setModal({ type: 'cancel', id });
   };
 
   const handleComplete = async (id) => {
-    if (!window.confirm('Marquer ce trajet comme terminé ? Cette action est irréversible.')) return;
+    setModal({ type: 'complete', id });
+  };
+
+  const confirmAction = async () => {
+    const { type, id } = modal;
+    setModal(null);
     try {
-      await api.put(`/rides/${id}/complete`);
-      toast.success('Trajet marqué comme terminé !');
+      if (type === 'cancel') {
+        const { data } = await api.delete(`/rides/${id}`);
+        toast.success(data.message || 'Trajet annulé');
+      } else {
+        await api.put(`/rides/${id}/complete`);
+        toast.success('Trajet marqué comme terminé !');
+      }
       fetchRides();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
@@ -63,26 +93,61 @@ export default function MyRides() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-black text-white">Mes trajets</h1>
-        <Link to="/rides/publish" className="btn-primary flex items-center gap-2 text-sm">
-          <Plus size={16} /> Publier
-        </Link>
+    <div style={{ maxWidth: 896, margin: '0 auto', padding: '32px 16px' }}>
+      {modal && (
+        <ConfirmModal
+          title={modal.type === 'cancel' ? 'Annuler le trajet ?' : 'Marquer comme terminé ?'}
+          message={modal.type === 'cancel'
+            ? 'Les passagers seront notifiés et remboursés automatiquement. Cette action est irréversible.'
+            : 'Le trajet sera marqué comme terminé. Les passagers pourront laisser un avis.'}
+          confirmLabel={modal.type === 'cancel' ? 'Annuler le trajet' : 'Marquer terminé'}
+          confirmColor={modal.type === 'cancel' ? '#EF4444' : '#10B981'}
+          onConfirm={confirmAction}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {/* ── Header ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20, background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
+        </div>
+        <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(212,137,10,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <MapPin size={22} style={{ color: '#D4890A' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#D4890A' }}>✦ AtlasWay</p>
+              <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>Mes trajets</h1>
+              {!loading && <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                {counts.active} actif{counts.active > 1 ? 's' : ''} · {counts.completed} terminé{counts.completed > 1 ? 's' : ''}
+              </p>}
+            </div>
+          </div>
+          <Link to="/rides/publish" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <Plus size={16} /> Publier
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-dark-800 border border-dark-500 rounded-xl p-1 w-fit">
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: 'var(--bg-700)', border: '1px solid var(--border-color)', borderRadius: 14, padding: 4, width: 'fit-content' }}>
         {TABS.map(({ key, label, count }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2
-              ${tab === key ? 'bg-primary-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            style={{
+              padding: '8px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8, border: 'none', transition: 'all 0.15s',
+              background: tab === key ? '#C1272D' : 'transparent',
+              color: tab === key ? '#fff' : 'var(--text-muted)',
+            }}
           >
             {label}
             {count > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === key ? 'bg-white/20' : 'bg-dark-600'}`}>
+              <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 99, background: tab === key ? 'rgba(255,255,255,0.2)' : 'var(--bg-800)', color: tab === key ? '#fff' : 'var(--text-muted)' }}>
                 {count}
               </span>
             )}
@@ -91,76 +156,85 @@ export default function MyRides() {
       </div>
 
       {loading ? <Spinner /> : filtered.length === 0 ? (
-        <div className="text-center py-16 card">
-          {tab === 'active' ? (
-            <>
-              <MapPin size={40} className="text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400 font-medium mb-5">Aucun trajet actif</p>
-              <Link to="/rides/publish" className="btn-primary inline-flex items-center gap-2 text-sm">
-                <Plus size={15} /> Publier mon premier trajet
-              </Link>
-            </>
-          ) : tab === 'completed' ? (
-            <>
-              <History size={40} className="text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400">Aucun trajet terminé pour l'instant</p>
-            </>
-          ) : (
-            <>
-              <MapPin size={40} className="text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400">Aucun trajet annulé</p>
-            </>
-          )}
-        </div>
+        tab === 'active' ? (
+          <EmptyState
+            icon={<MapPin size={26} style={{ color: '#D4890A' }} />}
+            title="Aucun trajet actif"
+            description="Publiez votre premier trajet et commencez à partager la route."
+            actionLabel="Publier un trajet"
+            actionTo="/rides/publish"
+            color="#D4890A"
+          />
+        ) : tab === 'completed' ? (
+          <EmptyState
+            icon={<History size={26} style={{ color: '#006233' }} />}
+            title="Aucun trajet terminé"
+            description="Vos trajets complétés apparaîtront ici."
+            color="#006233"
+          />
+        ) : (
+          <EmptyState
+            icon={<MapPin size={26} style={{ color: '#6B7280' }} />}
+            title="Aucun trajet annulé"
+            description="Bonne nouvelle — aucune annulation !"
+            color="#6B7280"
+          />
+        )
       ) : (
-        <div className="flex flex-col gap-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {filtered.map((ride) => {
             const date = new Date(ride.departureDate);
             return (
-              <div key={ride.id} className="card hover:border-slate-600 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-white">{ride.from}</span>
-                      <span className="text-slate-500">→</span>
-                      <span className="font-bold text-white">{ride.to}</span>
+              <div key={ride.id}
+                style={{ borderRadius: 14, background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '16px 18px', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(100,100,100,0.5)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)' }}>{ride.from}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>→</span>
+                      <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)' }}>{ride.to}</span>
                       <BookingStatusBadge status={ride.status} />
                     </div>
-                    <div className="flex flex-wrap gap-3 text-sm text-slate-400">
-                      <span className="flex items-center gap-1">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13, color: 'var(--text-muted)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={13} />
                         {date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Users size={13} /> {ride.seatsAvailable}/{ride.seats} places
                       </span>
-                      <span className="font-semibold text-white">{Number(ride.price).toFixed(0)} MAD</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{Number(ride.price).toFixed(0)} MAD</span>
                     </div>
                   </div>
 
                   {ride.status === 'active' && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <button
                         onClick={() => navigate(`/rides/${ride.id}/edit`)}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-primary-400 hover:bg-primary-400/10 transition-all"
+                        style={{ padding: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', borderRadius: 8, transition: 'color 0.15s' }}
                         title="Modifier"
-                        aria-label="Modifier le trajet"
+                        onMouseEnter={e => e.currentTarget.style.color = '#C1272D'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                       >
                         <Edit size={17} />
                       </button>
                       <button
                         onClick={() => handleComplete(ride.id)}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-green-400 hover:bg-green-400/10 transition-all"
+                        style={{ padding: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', borderRadius: 8, transition: 'color 0.15s' }}
                         title="Marquer comme terminé"
-                        aria-label="Marquer comme terminé"
+                        onMouseEnter={e => e.currentTarget.style.color = '#22C55E'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                       >
                         <CheckCircle size={17} />
                       </button>
                       <button
                         onClick={() => handleCancel(ride.id)}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                        title="Annuler le trajet"
-                        aria-label="Annuler le trajet"
+                        style={{ padding: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', borderRadius: 8, transition: 'color 0.15s' }}
+                        title="Annuler"
+                        onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                       >
                         <Trash2 size={17} />
                       </button>

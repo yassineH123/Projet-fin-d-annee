@@ -14,6 +14,7 @@ router.get('/users/:id',       adminController.getUserDetail);
 router.patch('/users/:id/suspend',    adminController.suspendUser);
 router.patch('/users/:id/reactivate', adminController.reactivateUser);
 router.patch('/users/:id/ban',        adminController.banUser);
+router.patch('/users/:id/role',       adminController.changeUserRole);
 router.delete('/users/:id',           adminController.deleteUser);
 
 router.get('/rides',             adminController.listRides);
@@ -26,5 +27,9 @@ router.get('/reports/:id',          adminController.getReportDetail);
 router.patch('/reports/:id/status', adminController.updateReportStatus);
 
 router.get('/logs', adminController.listAdminLogs);
+
+router.get('/kyc/pending',     adminController.listPendingKyc);
+router.patch('/kyc/:id/approve', adminController.approveKyc);
+router.patch('/kyc/:id/reject',  adminController.rejectKyc);
 
 module.exports = router;

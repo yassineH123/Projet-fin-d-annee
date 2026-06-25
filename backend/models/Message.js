@@ -1,35 +1,17 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Message = sequelize.define('Message', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  conversationId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  senderId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  read: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-  reactions: {
-    type: DataTypes.JSON,
-    defaultValue: [],
-  },
-}, {
-  tableName: 'messages',
-  timestamps: true,
+const messageSchema = new Schema({
+  conversationId: { type: String, ref: 'Conversation', required: true },
+  senderId: { type: String, ref: 'User', required: true },
+  content: { type: String, required: true },
+  read: { type: Boolean, default: false },
+  reactions: { type: Schema.Types.Mixed, default: [] },
 });
 
-module.exports = Message;
+messageSchema.plugin(idPlugin);
+
+messageSchema.virtual('conversation', { ref: 'Conversation', localField: 'conversationId', foreignField: '_id', justOne: true });
+messageSchema.virtual('sender', { ref: 'User', localField: 'senderId', foreignField: '_id', justOne: true });
+
+module.exports = model('Message', messageSchema);

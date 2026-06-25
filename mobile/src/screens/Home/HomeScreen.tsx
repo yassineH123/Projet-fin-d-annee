@@ -5,6 +5,7 @@ import {
   Alert, TouchableOpacity,
 } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
+import { useNavigation } from '@react-navigation/native';
 import GoogleMapView from '../../components/GoogleMapView';
 import { useAuth } from '../../context/AuthContext';
 
@@ -773,6 +774,7 @@ function TripCard({ t }: { t: typeof TRIPS[0] }) {
 /* ─────────────────────── ROOT ─────────────────────── */
 export default function HomeScreen() {
   const { user, setUser } = useAuth();
+  const navigation = useNavigation();
   const [activeNav, setActiveNav] = useState('home');
 
   const logout = () => setUser(null);
@@ -787,6 +789,15 @@ export default function HomeScreen() {
         {activeNav === 'trips'   && <TripsTab user={user} />}
         {activeNav === 'profile' && <ProfileTab user={user} onLogout={logout} />}
       </View>
+
+      {/* AtlasBot floating launcher */}
+      <Pressable
+        style={s.chatFab}
+        onPress={() => (navigation as any).navigate('Chat')}
+        accessibilityLabel="Ouvrir AtlasBot"
+      >
+        <Text style={{ fontSize: 22 }}>🤖</Text>
+      </Pressable>
 
       {/* Bottom Nav */}
       <View style={s.bottomNav}>
@@ -920,6 +931,15 @@ const s = StyleSheet.create({
   howNum:   { width: 24, height: 24, borderRadius: 12, backgroundColor: '#C1272D', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   howTitle: { fontSize: 12, fontWeight: '700', color: '#F5EDD8', marginBottom: 4, textAlign: 'center' },
   howDesc:  { fontSize: 10, color: 'rgba(245,237,216,0.45)', lineHeight: 14, textAlign: 'center' },
+
+  /* AtlasBot FAB */
+  chatFab: {
+    position: 'absolute', right: 16, bottom: 96,
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#C1272D', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(212,137,10,0.4)',
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6,
+  },
 
   /* Bottom nav */
   bottomNav:     { flexDirection: 'row', backgroundColor: '#1C0C07', borderTopWidth: 1, borderTopColor: 'rgba(212,137,10,0.18)', paddingBottom: 20, paddingTop: 8 },

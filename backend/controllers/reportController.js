@@ -1,6 +1,9 @@
 const { User, Ride, Report } = require('../models');
 
-const ALLOWED_REASONS = ['comportement', 'fraude', 'securite', 'contenu_inapproprie', 'trajet_suspect', 'autre'];
+const ALLOWED_REASONS = [
+  'comportement', 'fraude', 'securite', 'contenu_inapproprie', 'trajet_suspect', 'autre',
+  'conduite_dangereuse', 'impolitesse', 'no_show', 'escroquerie', 'arnaque_prix', 'harcelement',
+];
 
 async function createReport(req, res, next) {
   try {
@@ -18,7 +21,7 @@ async function createReport(req, res, next) {
 
     let ride = null;
     if (rideId) {
-      ride = await Ride.findByPk(rideId);
+      ride = await Ride.findById(rideId);
       if (!ride) return res.status(404).json({ message: 'Trajet introuvable.' });
       // Un signalement de trajet vise implicitement son conducteur.
       if (!reportedUserId) reportedUserId = ride.driverId;
@@ -28,7 +31,7 @@ async function createReport(req, res, next) {
       return res.status(400).json({ message: 'Vous ne pouvez pas vous signaler vous-même.' });
     }
 
-    const reportedUser = await User.findByPk(reportedUserId);
+    const reportedUser = await User.findById(reportedUserId);
     if (!reportedUser) {
       return res.status(404).json({ message: 'Utilisateur signalé introuvable.' });
     }

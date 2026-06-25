@@ -1,29 +1,16 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const SavedSearch = sequelize.define('SavedSearch', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  fromCity: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-  },
-  toCity: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-  },
-}, {
-  tableName: 'saved_searches',
-  timestamps: true,
-  updatedAt: false,
-  indexes: [{ fields: ['userId'] }],
+const savedSearchSchema = new Schema({
+  userId: { type: String, ref: 'User', required: true },
+  fromCity: { type: String, required: true, maxlength: 100 },
+  toCity: { type: String, required: true, maxlength: 100 },
 });
 
-module.exports = SavedSearch;
+savedSearchSchema.plugin(idPlugin);
+
+savedSearchSchema.index({ userId: 1 });
+
+savedSearchSchema.virtual('user', { ref: 'User', localField: 'userId', foreignField: '_id', justOne: true });
+
+module.exports = model('SavedSearch', savedSearchSchema);

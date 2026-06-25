@@ -5,34 +5,14 @@ const cors      = require('cors');
 const helmet    = require('helmet');
 const morgan    = require('morgan');
 const rateLimit = require('express-rate-limit');
-const sequelize = require('./database');
+const { connect } = require('./database');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { init: initSocket } = require('./socket');
-
-const User             = require('./models/User');
-const Trip             = require('./models/Trip');
-const Review           = require('./models/Review');
-const Post             = require('./models/Post');
-const PostLike         = require('./models/PostLike');
-const PostComment      = require('./models/PostComment');
-const Notification     = require('./models/Notification');
-const Ride             = require('./models/Ride');
-const Booking          = require('./models/Booking');
-const Conversation     = require('./models/Conversation');
-const ConversationMember = require('./models/ConversationMember');
-const Message          = require('./models/Message');
-const VerificationCode = require('./models/VerificationCode');
-const Friendship       = require('./models/Friendship');
-
-/* Associations Feed */
-Post.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Post,   { foreignKey: 'userId' });
-PostLike.belongsTo(User, { foreignKey: 'userId' });
-PostLike.belongsTo(Post, { foreignKey: 'postId' });
-Post.hasMany(PostLike,    { foreignKey: 'postId' });
-PostComment.belongsTo(User, { foreignKey: 'userId' });
-PostComment.belongsTo(Post, { foreignKey: 'postId' });
-Post.hasMany(PostComment,   { foreignKey: 'postId' });
+const { checkOllamaAvailable } = require('./services/ollamaService');
+const { checkVisionModelAvailable } = require('./services/ollamaVisionService');
+const { generatePredictions, REFRESH_MS } = require('./services/predictionService');
+// Chaque modèle (./models/*.js) définit ses propres champs et "virtuals" Mongoose
+// (équivalent des associations Sequelize aliasées) ; voir ./models/index.js.
 
 const app    = express();
 const server = http.createServer(app);
@@ -75,6 +55,25 @@ app.use('/rides',         require('./routes/rideRoutes'));
 app.use('/reviews',       require('./routes/reviewRoutes'));
 app.use('/reports',       require('./routes/reportRoutes'));
 app.use('/saved-searches', require('./routes/savedSearchRoutes'));
+app.use('/chat',          require('./routes/chatRoutes'));
+app.use('/verify-driver', require('./routes/driverVerificationRoutes'));
+app.use('/predictions',   require('./routes/predictionRoutes'));
+
+// Fonctionnalités importées d'AtlasWay 33
+app.use('/waitlist',      require('./routes/waitlistRoutes'));
+app.use('/wallet',        require('./routes/walletRoutes'));
+app.use('/analytics',     require('./routes/analyticsRoutes'));
+app.use('/login-history', require('./routes/loginHistoryRoutes'));
+app.use('/favorites',     require('./routes/favoriteRoutes'));
+app.use('/ride-alerts',   require('./routes/rideAlertRoutes'));
+app.use('/promos',        require('./routes/promoRoutes'));
+app.use('/support',       require('./routes/supportRoutes'));
+app.use('/emergency',     require('./routes/emergencyRoutes'));
+app.use('/stories',       require('./routes/storyRoutes'));
+app.use('/groups',        require('./routes/groupRoutes'));
+app.use('/events',        require('./routes/eventRoutes'));
+app.use('/premium',       require('./routes/premiumRoutes'));
+app.use('/export',        require('./routes/exportRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);
@@ -83,14 +82,19 @@ const PORT = process.env.PORT || 4000;
 
 (async () => {
   try {
-    await sequelize.authenticate();
+    await connect();
     console.log('Database connected ✓');
-
-    await sequelize.sync({ alter: true });
-    console.log('Database synced ✓');
 
     const { seedAuthUsers } = require('./services/seedService');
     await seedAuthUsers();
+
+    await checkOllamaAvailable();
+    await checkVisionModelAvailable();
+
+    generatePredictions().catch((err) => console.warn('[Predictions] génération initiale échouée:', err.message));
+    setInterval(() => {
+      generatePredictions().catch((err) => console.warn('[Predictions] régénération échouée:', err.message));
+    }, REFRESH_MS);
 
     server.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
   } catch (error) {

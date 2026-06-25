@@ -6,31 +6,9 @@
    VARIABLES DE THÈME
    ═══════════════════════════════════════ */
 
-/* ── Mode sombre : "Nuit de Marrakech" ──
-   Bois de cèdre • Cuir de Fès • Lumière de lanterne
-   ──────────────────────────────────────── */
-:root {
-  /* Fonds chaleureux (bois de cèdre sombre / cuir rouge profond) */
-  --bg-900: #0F0804;   /* fond principal — presque noir mais très chaud */
-  --bg-800: #1C1008;   /* surface — bois de cèdre sombre */
-  --bg-700: #281608;   /* fond élevé */
-  --bg-600: #3A1E0C;   /* cartes */
-  --bg-500: #562C12;   /* bordures */
-  --bg-400: #7A4020;   /* éléments atténués */
-
-  /* Texte crème chaud — lumière de lanterne marocaine */
-  --text-base:       #F7E8C0;
-  --text-secondary:  rgba(247,232,192,0.62);
-  --text-muted:      rgba(247,232,192,0.35);
-
-  --border-color:    #3A1E0C;
-  --border-muted:    #562C12;
-  --scrollbar-thumb: #9e1f24;
-
-  --card-bg:         #1C1008;
-  --input-bg:        #22120A;
-  --input-placeholder: #7A4020;
-}
+/* NB : le thème sombre par défaut est défini plus bas dans le bloc
+   ":root" « Neo-Marocain — Midnight Navy » (source de vérité unique).
+   L'ancien thème "Nuit de Marrakech" était entièrement écrasé → retiré. */
 
 /* Mode clair — blanc propre, texte noir, accents rouge & vert marocain */
 html.light {
@@ -42,6 +20,7 @@ html.light {
   --bg-400: #a0a0a0;
 
   --text-base:       #111111;
+  --text-primary:    #111111;
   --text-secondary:  rgba(17,17,17,0.65);
   --text-muted:      rgba(17,17,17,0.42);
   --border-color:    #e5e5e5;
@@ -59,11 +38,16 @@ html.light {
 @layer base {
   * { box-sizing: border-box; }
 
+  /* Défilement fluide pour les ancres / navigation */
+  html { scroll-behavior: smooth; }
+
   body {
     background-color: var(--bg-900);
     color: var(--text-base);
     font-family: 'Cairo', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     min-height: 100vh;
     transition: background-color 0.35s ease, color 0.35s ease;
     /* Zellige marocain enrichi — losanges + étoiles à 8 branches */
@@ -72,25 +56,69 @@ html.light {
 
   h1, h2, h3 { letter-spacing: 0.025em; }
 
+  /* Sélection de texte aux couleurs de la marque */
+  ::selection { background: rgba(193, 39, 45, 0.28); color: #fff; }
+
+  /* Focus clavier visible et cohérent sur liens & champs (accessibilité) */
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgba(193, 39, 45, 0.55);
+    outline-offset: 2px;
+  }
+
+  /* Médias toujours responsives par défaut */
+  img, svg, video { max-width: 100%; }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-800); }
-  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #9e1f24); border-radius: 9999px; }
 }
 
 /* ═══════════════════════════════════════
    COMPOSANTS
    ═══════════════════════════════════════ */
 @layer components {
-  /* ── Boutons ── */
-  .btn-primary {
-    @apply bg-[#C1272D] hover:bg-[#9e1f24] active:bg-[#7e181d]
-           text-white font-semibold px-5 py-2.5 rounded-xl
+  /* ── Boutons ──
+     Base partagée : alignement icône+texte, focus accessible,
+     état pressé subtil, désactivé cohérent sur toutes les variantes. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-gold,
+  .btn-danger,
+  .btn-outline,
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           font-semibold px-5 py-2.5 rounded-xl
            transition-all duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+  /* Anneau de focus clavier (accessibilité) */
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible,
+  .btn-gold:focus-visible,
+  .btn-danger:focus-visible,
+  .btn-outline:focus-visible,
+  .btn-ghost:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(193, 39, 45, 0.35);
+  }
+  /* Léger enfoncement au clic */
+  .btn-primary:active:not(:disabled),
+  .btn-secondary:active:not(:disabled),
+  .btn-gold:active:not(:disabled),
+  .btn-danger:active:not(:disabled),
+  .btn-outline:active:not(:disabled),
+  .btn-ghost:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    @apply bg-[#C1272D] hover:bg-[#9e1f24] active:bg-[#7e181d] text-white;
     box-shadow: 0 4px 20px rgba(193, 39, 45, 0.18);
   }
   .btn-secondary {
-    @apply font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
     background-color: var(--bg-600);
     border: 1px solid var(--border-muted);
     color: var(--text-base);
@@ -98,15 +126,35 @@ html.light {
   .btn-secondary:hover { background-color: var(--bg-500); }
 
   .btn-gold {
-    @apply text-[#0d0705] font-bold px-5 py-2.5 rounded-xl transition-all duration-200;
+    @apply text-[#0d0705] font-bold;
     background-color: #D4890A;
     box-shadow: 0 4px 20px rgba(212, 137, 10, 0.2);
   }
   .btn-gold:hover { background-color: #a86508; }
 
   .btn-danger {
-    @apply bg-red-700 hover:bg-red-800 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200;
+    @apply bg-red-700 hover:bg-red-800 text-white;
   }
+
+  /* Variante contour (action secondaire marquée) */
+  .btn-outline {
+    background-color: transparent;
+    border: 1.5px solid #C1272D;
+    color: #C1272D;
+  }
+  .btn-outline:hover { background-color: rgba(193, 39, 45, 0.08); }
+
+  /* Variante fantôme (action discrète) */
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover { background-color: var(--bg-700); color: var(--text-base); }
+
+  /* Tailles */
+  .btn-sm { @apply px-3.5 py-1.5 text-sm rounded-lg gap-1.5; }
+  .btn-lg { @apply px-7 py-3.5 text-base rounded-2xl; }
+  .btn-block { @apply w-full; }
 
   /* ── Inputs ── */
   .input {
@@ -120,6 +168,22 @@ html.light {
     border-color: #C1272D;
     box-shadow: 0 0 0 1px rgba(193, 39, 45, 0.35);
   }
+  .input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* États de validation des champs */
+  .input-error {
+    border-color: #EF4444 !important;
+  }
+  .input-error:focus { box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45) !important; }
+  .input-success {
+    border-color: #10B981 !important;
+  }
+  .input-success:focus { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.45) !important; }
+
+  /* Libellé de champ + message d'aide / d'erreur */
+  .field-label { @apply block text-sm font-semibold mb-1.5; color: var(--text-secondary); }
+  .field-hint  { @apply text-xs mt-1; color: var(--text-muted); }
+  .field-error { @apply flex items-center gap-1 text-xs mt-1; color: #F87171; }
 
   /* ── Cards ── */
   .card {
@@ -134,6 +198,19 @@ html.light {
     border-top-color: rgba(193,39,45,0.6);
     box-shadow: 0 6px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(212,137,10,0.12);
   }
+
+  /* Variantes de cartes */
+  .card-sm { @apply p-3.5 rounded-xl; }
+  .card-lg { @apply p-7; }
+  /* Carte cliquable : curseur + focus clavier accessible */
+  .card-interactive { @apply cursor-pointer; }
+  .card-interactive:focus-visible {
+    outline: none;
+    border-color: #C1272D;
+    box-shadow: 0 0 0 3px rgba(193, 39, 45, 0.3);
+  }
+  /* Carte sobre sans liseré rouge en tête */
+  .card-flat { border-top-color: var(--border-color); }
 
   /* ── Badges booking ── */
   .badge-pending   { @apply text-xs font-semibold px-2.5 py-1 rounded-full; background: rgba(212,137,10,0.18); color: #D4890A; }
@@ -278,30 +355,31 @@ html.light button[class*="text-slate-"]:hover { color: #111111; }
    Deep grain · Asymmetric · Orchestrated
    ═══════════════════════════════════════ */
 
-/* ── Palette marocaine impériale ── */
+/* ── Palette Neo-Marocaine — Midnight Navy ── */
 :root {
-  --bg-900: #0A0604;
-  --bg-800: #130A06;
-  --bg-700: #1E0F08;
-  --bg-600: #2C160A;
-  --bg-500: #40200D;
-  --bg-400: #5E3015;
-  --text-base:      #F5EDD8;
-  --text-secondary: rgba(245,237,216,0.65);
-  --text-muted:     rgba(245,237,216,0.38);
-  --border-color:   #251208;
-  --border-muted:   #3D1E0C;
-  --card-bg:   #130A06;
-  --input-bg:  #170C07;
-  --input-placeholder: #5E3015;
-  /* Couleurs 100% marocaines */
-  --rouge-drapeau: #B8232A;
-  --vert-etoile:   #005A2E;
-  --or-safran:     #D4890A;
-  --terracotta:    #C84B31;
-  --chefchaouen:   #1B4B82;
-  --cedre-atlas:   #2D1208;
-  --creme-lanterne:#FAF0DC;
+  --bg-900: #07090F;
+  --bg-800: #0D1120;
+  --bg-700: #131828;
+  --bg-600: #1A2238;
+  --bg-500: #242D4A;
+  --bg-400: #303D60;
+  --text-base:      #EEF2FF;
+  --text-primary:   #EEF2FF;
+  --text-secondary: rgba(238,242,255,0.65);
+  --text-muted:     rgba(238,242,255,0.35);
+  --border-color:   #1A2238;
+  --border-muted:   #242D4A;
+  --card-bg:   #0D1120;
+  --input-bg:  #0A0D18;
+  --input-placeholder: #303D60;
+  /* Couleurs Marocaines vives & modernes */
+  --rouge-drapeau: #E8192C;
+  --vert-etoile:   #00875A;
+  --or-safran:     #F5A623;
+  --terracotta:    #E8502A;
+  --chefchaouen:   #2563EB;
+  --cedre-atlas:   #0D1120;
+  --creme-lanterne:#EEF2FF;
 }
 
 /* ── Typographie marocaine — Amiri calligraphique ── */
@@ -426,6 +504,53 @@ h1, h2, h3, h4 {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
+/* ── Home 3-column grid responsive ── */
+.home-grid {
+  grid-template-columns: 196px 1fr 252px;
+}
+@media (max-width: 1100px) {
+  .home-grid {
+    grid-template-columns: 196px 1fr !important;
+  }
+  .home-grid > aside:last-child {
+    display: none !important;
+  }
+}
+@media (max-width: 860px) {
+  .home-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .home-grid > aside:first-child {
+    display: none !important;
+  }
+}
+
+/* ── Hero grid responsive ── */
+.hero-grid {
+  grid-template-columns: minmax(0,1fr) minmax(0,420px) !important;
+}
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Destinations grid responsive ── */
+.dest-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 768px) {
+  .dest-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 500px) {
+  .dest-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Destination card hover overlay ── */
+button:hover .dest-hover-overlay {
+  opacity: 1 !important;
+}
+
 /* ── Light mode — hero stays dark intentionally ── */
 html.light .grain-overlay { opacity: 0.02; mix-blend-mode: multiply; }
 html.light .gold-bar { background: linear-gradient(to bottom, transparent, #a86508 30%, #a86508 70%, transparent); }
@@ -433,6 +558,20 @@ html.light .gold-bar { background: linear-gradient(to bottom, transparent, #a865
 /* Light mode — fix text colors that use hardcoded white/cream */
 html.light .section-eyebrow { color: #a86508; }
 html.light .gold-section-rule { background: linear-gradient(to right, transparent, rgba(168,101,8,0.35), transparent); }
+
+/* Light mode — fix text-white / text-slate hardcoded classes used in stat cards */
+html.light [style*="color: var(--text-primary)"] { color: #111111 !important; }
+html.light [style*="color: var(--text-secondary)"] { color: rgba(17,17,17,0.65) !important; }
+html.light [style*="color: var(--text-muted)"] { color: rgba(17,17,17,0.42) !important; }
+
+/* Light mode — card box-shadow plus léger */
+html.light .card {
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06) !important;
+}
+html.light .card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 16px rgba(193,39,45,0.1) !important;
+}
 
 /* ── Scrollbar marocain ── */
 ::-webkit-scrollbar { width: 5px; }
@@ -446,8 +585,13 @@ html.light .gold-section-rule { background: linear-gradient(to right, transparen
 
 /* ── Corps — zellige élaboré en fond ── */
 html:not(.light) body {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M50 0 L100 50 L50 100 L0 50Z' fill='none' stroke='%23B8232A' stroke-width='0.55' opacity='0.12'/%3E%3Cpath d='M70,50 L57.4,46.9 L64.1,35.9 L53.1,42.6 L50,30 L46.9,42.6 L35.9,35.9 L42.6,46.9 L30,50 L42.6,53.1 L35.9,64.1 L46.9,57.4 L50,70 L53.1,57.4 L64.1,64.1 L57.4,53.1Z' fill='none' stroke='%23D4890A' stroke-width='0.5' opacity='0.16'/%3E%3Cpath d='M50 15 L85 50 L50 85 L15 50Z' fill='none' stroke='%23D4890A' stroke-width='0.3' opacity='0.09'/%3E%3Cline x1='50' y1='0' x2='50' y2='100' stroke='%23005A2E' stroke-width='0.25' opacity='0.07'/%3E%3Cline x1='0' y1='50' x2='100' y2='50' stroke='%23005A2E' stroke-width='0.25' opacity='0.07'/%3E%3Ccircle cx='50' cy='50' r='2' fill='%23D4890A' opacity='0.2'/%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3Ccircle cx='100' cy='0' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3Ccircle cx='0' cy='100' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3Ccircle cx='100' cy='100' r='1.5' fill='%23B8232A' opacity='0.15'/%3E%3C/svg%3E") !important;
-  background-size: 100px 100px !important;
+  background-color: #07090F !important;
+  background-image:
+    linear-gradient(rgba(232,25,44,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,25,44,0.025) 1px, transparent 1px),
+    linear-gradient(rgba(245,166,35,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,166,35,0.015) 1px, transparent 1px) !important;
+  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
 }
 
 /* ── Mode clair — zellige discret ── */
@@ -563,8 +707,45 @@ html.light .ticker-terracotta{ background: linear-gradient(135deg, #7f1218, #B82
 html.light .card-moroccan::after { border-color: rgba(168,101,8,0.25); }
 
 /* ── Footer toujours sombre (thème "nuit de cèdre") ── */
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* (Ancien bloc .skeleton retiré — redéfini plus bas avec shimmerLoad) */
+
+/* ═══════════════════════════════════════
+   SCROLL ANIMATIONS (useInView)
+   ═══════════════════════════════════════ */
+.section-hidden {
+  opacity: 0;
+  transform: translateY(36px);
+}
+.section-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
+              transform 0.75s cubic-bezier(0.16,1,0.3,1);
+}
+.section-hidden-left {
+  opacity: 0;
+  transform: translateX(-36px);
+}
+.section-visible-left {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
+              transform 0.75s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* counter up */
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.counter-appear { animation: countUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+
 .footer-moroccan {
-  background: #0C0503 !important;
+  background: #05070D !important;
   color: rgba(255,255,255,0.75) !important;
 }
 .footer-moroccan .press-logo {
@@ -591,7 +772,7 @@ html.light .card-moroccan::after { border-color: rgba(168,101,8,0.25); }
 }
 .splash-overlay {
   position: fixed; inset: 0; z-index: 999998;
-  background: #0C0503;
+  background: #07090F;
   display: flex; align-items: center; justify-content: center;
   flex-direction: column; gap: 18px;
   pointer-events: all;
@@ -681,11 +862,12 @@ html.light .press-logo { color: rgba(0,0,0,0.28); border-color: rgba(0,0,0,0.1);
    TRANSITIONS DE PAGES
    ═══════════════════════════════════════ */
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(14px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 .page-enter {
-  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: pageEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
 }
 
 /* ═══════════════════════════════════════
@@ -739,4 +921,74 @@ html.light .press-logo { color: rgba(0,0,0,0.28); border-color: rgba(0,0,0,0.1);
   background: linear-gradient(90deg, var(--bg-700) 25%, var(--bg-600) 50%, var(--bg-700) 75%);
   background-size: 800px 100%;
   animation: shimmerLoad 1.4s ease-in-out infinite;
+}
+html.light .skeleton {
+  background: linear-gradient(90deg, #e8e8e8 25%, #d4d4d4 50%, #e8e8e8 75%);
+  background-size: 800px 100%;
+}
+
+/* ═══════════════════════════════════════
+   ACCESSIBILITÉ (#13)
+   ═══════════════════════════════════════ */
+
+/* Skip link */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  z-index: 99999;
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: #C1272D;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 16px;
+}
+
+/* Focus visible — outline marocain */
+:focus-visible {
+  outline: 2px solid #C1272D;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Arabic text direction */
+[lang="ar"], .rtl-text {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Amiri', serif;
+}
+
+/* Scroll to top button */
+.scroll-top-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 998;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #C1272D, #9e1f24);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(193,39,45,0.4);
+  transition: opacity 0.25s, transform 0.25s;
+}
+.scroll-top-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(193,39,45,0.5);
+}
+.scroll-top-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
 }

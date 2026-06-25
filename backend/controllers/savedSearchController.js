@@ -2,10 +2,7 @@ const { SavedSearch } = require('../models');
 
 async function list(req, res, next) {
   try {
-    const searches = await SavedSearch.findAll({
-      where: { userId: req.user.id },
-      order: [['createdAt', 'DESC']],
-    });
+    const searches = await SavedSearch.find({ userId: req.user.id }).sort({ createdAt: -1 });
     return res.json({ searches });
   } catch (err) { return next(err); }
 }
@@ -18,7 +15,7 @@ async function create(req, res, next) {
     }
 
     const existing = await SavedSearch.findOne({
-      where: { userId: req.user.id, fromCity: fromCity.trim(), toCity: toCity.trim() },
+      userId: req.user.id, fromCity: fromCity.trim(), toCity: toCity.trim(),
     });
     if (existing) return res.status(409).json({ message: 'Cette recherche est déjà sauvegardée.' });
 
@@ -33,11 +30,11 @@ async function create(req, res, next) {
 
 async function remove(req, res, next) {
   try {
-    const search = await SavedSearch.findByPk(req.params.id);
+    const search = await SavedSearch.findById(req.params.id);
     if (!search || search.userId !== req.user.id) {
       return res.status(404).json({ message: 'Recherche introuvable.' });
     }
-    await search.destroy();
+    await search.deleteOne();
     return res.json({ message: 'Recherche supprimée.' });
   } catch (err) { return next(err); }
 }

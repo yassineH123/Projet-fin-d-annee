@@ -1,14 +1,11 @@
 const bcrypt = require('bcryptjs');
-const { Op } = require('sequelize');
 const { User } = require('../models');
 const { logAdminAction } = require('../services/auditLogService');
 
 async function listAdmins(req, res, next) {
   try {
-    const admins = await User.findAll({
-      where: { role: { [Op.in]: ['admin', 'superadmin'] } },
-      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'status', 'verified'],
-    });
+    const admins = await User.find({ role: { $in: ['admin', 'superadmin'] } })
+      .select('id firstName lastName email role status verified');
 
     return res.json({ admins });
   } catch (error) {
@@ -20,7 +17,7 @@ async function createAdmin(req, res, next) {
   try {
     const { firstName, lastName, email, password, role = 'admin' } = req.body;
 
-    const existing = await User.findOne({ where: { email } });
+    const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ message: 'Email déjà utilisé.' });
     }
@@ -63,7 +60,7 @@ async function createAdmin(req, res, next) {
 
 async function deleteAdmin(req, res, next) {
   try {
-    const admin = await User.findByPk(req.params.id);
+    const admin = await User.findById(req.params.id);
     if (!admin || !['admin', 'superadmin'].includes(admin.role)) {
       return res.status(404).json({ message: 'Admin introuvable.' });
     }
@@ -71,7 +68,7 @@ async function deleteAdmin(req, res, next) {
       return res.status(403).json({ message: 'Vous ne pouvez pas supprimer votre propre compte.' });
     }
 
-    await admin.destroy();
+    await admin.deleteOne();
     await logAdminAction({
       adminId: req.user.id,
       action: 'DELETE_ADMIN',

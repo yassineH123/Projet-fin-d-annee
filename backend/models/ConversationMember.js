@@ -1,11 +1,15 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const ConversationMember = sequelize.define('ConversationMember', {
-  id:             { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  conversationId: { type: DataTypes.UUID, allowNull: false },
-  userId:         { type: DataTypes.UUID, allowNull: false },
-  role:           { type: DataTypes.ENUM('admin', 'member'), defaultValue: 'member' },
-}, { tableName: 'conversation_members', timestamps: true });
+const conversationMemberSchema = new Schema({
+  conversationId: { type: String, ref: 'Conversation', required: true },
+  userId: { type: String, ref: 'User', required: true },
+  role: { type: String, enum: ['admin', 'member'], default: 'member' },
+});
 
-module.exports = ConversationMember;
+conversationMemberSchema.plugin(idPlugin);
+
+conversationMemberSchema.virtual('conversation', { ref: 'Conversation', localField: 'conversationId', foreignField: '_id', justOne: true });
+conversationMemberSchema.virtual('user', { ref: 'User', localField: 'userId', foreignField: '_id', justOne: true });
+
+module.exports = model('ConversationMember', conversationMemberSchema);
