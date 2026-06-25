@@ -86,6 +86,12 @@ export default function Register() {
           ))}
         </div>
 
+        {/* Animated floating shapes */}
+        <div className="auth-shape auth-shape-1" style={{ width: 60, height: 60, top: 5, right: 40, border: '1.5px solid rgba(0,98,51,0.18)', transform: 'rotate(30deg)' }} />
+        <div className="auth-shape auth-shape-2" style={{ width: 38, height: 38, top: 15, right: 10, border: '1.5px solid rgba(212,137,10,0.2)', transform: 'rotate(45deg)' }} />
+        <div className="auth-shape auth-shape-3" style={{ width: 80, height: 80, top: 0, right: 80, border: '1px solid rgba(0,98,51,0.1)', transform: 'rotate(15deg)' }} />
+        <div className="auth-orb" style={{ width: 140, height: 140, top: -50, right: -20, background: 'radial-gradient(circle, rgba(0,98,51,0.15) 0%, transparent 70%)' }} />
+
         <div style={{ maxWidth: 440, margin: '0 auto', position: 'relative' }}>
           <div style={{ marginBottom: 16 }}>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', color: '#D4890A', textTransform: 'uppercase' }}>✦ AtlasWay</p>
@@ -127,7 +133,7 @@ export default function Register() {
             ))}
           </div>
 
-          <div style={{ background: 'var(--card-bg)', borderRadius: 20, border: '1px solid var(--border-color)', padding: '24px 22px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+          <div className="auth-card-enter" style={{ background: 'var(--card-bg)', borderRadius: 20, border: '1px solid var(--border-color)', padding: '24px 22px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
             {step === 1 ? (
               <form onSubmit={handleRegister} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>Créez votre compte</p>

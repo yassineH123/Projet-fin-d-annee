@@ -1461,7 +1461,7 @@ export default function Home() {
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Essayez un autre filtre ou revenez plus tard</p>
                   </div>
                 )
-                : visible.map((trip, i) => (
+                : <div className="card-list">{visible.map((trip, i) => (
                   <div key={trip.id || i}>
                     <RideFeedCard trip={trip} initialFav={favIds.has(trip.id)} index={i} />
                     {/* Sponsored ad after 4th card */}
@@ -1499,7 +1499,7 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-                ))
+                ))}</div>
             }
 
             {/* Load more */}

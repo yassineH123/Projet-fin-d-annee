@@ -67,10 +67,15 @@ export default function Login() {
           ))}
         </div>
 
-        {/* Geometric accents */}
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} style={{ position: 'absolute', width: 60 + i * 20, height: 60 + i * 20, border: '1px solid rgba(193,39,45,0.08)', borderRadius: 12, transform: `rotate(${i * 20}deg)`, top: -10 + i * 5, right: -15 + i * 8, pointerEvents: 'none' }} />
-        ))}
+        {/* Animated floating shapes */}
+        <div className="auth-shape auth-shape-1" style={{ width: 70, height: 70, top: -10, right: 60, transform: 'rotate(25deg)' }} />
+        <div className="auth-shape auth-shape-2" style={{ width: 44, height: 44, top: 12, right: 20, border: '1.5px solid rgba(212,137,10,0.18)', transform: 'rotate(45deg)' }} />
+        <div className="auth-shape auth-shape-3" style={{ width: 90, height: 90, top: 8, right: 100, border: '1px solid rgba(0,98,51,0.12)', transform: 'rotate(12deg)' }} />
+        <div className="auth-shape auth-shape-4" style={{ width: 32, height: 32, top: 30, right: 150, border: '1px solid rgba(193,39,45,0.1)', transform: 'rotate(60deg)' }} />
+
+        {/* Glow orbs */}
+        <div className="auth-orb" style={{ width: 160, height: 160, top: -60, right: -30, background: 'radial-gradient(circle, rgba(193,39,45,0.18) 0%, transparent 70%)' }} />
+        <div className="auth-orb" style={{ width: 100, height: 100, bottom: -20, left: '30%', background: 'radial-gradient(circle, rgba(212,137,10,0.12) 0%, transparent 70%)', animationDelay: '2s' }} />
 
         <div style={{ maxWidth: 440, margin: '0 auto', position: 'relative' }}>
           {/* Logo */}
@@ -113,7 +118,7 @@ export default function Login() {
         <div style={{ width: '100%', maxWidth: 440 }}>
 
           {/* Card */}
-          <div style={{ background: 'var(--card-bg)', borderRadius: 20, border: '1px solid var(--border-color)', padding: '28px 26px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+          <div className="auth-card-enter" style={{ background: 'var(--card-bg)', borderRadius: 20, border: '1px solid var(--border-color)', padding: '28px 26px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
             <p style={{ margin: '0 0 22px', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>
               Connexion à votre compte
             </p>

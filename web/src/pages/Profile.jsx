@@ -347,24 +347,39 @@ export default function Profile() {
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 48px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="card-list" style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 48px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── PROFILE HEADER ── */}
       <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
         <ZelligeStripe />
 
         {/* Cover area */}
-        <div style={{ height: 110, background: 'linear-gradient(135deg, rgba(193,39,45,0.18) 0%, rgba(212,137,10,0.12) 50%, rgba(0,98,51,0.12) 100%)', position: 'relative', overflow: 'hidden' }}>
-          {/* Geometric pattern */}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} style={{
-              position: 'absolute', top: -10, left: `${i * 14}%`,
-              width: 40, height: 40, borderRadius: 8, border: '1.5px solid rgba(193,39,45,0.12)',
-              transform: `rotate(${i * 15}deg)`, opacity: 0.7,
-            }} />
-          ))}
-          <div style={{ position: 'absolute', right: 20, bottom: 8, fontFamily: 'Amiri, serif', fontSize: 56, color: 'rgba(193,39,45,0.07)', fontWeight: 900, userSelect: 'none', lineHeight: 1 }}>رفيق الطريق</div>
-          <div style={{ position: 'absolute', top: 12, left: 18, fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(193,39,45,0.5)' }}>✦ ATLASWAY PROFILE</div>
+        <div className="cover-shimmer" style={{ height: 140, background: 'linear-gradient(135deg, rgba(193,39,45,0.22) 0%, rgba(212,137,10,0.14) 50%, rgba(0,98,51,0.14) 100%)', position: 'relative', overflow: 'hidden' }}>
+          {/* Zellige SVG pattern */}
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.07, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="coverZel" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+                <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="none" stroke="#C1272D" strokeWidth="0.8"/>
+                <polygon points="16,7 25,12 25,20 16,25 7,20 7,12" fill="none" stroke="#D4890A" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#coverZel)"/>
+          </svg>
+
+          {/* Animated glow orbs */}
+          <div className="auth-orb" style={{ width: 200, height: 200, top: -80, right: -30, background: 'radial-gradient(circle, rgba(193,39,45,0.3) 0%, transparent 70%)' }} />
+          <div className="auth-orb" style={{ width: 120, height: 120, top: 20, left: '30%', background: 'radial-gradient(circle, rgba(212,137,10,0.2) 0%, transparent 70%)', animationDelay: '2s' }} />
+          <div className="auth-orb" style={{ width: 90, height: 90, bottom: -20, left: '60%', background: 'radial-gradient(circle, rgba(0,98,51,0.2) 0%, transparent 70%)', animationDelay: '1s' }} />
+
+          {/* Floating shapes */}
+          <div className="auth-shape auth-shape-1" style={{ width: 50, height: 50, top: 10, right: 60, opacity: 0.5 }} />
+          <div className="auth-shape auth-shape-3" style={{ width: 30, height: 30, top: 25, right: 100, border: '1px solid rgba(212,137,10,0.2)', opacity: 0.5 }} />
+
+          <div style={{ position: 'absolute', right: 20, bottom: 8, fontFamily: 'Amiri, serif', fontSize: 64, color: 'rgba(193,39,45,0.08)', fontWeight: 900, userSelect: 'none', lineHeight: 1 }}>رفيق الطريق</div>
+          <div style={{ position: 'absolute', top: 12, left: 18, fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(193,39,45,0.55)' }}>✦ ATLASWAY PROFILE</div>
+
+          {/* Moroccan flag accent bar bottom */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, #C1272D 33%, #D4890A 50%, #006233 67%)' }} />
         </div>
 
         <div style={{ padding: '0 20px 20px' }}>
@@ -372,8 +387,8 @@ export default function Profile() {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12, marginTop: -32 }}>
             <div style={{ position: 'relative' }}>
               {profile.photo
-                ? <img src={profile.photo} alt="" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--card-bg)', boxShadow: '0 0 0 2px #C1272D40' }} />
-                : <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#C1272D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900, color: '#fff', border: '3px solid var(--card-bg)' }}>{profile.firstName?.[0]}</div>
+                ? <img src={profile.photo} alt="" className="avatar-ring" style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--card-bg)' }} />
+                : <div className="avatar-ring" style={{ width: 84, height: 84, borderRadius: '50%', background: 'linear-gradient(135deg,#C1272D,#D4890A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 900, color: '#fff', border: '3px solid var(--card-bg)' }}>{profile.firstName?.[0]}</div>
               }
               {isMe && (
                 <>

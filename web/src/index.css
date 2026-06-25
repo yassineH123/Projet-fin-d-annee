@@ -1084,3 +1084,96 @@ html.light .skeleton {
   font-size: 13px !important;
   font-weight: 600 !important;
 }
+
+/* ═══════════════════════════════════════
+   AUTH PAGES — Login / Register
+   ═══════════════════════════════════════ */
+
+/* Floating shapes in auth background */
+@keyframes floatShape {
+  0%, 100% { transform: translateY(0)   rotate(0deg)   scale(1);   }
+  33%       { transform: translateY(-18px) rotate(8deg)  scale(1.04); }
+  66%       { transform: translateY(10px)  rotate(-5deg) scale(0.97); }
+}
+@keyframes floatShapeAlt {
+  0%, 100% { transform: translateY(0)    rotate(0deg)    scale(1);   }
+  40%       { transform: translateY(14px) rotate(-10deg)  scale(1.05);}
+  75%       { transform: translateY(-8px) rotate(6deg)    scale(0.96);}
+}
+.auth-shape {
+  position: absolute;
+  border-radius: 12px;
+  pointer-events: none;
+  border: 1.5px solid rgba(193,39,45,0.14);
+}
+.auth-shape-1 { animation: floatShape    6s   ease-in-out infinite; animation-delay: 0s;   }
+.auth-shape-2 { animation: floatShapeAlt 7.5s ease-in-out infinite; animation-delay: 1.2s; }
+.auth-shape-3 { animation: floatShape    5.5s ease-in-out infinite; animation-delay: 2.5s; }
+.auth-shape-4 { animation: floatShapeAlt 8s   ease-in-out infinite; animation-delay: 0.8s; }
+
+/* Auth form card entrance */
+@keyframes authCardIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.auth-card-enter {
+  animation: authCardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.15s;
+}
+
+/* Stronger input focus glow */
+.input:focus {
+  box-shadow: 0 0 0 2px rgba(193,39,45,0.25), 0 0 12px rgba(193,39,45,0.1) !important;
+}
+
+/* Auth hero band glow orb */
+@keyframes orbPulse {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(1.12); }
+}
+.auth-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: orbPulse 4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════
+   PROFILE — Cover banner enhancements
+   ═══════════════════════════════════════ */
+@keyframes coverShimmer {
+  from { transform: translateX(-100%) skewX(-15deg); }
+  to   { transform: translateX(250%)  skewX(-15deg); }
+}
+.cover-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  animation: coverShimmer 4s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+@keyframes avatarRing {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(193,39,45,0.4), 0 0 12px rgba(193,39,45,0.2); }
+  50%       { box-shadow: 0 0 0 3px rgba(193,39,45,0.7), 0 0 24px rgba(193,39,45,0.35); }
+}
+.avatar-ring {
+  animation: avatarRing 3s ease-in-out infinite;
+}
+
+/* Section card entrance */
+@keyframes sectionIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.section-enter {
+  animation: sectionIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.section-enter:nth-child(2) { animation-delay: 0.06s; }
+.section-enter:nth-child(3) { animation-delay: 0.12s; }
+.section-enter:nth-child(4) { animation-delay: 0.18s; }
+.section-enter:nth-child(5) { animation-delay: 0.24s; }
+.section-enter:nth-child(6) { animation-delay: 0.30s; }
+.section-enter:nth-child(7) { animation-delay: 0.36s; }
+.section-enter:nth-child(8) { animation-delay: 0.42s; }
