@@ -76,7 +76,8 @@ async function register(req, res, next) {
         console.error('SMS send failed:', err.message)
       );
     } else {
-      sendVerificationEmail({ to: email, firstName, code }).catch(err =>
+      console.log(`[VERIFY CODE] ${email} => ${code}`);
+    sendVerificationEmail({ to: email, firstName, code }).catch(err =>
         console.error('[EMAIL ERROR]', err.message)
       );
     }
