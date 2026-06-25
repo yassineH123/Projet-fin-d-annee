@@ -1,6 +1,6 @@
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama3-8b-8192';
+const MODEL = 'llama-3.1-8b-instant';
 
 const SYSTEM_PROMPT = `Tu es AtlasBot, l'assistant officiel d'AtlasWay, une plateforme marocaine de covoiturage.
 
