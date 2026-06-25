@@ -21,7 +21,12 @@ initSocket(server);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://atlasway.ma', 'https://www.atlasway.ma']
+  ? [
+      'https://atlasway.ma',
+      'https://www.atlasway.ma',
+      'https://web-omega-one-58.vercel.app',
+      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+    ]
   : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
 
 app.use(cors({
