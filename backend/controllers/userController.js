@@ -1,4 +1,5 @@
 const { User, Ride, Booking, Review } = require('../models');
+const upload = require('../middleware/uploadMiddleware');
 
 async function searchUsers(req, res, next) {
   try {
@@ -89,12 +90,12 @@ async function updateProfile(req, res, next) {
       updates.languages = typeof languages === 'string' ? JSON.parse(languages) : languages;
     }
 
-    if (req.files?.photo?.[0])        updates.photo        = `/uploads/${req.files.photo[0].filename}`;
-    if (req.files?.carPhoto?.[0])     updates.carPhoto     = `/uploads/${req.files.carPhoto[0].filename}`;
-    if (req.files?.cinDoc?.[0])       updates.cinDoc       = `/uploads/${req.files.cinDoc[0].filename}`;
-    if (req.files?.permisDoc?.[0])    updates.permisDoc    = `/uploads/${req.files.permisDoc[0].filename}`;
-    if (req.files?.carteGriseDoc?.[0]) updates.carteGriseDoc = `/uploads/${req.files.carteGriseDoc[0].filename}`;
-    if (req.files?.passportDoc?.[0])   updates.passportDoc   = `/uploads/${req.files.passportDoc[0].filename}`;
+    if (req.files?.photo?.[0])        updates.photo        = upload.getFileUrl(req.files.photo[0]);
+    if (req.files?.carPhoto?.[0])     updates.carPhoto     = upload.getFileUrl(req.files.carPhoto[0]);
+    if (req.files?.cinDoc?.[0])       updates.cinDoc       = upload.getFileUrl(req.files.cinDoc[0]);
+    if (req.files?.permisDoc?.[0])    updates.permisDoc    = upload.getFileUrl(req.files.permisDoc[0]);
+    if (req.files?.carteGriseDoc?.[0]) updates.carteGriseDoc = upload.getFileUrl(req.files.carteGriseDoc[0]);
+    if (req.files?.passportDoc?.[0])   updates.passportDoc   = upload.getFileUrl(req.files.passportDoc[0]);
 
     if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0] || req.files?.passportDoc?.[0]) {
       updates.driverVerified = false; // reset, admin doit re-valider
@@ -200,7 +201,7 @@ async function submitKyc(req, res, next) {
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const updates = {};
-    if (req.files?.kycSelfie?.[0]) updates.kycSelfie = `/uploads/${req.files.kycSelfie[0].filename}`;
+    if (req.files?.kycSelfie?.[0]) updates.kycSelfie = upload.getFileUrl(req.files.kycSelfie[0]);
     if (req.files?.cinDoc?.[0])    updates.cinDoc    = `/uploads/${req.files.cinDoc[0].filename}`;
 
     if (!updates.kycSelfie && !user.kycSelfie) return res.status(400).json({ message: 'Selfie requis.' });
