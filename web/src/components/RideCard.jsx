@@ -31,22 +31,11 @@ export default function RideCard({ ride }) {
   const saving  = taxiEst && ride.price < taxiEst ? Math.round(((taxiEst - ride.price) / taxiEst) * 100) : null;
 
   return (
-    <Link to={`/rides/${ride.id}`} style={{ textDecoration: 'none', display: 'block', marginBottom: 10 }}>
-      <div style={{
+    <Link to={`/rides/${ride.id}`} className="ride-card-link" style={{ textDecoration: 'none', display: 'block', marginBottom: 10 }}>
+      <div className="ride-card" style={{
         background: 'var(--card-bg)', border: '1px solid var(--border-color)',
         borderRadius: 16, overflow: 'hidden',
-        transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
-      }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 12px 32px rgba(193,39,45,0.12)';
-          e.currentTarget.style.borderColor = 'rgba(193,39,45,0.3)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = 'none';
-          e.currentTarget.style.boxShadow = 'none';
-          e.currentTarget.style.borderColor = 'var(--border-color)';
-        }}>
+      }}>
         <ZelligeStripe />
 
         <div style={{ padding: '14px 16px' }}>

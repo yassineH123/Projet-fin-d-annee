@@ -513,7 +513,7 @@ export default function SearchRides() {
                 </select>
               </div>
 
-              <div ref={revealResults} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div ref={revealResults} className="card-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {rides.filter(filterByTime).map(ride => (
                   <div key={ride.id} data-reveal style={{ position: 'relative' }}>
                     {ride.transportMode && ride.transportMode !== 'voiture' && (

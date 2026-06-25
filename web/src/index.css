@@ -992,3 +992,95 @@ html.light .skeleton {
   pointer-events: none;
   transform: translateY(8px);
 }
+
+/* ═══════════════════════════════════════
+   ANIMATIONS — LISTES DE CARTES (stagger auto)
+   ═══════════════════════════════════════ */
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Stagger automatique sur les éléments d'une liste .card-list */
+.card-list > * {
+  animation: cardReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.card-list > *:nth-child(1)  { animation-delay: 0.00s; }
+.card-list > *:nth-child(2)  { animation-delay: 0.06s; }
+.card-list > *:nth-child(3)  { animation-delay: 0.12s; }
+.card-list > *:nth-child(4)  { animation-delay: 0.18s; }
+.card-list > *:nth-child(5)  { animation-delay: 0.24s; }
+.card-list > *:nth-child(6)  { animation-delay: 0.30s; }
+.card-list > *:nth-child(7)  { animation-delay: 0.36s; }
+.card-list > *:nth-child(8)  { animation-delay: 0.42s; }
+.card-list > *:nth-child(n+9){ animation-delay: 0.48s; }
+
+/* ── Ride card — hover glow rouge/vert marocain ── */
+.ride-card-link:hover .ride-card {
+  transform: translateY(-3px);
+  border-color: rgba(193,39,45,0.35) !important;
+  box-shadow: 0 12px 36px rgba(193,39,45,0.14), 0 0 0 1px rgba(193,39,45,0.08) !important;
+}
+.ride-card {
+  transition: transform 0.22s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.22s ease,
+              border-color 0.22s ease !important;
+}
+
+/* ── Stat cards — entrance ── */
+@keyframes statIn {
+  from { opacity: 0; transform: scale(0.94) translateY(12px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+.stat-card-anim {
+  animation: statIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.stat-card-anim:nth-child(1) { animation-delay: 0.05s; }
+.stat-card-anim:nth-child(2) { animation-delay: 0.12s; }
+.stat-card-anim:nth-child(3) { animation-delay: 0.19s; }
+.stat-card-anim:nth-child(4) { animation-delay: 0.26s; }
+
+/* ── Pulse dot (online indicator) ── */
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.6); opacity: 0.5; }
+}
+.pulse-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #22C55E;
+  animation: pulseDot 1.8s ease-in-out infinite;
+}
+
+/* ── Shimmer on gradient buttons ── */
+@keyframes shimmerBtn {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to   { transform: translateX(220%)  skewX(-20deg); }
+}
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+  transform: translateX(-120%) skewX(-20deg);
+}
+.btn-shimmer:hover::after {
+  animation: shimmerBtn 0.55s ease;
+}
+
+/* ── Number counter glow ── */
+.stat-number {
+  transition: color 0.3s ease;
+}
+
+/* ── Toast improvements ── */
+.hot-toast-container > div {
+  font-family: 'Cairo', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
