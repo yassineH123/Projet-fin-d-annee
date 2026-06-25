@@ -181,14 +181,14 @@ export default function MyRides() {
           />
         )
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="card-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {filtered.map((ride) => {
             const date = new Date(ride.departureDate);
             return (
               <div key={ride.id}
-                style={{ borderRadius: 14, background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '16px 18px', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(100,100,100,0.5)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                style={{ borderRadius: 16, background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '16px 18px', transition: 'all 0.18s', overflow: 'hidden', position: 'relative' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(193,39,45,0.35)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(193,39,45,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Star, MapPin, Route, Award, Zap } from 'lucide-react';
+import { Trophy, Star, Route, Crown } from 'lucide-react';
 import api from '../services/api';
 import Spinner from '../components/Spinner';
 import EmptyState from '../components/EmptyState';
@@ -14,13 +14,13 @@ const LEVEL_META = {
 };
 
 const TABS = [
-  { id: 'rating', label: 'Mieux notés',     icon: Star,    statLabel: (d) => `${d.avgRating?.toFixed(1)} ★`,         color: '#F59E0B' },
-  { id: 'trips',  label: 'Plus de trajets',  icon: Trophy,  statLabel: (d) => `${d.totalTrips} trajets`,              color: '#C1272D' },
-  { id: 'km',     label: 'Plus de km',       icon: Route,   statLabel: (d) => `${d.totalKm} km`,                      color: '#006233' },
+  { id: 'rating', label: 'Mieux notés',    icon: Star,    statLabel: (d) => `${d.avgRating?.toFixed(1)} ★`, color: '#F59E0B' },
+  { id: 'trips',  label: 'Plus de trajets', icon: Trophy,  statLabel: (d) => `${d.totalTrips} trajets`,     color: '#C1272D' },
+  { id: 'km',     label: 'Plus de km',      icon: Route,   statLabel: (d) => `${d.totalKm} km`,             color: '#006233' },
 ];
 
-const PODIUM_HEIGHTS = [80, 110, 60]; // 2nd, 1st, 3rd
-const PODIUM_ORDER   = [1, 0, 2];     // left=2nd, center=1st, right=3rd
+const PODIUM_HEIGHTS = [80, 110, 60];
+const PODIUM_ORDER   = [1, 0, 2];
 
 function Avatar({ user, size = 44 }) {
   if (user?.photo) return <img src={user.photo} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
@@ -32,16 +32,18 @@ function Avatar({ user, size = 44 }) {
 }
 
 export default function Leaderboard() {
-  const [tab,     setTab]     = useState('rating');
-  const [drivers, setDrivers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tab,      setTab]      = useState('rating');
+  const [drivers,  setDrivers]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [podiumIn, setPodiumIn] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setPodiumIn(false);
     api.get(`/analytics/leaderboard?type=${tab}`)
       .then(({ data }) => setDrivers(data.drivers || []))
       .catch(() => setDrivers([]))
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setTimeout(() => setPodiumIn(true), 80); });
   }, [tab]);
 
   const tabCfg = TABS.find(t => t.id === tab);
@@ -60,7 +62,7 @@ export default function Leaderboard() {
         </div>
         <div style={{ padding: '20px 22px', background: 'linear-gradient(135deg, rgba(212,137,10,0.06) 0%, transparent 100%)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(212,137,10,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(212,137,10,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(212,137,10,0.2)' }}>
               <Trophy size={22} style={{ color: '#D4890A' }} />
             </div>
             <div>
@@ -70,7 +72,7 @@ export default function Leaderboard() {
             </div>
             {drivers.length > 0 && (
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>{drivers.length}</p>
+                <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)' }}>{drivers.length}</p>
                 <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>classés</p>
               </div>
             )}
@@ -83,11 +85,12 @@ export default function Leaderboard() {
         {TABS.map(({ id, label, icon: Icon, color }) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: 'none',
-            cursor: 'pointer', transition: 'all 0.15s',
+            padding: '10px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: 'none',
+            cursor: 'pointer', transition: 'all 0.2s',
             background: tab === id ? color : 'transparent',
             color: tab === id ? '#fff' : 'var(--text-muted)',
-            boxShadow: tab === id ? `0 4px 12px ${color}40` : 'none',
+            boxShadow: tab === id ? `0 4px 14px ${color}45` : 'none',
+            transform: tab === id ? 'scale(1.03)' : 'scale(1)',
           }}>
             <Icon size={13} /> {label}
           </button>
@@ -109,8 +112,10 @@ export default function Leaderboard() {
           {top3.length >= 2 && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ borderRadius: 20, overflow: 'hidden', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-                {/* Fond dégradé podium */}
-                <div style={{ background: 'linear-gradient(180deg, rgba(212,137,10,0.08) 0%, transparent 100%)', padding: '28px 20px 0' }}>
+                <div style={{ background: 'linear-gradient(180deg, rgba(212,137,10,0.08) 0%, transparent 100%)', padding: '28px 20px 0', position: 'relative', overflow: 'hidden' }}>
+                  {/* Glow central */}
+                  <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${tabCfg.color}18 0%, transparent 70%)`, pointerEvents: 'none' }} />
+
                   <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12 }}>
                     {PODIUM_ORDER.map((rank, col) => {
                       const driver = top3[rank];
@@ -121,20 +126,26 @@ export default function Leaderboard() {
                       const podH = PODIUM_HEIGHTS[col];
 
                       return (
-                        <Link key={col} to={`/profile/${driver.id}`} style={{ flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                          {/* Badge médaille */}
-                          <span style={{ fontSize: isFirst ? 26 : 20 }}>{medals[rank]}</span>
+                        <Link key={col} to={`/profile/${driver.id}`} style={{
+                          flex: 1, textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                          opacity: podiumIn ? 1 : 0,
+                          transform: podiumIn ? 'translateY(0)' : 'translateY(16px)',
+                          transition: `opacity 0.45s ease ${col * 0.1}s, transform 0.45s ease ${col * 0.1}s`,
+                        }}>
+                          {isFirst && <Crown size={20} style={{ color: '#D4890A', filter: 'drop-shadow(0 2px 6px rgba(212,137,10,0.6))' }} />}
+                          <span style={{ fontSize: isFirst ? 28 : 22 }}>{medals[rank]}</span>
 
-                          {/* Avatar */}
-                          <div style={{ position: 'relative' }}>
-                            <div style={{ width: isFirst ? 72 : 56, height: isFirst ? 72 : 56, borderRadius: '50%', padding: 3, background: isFirst ? 'linear-gradient(135deg, #D4890A, #FFD700)' : 'var(--border-color)' }}>
-                              <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-800)' }}>
-                                <Avatar user={driver} size={isFirst ? 66 : 50} />
-                              </div>
+                          <div style={{
+                            width: isFirst ? 74 : 58, height: isFirst ? 74 : 58,
+                            borderRadius: '50%', padding: 3,
+                            background: isFirst ? `linear-gradient(135deg, ${tabCfg.color}, #FFD700)` : 'var(--border-color)',
+                            boxShadow: isFirst ? `0 0 22px ${tabCfg.color}45` : 'none',
+                          }}>
+                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-800)' }}>
+                              <Avatar user={driver} size={isFirst ? 68 : 52} />
                             </div>
                           </div>
 
-                          {/* Nom */}
                           <div style={{ textAlign: 'center' }}>
                             <p style={{ margin: 0, fontSize: isFirst ? 13 : 11, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
                               {driver.firstName} {driver.lastName?.[0]}.
@@ -142,20 +153,22 @@ export default function Leaderboard() {
                             <p style={{ margin: '3px 0 0', fontSize: 10, fontWeight: 700, color: lm.color }}>{lm.emoji} {lm.label}</p>
                           </div>
 
-                          {/* Stat principale */}
                           <div style={{ fontSize: isFirst ? 15 : 13, fontWeight: 900, color: tabCfg.color }}>
                             {tabCfg.statLabel(driver)}
                           </div>
 
-                          {/* Bloc podium */}
+                          {/* Barre podium — monte avec spring */}
                           <div style={{
-                            width: '100%', height: podH, borderRadius: '10px 10px 0 0',
+                            width: '100%', borderRadius: '10px 10px 0 0',
                             background: isFirst
-                              ? `linear-gradient(180deg, ${tabCfg.color}30, ${tabCfg.color}12)`
+                              ? `linear-gradient(180deg, ${tabCfg.color}38, ${tabCfg.color}15)`
                               : 'var(--bg-700)',
-                            border: `1px solid ${isFirst ? tabCfg.color + '40' : 'var(--border-color)'}`,
+                            border: `1px solid ${isFirst ? tabCfg.color + '55' : 'var(--border-color)'}`,
                             borderBottom: 'none',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            height: podiumIn ? podH : 0,
+                            transition: `height 0.65s cubic-bezier(0.34,1.56,0.64,1) ${0.25 + col * 0.1}s`,
+                            overflow: 'hidden',
                           }}>
                             <span style={{ fontSize: isFirst ? 28 : 22, fontWeight: 900, color: isFirst ? tabCfg.color : 'var(--text-muted)', opacity: isFirst ? 1 : 0.5 }}>
                               #{rank + 1}
@@ -172,7 +185,7 @@ export default function Leaderboard() {
 
           {/* ── Liste 4+ ── */}
           {rest.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="card-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rest.map((d, i) => {
                 const rank = i + 4;
                 const lm   = LEVEL_META[d.level] || LEVEL_META.bronze;
@@ -181,11 +194,10 @@ export default function Leaderboard() {
                     display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
                     padding: '12px 16px', borderRadius: 14,
                     background: 'var(--card-bg)', border: '1px solid var(--border-color)',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.18s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(3px)'; e.currentTarget.style.borderColor = tabCfg.color + '50'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}>
-                    {/* Rang */}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = tabCfg.color + '55'; e.currentTarget.style.boxShadow = `0 4px 16px ${tabCfg.color}18`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.boxShadow = 'none'; }}>
                     <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-muted)' }}>#{rank}</span>
                     </div>

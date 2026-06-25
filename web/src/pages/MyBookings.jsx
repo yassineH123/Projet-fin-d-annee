@@ -444,7 +444,7 @@ export default function MyBookings() {
       ) : viewMode === 'calendar' ? (
         <CalendarView bookings={bookings} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="card-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {bookings.map(b => (
             <BookingCard
               key={b.id}
