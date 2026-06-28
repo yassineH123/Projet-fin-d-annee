@@ -46,12 +46,17 @@ async function create(req, res, next) {
     }
 
     const status = ride.instantBooking ? 'accepted' : 'pending';
-    const booking = await Booking.create({ rideId, passengerId: req.user.id, seats, message, status, creditsUsed });
 
+    // Décrémentation atomique des places pour éviter une survente en cas de réservations concurrentes
     if (ride.instantBooking) {
-      ride.set({ seatsAvailable: ride.seatsAvailable - seats });
-      await ride.save();
+      const updatedRide = await Ride.findOneAndUpdate(
+        { _id: rideId, seatsAvailable: { $gte: seats } },
+        { $inc: { seatsAvailable: -seats } }
+      );
+      if (!updatedRide) return res.status(400).json({ message: 'Pas assez de places disponibles.' });
     }
+
+    const booking = await Booking.create({ rideId, passengerId: req.user.id, seats, message, status, creditsUsed });
 
     createNotification(ride.driverId, {
       type: 'booking',
@@ -87,10 +92,15 @@ async function accept(req, res, next) {
     if (booking.ride.driverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
     if (booking.status !== 'pending') return res.status(400).json({ message: 'Réservation déjà traitée.' });
 
+    // Décrémentation atomique des places pour éviter une survente en cas d'acceptations concurrentes
+    const updatedRide = await Ride.findOneAndUpdate(
+      { _id: booking.rideId, seatsAvailable: { $gte: booking.seats } },
+      { $inc: { seatsAvailable: -booking.seats } }
+    );
+    if (!updatedRide) return res.status(400).json({ message: 'Plus assez de places disponibles sur ce trajet.' });
+
     booking.set({ status: 'accepted' });
     await booking.save();
-    booking.ride.set({ seatsAvailable: booking.ride.seatsAvailable - booking.seats });
-    await booking.ride.save();
 
     // Badge & level check for driver
     assignBadges(req.user.id);
@@ -147,9 +157,8 @@ async function cancel(req, res, next) {
     let refundRate = 0;
 
     if (booking.status === 'accepted') {
-      const newSeats = booking.ride.seatsAvailable + booking.seats;
-      booking.ride.set({ seatsAvailable: newSeats });
-      await booking.ride.save();
+      // Incrémentation atomique des places libérées
+      await Ride.findByIdAndUpdate(booking.rideId, { $inc: { seatsAvailable: booking.seats } });
 
       // Politique de remboursement
       refundRate = refundPolicy(booking.ride);
@@ -157,17 +166,20 @@ async function cancel(req, res, next) {
       refundAmount = Math.round(totalPaid * refundRate * 100) / 100;
 
       if (refundAmount > 0) {
-        const passenger = await User.findById(req.user.id);
-        const newBalance = parseFloat(passenger.walletBalance) + refundAmount;
-        passenger.set({ walletBalance: newBalance });
-        await passenger.save();
+        // Crédit atomique du portefeuille pour éviter une perte de mise à jour
+        // si plusieurs remboursements/recharges arrivent en même temps.
+        const passenger = await User.findByIdAndUpdate(
+          req.user.id,
+          { $inc: { walletBalance: refundAmount } },
+          { new: true }
+        );
         await Transaction.create({
           userId: req.user.id,
           type: 'credit',
           amount: refundAmount,
           description: `Remboursement annulation trajet ${booking.ride.from} → ${booking.ride.to}`,
           rideId: booking.rideId,
-          balanceAfter: newBalance,
+          balanceAfter: passenger.walletBalance,
         });
       }
 

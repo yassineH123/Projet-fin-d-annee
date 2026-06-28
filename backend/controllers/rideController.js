@@ -243,18 +243,21 @@ async function remove(req, res, next) {
       if (booking.status === 'accepted') {
         const totalPaid = parseFloat(ride.price) * booking.seats;
         if (totalPaid > 0) {
-          const passenger = await User.findById(booking.passengerId);
+          // Crédit atomique du portefeuille pour éviter une perte de mise à jour
+          // si plusieurs remboursements/recharges arrivent en même temps.
+          const passenger = await User.findByIdAndUpdate(
+            booking.passengerId,
+            { $inc: { walletBalance: totalPaid } },
+            { new: true }
+          );
           if (passenger) {
-            const newBalance = parseFloat(passenger.walletBalance) + totalPaid;
-            passenger.set({ walletBalance: newBalance });
-            await passenger.save();
             await Transaction.create({
               userId: booking.passengerId,
               type: 'credit',
               amount: totalPaid,
               description: `Remboursement — trajet annulé par le conducteur (${ride.from} → ${ride.to})`,
               rideId: ride.id,
-              balanceAfter: newBalance,
+              balanceAfter: passenger.walletBalance,
             });
             refundedCount++;
           }

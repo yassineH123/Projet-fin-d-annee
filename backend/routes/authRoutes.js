@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -44,8 +45,8 @@ router.post(
 
 router.post(
   '/change-password',
+  authenticateToken,
   [
-    body('email').isEmail().withMessage('Email invalide.'),
     body('currentPassword').notEmpty().withMessage('Mot de passe actuel requis.'),
     body('newPassword').isLength({ min: 8 }).withMessage('Le nouveau mot de passe doit contenir au moins 8 caractères.'),
   ],

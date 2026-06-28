@@ -285,8 +285,8 @@ async function changePassword(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { email, currentPassword, newPassword } = req.body;
-    const user = await User.findOne({ email });
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });

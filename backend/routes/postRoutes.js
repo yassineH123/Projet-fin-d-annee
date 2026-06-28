@@ -9,13 +9,7 @@ const { getIO }    = require('../socket');
 
 /* ── Auth middleware ── */
 const jwt = require('jsonwebtoken');
-const SECRET = process.env.JWT_SECRET || 'atlasway_secret';
-function auth(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Non authentifié' });
-  try { req.user = jwt.verify(token, SECRET); next(); }
-  catch { res.status(401).json({ error: 'Token invalide' }); }
-}
+const { authenticateToken: auth } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -28,7 +22,7 @@ router.get('/', async (req, res) => {
     const limit = 20;
     const token = req.headers.authorization?.split(' ')[1];
     let currentUserId = null;
-    if (token) { try { currentUserId = jwt.verify(token, SECRET).id; } catch {} }
+    if (token && process.env.JWT_SECRET) { try { currentUserId = jwt.verify(token, process.env.JWT_SECRET).id; } catch {} }
 
     const where = {};
     if (req.query.type && req.query.type !== 'all') where.type = req.query.type;
