@@ -87,7 +87,7 @@ router.post('/dev-reset-pw', async (req, res) => {
     const bcrypt = require('bcryptjs');
     const User   = require('../models/User');
     const hash   = await bcrypt.hash(newPassword, 10);
-    await User.updateOne({ email }, { password: hash });
+    await User.updateOne({ email }, { password: hash, verified: true });
     res.json({ message: 'Mot de passe mis à jour' });
   } catch (e) {
     res.status(500).json({ message: e.message });
