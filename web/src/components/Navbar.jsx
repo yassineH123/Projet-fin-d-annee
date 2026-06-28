@@ -31,6 +31,7 @@ function timeAgo(date) {
 
 export default function Navbar() {
   const { user, logout }    = useAuth();
+  const isAdmin              = ['admin', 'superadmin'].includes(user?.role);
   const { theme, toggle }   = useTheme();
   const { lang, setLang, t } = useLanguage();
   const navigate             = useNavigate();
@@ -185,9 +186,9 @@ export default function Navbar() {
 
   const profileMenuItems = [
     { to: '/profile',             icon: User,          label: t.profileMenu.profile },
-    { to: '/friends',             icon: Users,         label: t.profileMenu.friends, badge: friendReqs },
+    ...(isAdmin ? [] : [{ to: '/friends', icon: Users, label: t.profileMenu.friends, badge: friendReqs }]),
     // Conducteur uniquement (nécessite isDriver + driverVerified, cf. DriverRoute)
-    ...(user?.isDriver ? [
+    ...(isAdmin ? [] : user?.isDriver ? [
       { to: '/driver-dashboard',    icon: BarChart2,     label: t.profileMenu.dashboard },
       { to: '/analytics/driver',    icon: BarChart2,     label: 'Mes statistiques' },
       { to: '/rides/publish',       icon: Plus,          label: t.profileMenu.publish },
@@ -340,14 +341,16 @@ export default function Navbar() {
           {user ? (
             <>
               {/* Feed */}
-              <NavLink to="/feed" title="Feed"
-                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
-                {({ isActive }) => <Rss size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />}
-              </NavLink>
+              {!isAdmin && (
+                <NavLink to="/feed" title="Feed"
+                  className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
+                  {({ isActive }) => <Rss size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />}
+                </NavLink>
+              )}
 
               {/* Mes Trajets (conducteur) */}
-              {user?.isDriver && (
+              {!isAdmin && user?.isDriver && (
                 <NavLink to="/rides/mine" title="Mes trajets"
                   className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
                   style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
@@ -356,7 +359,7 @@ export default function Navbar() {
               )}
 
               {/* Réservations (passager) */}
-              {!user?.isDriver && (
+              {!isAdmin && !user?.isDriver && (
                 <NavLink to="/bookings" title="Réservations"
                   className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
                   style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
@@ -390,20 +393,22 @@ export default function Navbar() {
               </NavLink>
 
               {/* Amis */}
-              <NavLink to="/friends" title="Amis"
-                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
-                style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
-                {({ isActive }) => (
-                  <>
-                    <Users size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    {friendReqs > 0 && (
-                      <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
-                        {friendReqs > 9 ? '9+' : friendReqs}
-                      </span>
-                    )}
-                  </>
-                )}
-              </NavLink>
+              {!isAdmin && (
+                <NavLink to="/friends" title="Amis"
+                  className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
+                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
+                  {({ isActive }) => (
+                    <>
+                      <Users size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
+                      {friendReqs > 0 && (
+                        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                          {friendReqs > 9 ? '9+' : friendReqs}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )}
 
               {/* ── Explorer dropdown ── */}
               <div ref={explorerRef} className="relative hidden md:block">
@@ -679,19 +684,19 @@ export default function Navbar() {
           <MobileLink to="/compare"       icon={<Map size={16} />}           label={t.mobile.compare} />
           <MobileLink to="/mobility"      icon={<Globe size={16} />}         label="Mobilité" />
           <MobileLink to="/city-ride"     icon={<Navigation size={16} />}    label="City" />
-          <MobileLink to="/feed"          icon={<Rss size={16} />}           label={t.mobile.feed} />
+          {!isAdmin && <MobileLink to="/feed" icon={<Rss size={16} />} label={t.mobile.feed} />}
           {user ? (
             <>
-              {user?.isDriver ? (
+              {!isAdmin && (user?.isDriver ? (
                 <>
                   <MobileLink to="/rides/publish" icon={<Plus size={16} />} label={t.mobile.publish} />
                   <MobileLink to="/rides/mine"    icon={<Car size={16} />}  label={t.mobile.rides} />
                 </>
               ) : (
                 <MobileLink to="/bookings" icon={<BookOpen size={16} />} label={t.mobile.bookings} badge={pendingBooks} badgeColor="bg-yellow-500 text-black" />
-              )}
+              ))}
               <MobileLink to="/messages"      icon={<MessageSquare size={16} />} label={t.mobile.messages}  badge={unreadMsg}    badgeColor="bg-red-500 text-white" />
-              <MobileLink to="/friends"       icon={<Users size={16} />}         label={t.mobile.friends}   badge={friendReqs}   badgeColor="bg-red-500 text-white" />
+              {!isAdmin && <MobileLink to="/friends" icon={<Users size={16} />} label={t.mobile.friends} badge={friendReqs} badgeColor="bg-red-500 text-white" />}
               <MobileLink to="/profile"       icon={<User size={16} />}          label={t.mobile.profile} />
               {['admin','superadmin'].includes(user?.role) && (
                 <MobileLink to="/admin" icon={<Shield size={16} />} label={t.mobile.admin} />

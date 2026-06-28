@@ -92,10 +92,11 @@ export default function WelcomeTour({ user, onDone }) {
 
   useEffect(() => {
     const done = localStorage.getItem(STORAGE_KEY);
-    if (!done) {
+    const isAdmin = ['admin', 'superadmin'].includes(user?.role);
+    if (!done && !isAdmin) {
       setTimeout(() => setVisible(true), 800);
     }
-  }, []);
+  }, [user]);
 
   const close = (complete = false) => {
     localStorage.setItem(STORAGE_KEY, '1');
