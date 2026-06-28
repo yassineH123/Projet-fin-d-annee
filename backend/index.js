@@ -27,14 +27,21 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
       'https://atlasway.ma',
       'https://www.atlasway.ma',
-      'https://web-omega-one-58.vercel.app',
       ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
     ]
   : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (/^https:\/\/[\w-]+-gloryboy47s-projects\.vercel\.app$/.test(origin)) return true;
+  if (/^https:\/\/web-[\w]+-gloryboy47s-projects\.vercel\.app$/.test(origin)) return true;
+  return false;
+};
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (isAllowedOrigin(origin)) return cb(null, true);
     const corsError = new Error(`CORS bloqué: ${origin}`);
     corsError.status = 403;
     cb(corsError);
