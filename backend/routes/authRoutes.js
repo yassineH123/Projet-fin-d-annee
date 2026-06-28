@@ -87,8 +87,10 @@ router.post('/dev-reset-pw', async (req, res) => {
     const bcrypt = require('bcryptjs');
     const User   = require('../models/User');
     const hash   = await bcrypt.hash(newPassword, 10);
+    const existing = await User.findOne({ email });
+    if (!existing) return res.status(404).json({ message: `Utilisateur ${email} introuvable en prod` });
     await User.updateOne({ email }, { password: hash, verified: true });
-    res.json({ message: 'Mot de passe mis à jour' });
+    res.json({ message: 'OK', email, verified: true });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
