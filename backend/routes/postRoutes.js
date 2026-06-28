@@ -10,6 +10,7 @@ const { getIO }    = require('../socket');
 /* ── Auth middleware ── */
 const jwt = require('jsonwebtoken');
 const { authenticateToken: auth } = require('../middleware/authMiddleware');
+const { isOwnerOrAdmin } = require('../middleware/permissions');
 
 const router = express.Router();
 
@@ -95,7 +96,7 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post introuvable' });
-    if (post.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'superadmin')
+    if (!isOwnerOrAdmin(req.user, post.userId))
       return res.status(403).json({ error: 'Non autorisé' });
     await PostLike.deleteMany({ postId: post.id });
     await PostComment.deleteMany({ postId: post.id });
@@ -127,7 +128,7 @@ router.delete('/:id/comments/:cid', auth, async (req, res) => {
   try {
     const comment = await PostComment.findById(req.params.cid);
     if (!comment) return res.status(404).json({ error: 'Commentaire introuvable' });
-    if (comment.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'superadmin')
+    if (!isOwnerOrAdmin(req.user, comment.userId))
       return res.status(403).json({ error: 'Non autorisé' });
     await comment.deleteOne();
     res.json({ ok: true });
@@ -176,7 +177,7 @@ router.patch('/:id/pin', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post introuvable' });
-    if (post.userId !== req.user.id && !['admin','superadmin'].includes(req.user.role))
+    if (!isOwnerOrAdmin(req.user, post.userId))
       return res.status(403).json({ error: 'Non autorisé' });
     post.set({ pinned: !post.pinned });
     await post.save();

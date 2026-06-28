@@ -1,4 +1,5 @@
 const { Review, User, Booking, Ride } = require('../models');
+const { isOwner } = require('../middleware/permissions');
 
 async function create(req, res, next) {
   try {
@@ -50,7 +51,7 @@ async function respond(req, res, next) {
     if (!response || !response.trim()) return res.status(400).json({ message: 'Réponse vide.' });
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: 'Avis introuvable.' });
-    if (review.reviewedId !== req.user.id) return res.status(403).json({ message: 'Vous ne pouvez répondre qu\'aux avis vous concernant.' });
+    if (!isOwner(req.user, review.reviewedId)) return res.status(403).json({ message: 'Vous ne pouvez répondre qu\'aux avis vous concernant.' });
     review.set({ response: response.trim() });
     await review.save();
     return res.json({ message: 'Réponse publiée.', review });

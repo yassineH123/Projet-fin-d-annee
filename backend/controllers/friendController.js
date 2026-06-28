@@ -1,5 +1,6 @@
 const { Friendship, User } = require('../models');
 const { createNotification } = require('../services/notificationService');
+const { isAdmin, isOwner } = require('../middleware/permissions');
 
 async function sendRequest(req, res, next) {
   try {
@@ -8,12 +9,12 @@ async function sendRequest(req, res, next) {
     if (!receiverId) return res.status(400).json({ message: 'receiverId requis.' });
     if (requesterId === receiverId) return res.status(400).json({ message: 'Vous ne pouvez pas vous ajouter vous-même.' });
 
-    if (['admin', 'superadmin'].includes(req.user.role)) {
+    if (isAdmin(req.user)) {
       return res.status(403).json({ message: 'Les administrateurs ne peuvent pas avoir d\'amis.' });
     }
     const receiver = await User.findById(receiverId).select('id role');
     if (!receiver) return res.status(404).json({ message: 'Utilisateur introuvable.' });
-    if (['admin', 'superadmin'].includes(receiver.role)) {
+    if (isAdmin(receiver)) {
       return res.status(403).json({ message: 'Impossible d\'envoyer une demande d\'ami à un administrateur.' });
     }
 
@@ -43,7 +44,7 @@ async function accept(req, res, next) {
   try {
     const friendship = await Friendship.findById(req.params.id);
     if (!friendship) return res.status(404).json({ message: 'Demande introuvable.' });
-    if (friendship.receiverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, friendship.receiverId)) return res.status(403).json({ message: 'Accès refusé.' });
     friendship.set({ status: 'accepted' });
     await friendship.save();
 
@@ -61,7 +62,7 @@ async function refuse(req, res, next) {
   try {
     const friendship = await Friendship.findById(req.params.id);
     if (!friendship) return res.status(404).json({ message: 'Demande introuvable.' });
-    if (friendship.receiverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, friendship.receiverId)) return res.status(403).json({ message: 'Accès refusé.' });
     await friendship.deleteOne();
     return res.json({ message: 'Demande refusée.' });
   } catch (err) { return next(err); }

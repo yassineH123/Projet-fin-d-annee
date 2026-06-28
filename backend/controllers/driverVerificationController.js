@@ -7,11 +7,10 @@ const uploadDir = path.join(__dirname, '../uploads');
 
 async function verifyDriver(req, res, next) {
   try {
+    // La vérification "profil conducteur requis" est appliquée en amont par
+    // driverVerificationRoutes.js (middleware requireDriver).
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
-    if (!user.isDriver) {
-      return res.status(400).json({ message: 'Choisissez le profil conducteur avant de soumettre vos documents.' });
-    }
 
     const cinFile    = req.files?.cinDoc?.[0];
     const permisFile = req.files?.permisDoc?.[0];

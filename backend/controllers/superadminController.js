@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 const { logAdminAction } = require('../services/auditLogService');
+const { isAdmin } = require('../middleware/permissions');
 
 async function listAdmins(req, res, next) {
   try {
@@ -61,7 +62,7 @@ async function createAdmin(req, res, next) {
 async function deleteAdmin(req, res, next) {
   try {
     const admin = await User.findById(req.params.id);
-    if (!admin || !['admin', 'superadmin'].includes(admin.role)) {
+    if (!admin || !isAdmin(admin)) {
       return res.status(404).json({ message: 'Admin introuvable.' });
     }
     if (admin.id === req.user.id) {

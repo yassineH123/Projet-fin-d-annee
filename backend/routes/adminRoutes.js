@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
+const { requireSuperAdmin } = require('../middleware/permissions');
 const adminController = require('../controllers/adminController');
 
 const router = express.Router();
@@ -14,7 +15,7 @@ router.get('/users/:id',       adminController.getUserDetail);
 router.patch('/users/:id/suspend',    adminController.suspendUser);
 router.patch('/users/:id/reactivate', adminController.reactivateUser);
 router.patch('/users/:id/ban',        adminController.banUser);
-router.patch('/users/:id/role',       adminController.changeUserRole);
+router.patch('/users/:id/role',       requireSuperAdmin, adminController.changeUserRole);
 router.delete('/users/:id',           adminController.deleteUser);
 
 router.get('/rides',             adminController.listRides);

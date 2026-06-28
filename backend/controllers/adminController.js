@@ -6,6 +6,7 @@ const PostComment = require('../models/PostComment');
 const REVIEWER_ATTRS = 'firstName lastName photo';
 const { logAdminAction } = require('../services/auditLogService');
 const { createNotification } = require('../services/notificationService');
+const { isSuperAdmin } = require('../middleware/permissions');
 
 const SAFE_USER_ATTRS = '-password';
 
@@ -158,7 +159,7 @@ function assertCanActOnTarget(req, target) {
   if (target.role === 'superadmin') {
     return 'Action non autorisée sur un super admin.';
   }
-  if (target.role === 'admin' && req.user.role !== 'superadmin') {
+  if (target.role === 'admin' && !isSuperAdmin(req.user)) {
     return 'Seul un super admin peut agir sur un compte admin.';
   }
   return null;
@@ -196,7 +197,7 @@ async function reactivateUser(req, res, next) {
   try {
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'Utilisateur introuvable.' });
-    if (target.role === 'admin' && req.user.role !== 'superadmin') {
+    if (target.role === 'admin' && !isSuperAdmin(req.user)) {
       return res.status(403).json({ message: 'Seul un super admin peut réactiver un compte admin.' });
     }
 
@@ -207,11 +208,10 @@ async function reactivateUser(req, res, next) {
   } catch (err) { return next(err); }
 }
 
+// L'exigence "super admin uniquement" est appliquée en amont par adminRoutes.js
+// (middleware requireSuperAdmin) sur PATCH /users/:id/role.
 async function changeUserRole(req, res, next) {
   try {
-    if (req.user.role !== 'superadmin') {
-      return res.status(403).json({ message: 'Seul un super admin peut modifier les rôles.' });
-    }
     const { role } = req.body;
     if (!['user', 'admin'].includes(role)) {
       return res.status(400).json({ message: 'Rôle invalide.' });

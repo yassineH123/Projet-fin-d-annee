@@ -3,19 +3,12 @@ const { notifyMatchingSavedSearches } = require('../services/savedSearchService'
 const { triggerAlerts } = require('./rideAlertController');
 const { getCityCoords, cityDistance } = require('../utils/cityCoords');
 const { createNotification } = require('../services/notificationService');
+const { isOwner, isOwnerOrAdmin } = require('../middleware/permissions');
 
+// Les vérifications "admin bloqué / conducteur requis / conducteur vérifié" sont
+// appliquées en amont par les middlewares de rideRoutes.js (POST /).
 async function create(req, res, next) {
   try {
-    if (['admin', 'superadmin'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Un administrateur ne peut pas publier de trajet.' });
-    }
-    if (!req.user.isDriver) {
-      return res.status(403).json({ message: 'Seuls les conducteurs peuvent publier un trajet. Choisissez le profil conducteur dans votre compte.' });
-    }
-    if (!req.user.driverVerified) {
-      return res.status(403).json({ message: 'Vous devez valider vos documents (CIN, permis, véhicule) avant de publier un trajet.' });
-    }
-
     const { from, to, departureDate, price, seats, description, instantBooking,
             transportMode, isRecurring, recurringDays, stops, womenOnly, distanceKm } = req.body;
     const ride = await Ride.create({
@@ -195,7 +188,7 @@ async function update(req, res, next) {
   try {
     const ride = await Ride.findById(req.params.id);
     if (!ride) return res.status(404).json({ message: 'Trajet introuvable.' });
-    if (ride.driverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, ride.driverId)) return res.status(403).json({ message: 'Accès refusé.' });
 
     const { from, to, departureDate, price, seats, description, instantBooking,
             transportMode, stops, womenOnly, distanceKm } = req.body;
@@ -215,7 +208,7 @@ async function complete(req, res, next) {
   try {
     const ride = await Ride.findById(req.params.id);
     if (!ride) return res.status(404).json({ message: 'Trajet introuvable.' });
-    if (ride.driverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, ride.driverId)) return res.status(403).json({ message: 'Accès refusé.' });
     if (ride.status !== 'active') return res.status(400).json({ message: 'Ce trajet ne peut pas être terminé.' });
     ride.set({ status: 'completed' });
     await ride.save();
@@ -227,7 +220,7 @@ async function remove(req, res, next) {
   try {
     const ride = await Ride.findById(req.params.id);
     if (!ride) return res.status(404).json({ message: 'Trajet introuvable.' });
-    if (ride.driverId !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+    if (!isOwnerOrAdmin(req.user, ride.driverId)) {
       return res.status(403).json({ message: 'Accès refusé.' });
     }
 

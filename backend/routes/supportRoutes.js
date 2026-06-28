@@ -1,8 +1,8 @@
 const express = require('express');
 const ctrl = require('../controllers/supportController');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { requireAdmin: isAdmin } = require('../middleware/permissions');
 const router = express.Router();
-const isAdmin = (req,res,next) => ['admin','superadmin'].includes(req.user?.role) ? next() : res.status(403).json({ message: 'Accès refusé.' });
 router.post('/',              authenticateToken, ctrl.create);
 router.get('/me',             authenticateToken, ctrl.getMine);
 router.get('/all',            authenticateToken, isAdmin, ctrl.getAll);

@@ -3,6 +3,7 @@ const { createNotification } = require('../services/notificationService');
 const { sendBookingConfirmation, sendBookingCancellation } = require('../services/emailService');
 const { notifyWaitlist } = require('./waitlistController');
 const { assignBadges } = require('./analyticsController');
+const { isOwner } = require('../middleware/permissions');
 
 function refundPolicy(ride) {
   const hoursUntil = (new Date(ride.departureDate) - Date.now()) / 3600000;
@@ -16,12 +17,9 @@ function populateDetails(query) {
               .populate({ path: 'passenger', select: 'firstName lastName photo avgRating' });
 }
 
+// Le blocage des comptes admin est appliqué en amont par bookingRoutes.js (POST /).
 async function create(req, res, next) {
   try {
-    if (['admin', 'superadmin'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Un administrateur ne peut pas réserver de trajet.' });
-    }
-
     const { rideId, seats = 1, message, useCredits = false } = req.body;
     const ride = await Ride.findById(rideId);
     if (!ride || ride.status !== 'active') return res.status(404).json({ message: 'Trajet introuvable.' });
@@ -89,7 +87,7 @@ async function accept(req, res, next) {
   try {
     const booking = await Booking.findById(req.params.id).populate('ride');
     if (!booking) return res.status(404).json({ message: 'Réservation introuvable.' });
-    if (booking.ride.driverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, booking.ride.driverId)) return res.status(403).json({ message: 'Accès refusé.' });
     if (booking.status !== 'pending') return res.status(400).json({ message: 'Réservation déjà traitée.' });
 
     // Décrémentation atomique des places pour éviter une survente en cas d'acceptations concurrentes
@@ -132,7 +130,7 @@ async function refuse(req, res, next) {
   try {
     const booking = await Booking.findById(req.params.id).populate('ride');
     if (!booking) return res.status(404).json({ message: 'Réservation introuvable.' });
-    if (booking.ride.driverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, booking.ride.driverId)) return res.status(403).json({ message: 'Accès refusé.' });
     if (booking.status !== 'pending') return res.status(400).json({ message: 'Réservation déjà traitée.' });
 
     booking.set({ status: 'refused' });
@@ -151,7 +149,7 @@ async function cancel(req, res, next) {
   try {
     const booking = await Booking.findById(req.params.id).populate('ride');
     if (!booking) return res.status(404).json({ message: 'Réservation introuvable.' });
-    if (booking.passengerId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
+    if (!isOwner(req.user, booking.passengerId)) return res.status(403).json({ message: 'Accès refusé.' });
 
     let refundAmount = 0;
     let refundRate = 0;
