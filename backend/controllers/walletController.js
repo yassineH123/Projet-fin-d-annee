@@ -62,7 +62,11 @@ async function stripeCheckout(req, res, next) {
     });
 
     if (!session) {
-      // Stripe non configuré — fallback vers le topUp direct (mode dev)
+      if (process.env.NODE_ENV === 'production') {
+        // Ne jamais créditer le portefeuille sans paiement réel en production.
+        return res.status(503).json({ message: 'Paiement indisponible pour le moment.' });
+      }
+      // Stripe non configuré — fallback vers le topUp direct (mode développement uniquement)
       return topUp(req, res, next);
     }
 

@@ -19,7 +19,9 @@ const app    = express();
 const server = http.createServer(app);
 initSocket(server);
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+// CORP par défaut ('same-origin') partout, sauf sur /uploads (scoping plus bas) où les
+// images doivent rester chargeables depuis le domaine web (Vercel), différent du backend (Render).
+app.use(helmet());
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
@@ -33,10 +35,22 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS bloqué: ${origin}`));
+    const corsError = new Error(`CORS bloqué: ${origin}`);
+    corsError.status = 403;
+    cb(corsError);
   },
   credentials: true,
 }));
+
+// Le webhook Stripe doit recevoir le body brut (non parsé) pour vérifier la signature
+// HMAC — il est donc enregistré avant express.json(), qui consommerait sinon le flux
+// et casserait silencieusement la vérification de signature.
+app.use(
+  '/wallet/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  require('./controllers/walletController').stripeWebhook
+);
+
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
@@ -44,21 +58,18 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 // (la navbar interroge plusieurs endpoints toutes les 30s par utilisateur connecté).
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 2000, standardHeaders: true, legacyHeaders: false }));
 
-// Limite stricte dédiée à l'authentification : protection anti brute-force.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Trop de tentatives. Réessayez dans quelques minutes.' },
-});
-
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'atlasway-backend' }));
 
 // Routes
-app.use('/auth',          authLimiter, require('./routes/authRoutes'));
+app.use('/auth',          require('./routes/authRoutes'));
 app.use('/users',         require('./routes/userRoutes'));
-app.use('/uploads',       require('express').static(require('path').join(__dirname, 'uploads')));
+// CORP 'cross-origin' restreint à /uploads : nécessaire pour que les <img> du frontend
+// (autre domaine) puissent charger avatars/photos, sans l'exposer au reste de l'API.
+app.use(
+  '/uploads',
+  helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }),
+  require('express').static(require('path').join(__dirname, 'uploads'))
+);
 app.use('/trips',         require('./routes/trips')());
 app.use('/privacy',       require('./routes/privacy')());
 app.use('/admin',         require('./routes/adminRoutes'));

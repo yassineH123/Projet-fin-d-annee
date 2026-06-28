@@ -1,11 +1,24 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { validationResult } = require('express-validator');
 
 const { User, VerificationCode } = require('../models');
 const { record: recordLogin } = require('./loginHistoryController');
 const { sendVerificationEmail } = require('../services/emailService');
 const { sendVerificationSMS }   = require('../services/smsService');
+
+// Normalise une adresse email avant toute recherche/écriture en base, pour que
+// "Test@x.com" et "test@x.com" désignent toujours le même compte (cf. User.js: lowercase/trim).
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+// Code OTP généré via un générateur cryptographiquement sûr (au lieu de Math.random,
+// prévisible) — limite aussi le risque de brute-force par devinette du code.
+function generateOtp() {
+  return String(crypto.randomInt(100000, 1000000));
+}
 
 function signToken(user) {
   return jwt.sign(
@@ -34,7 +47,8 @@ async function register(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { firstName, lastName, email, password, phone, referralCode: refCode, verificationMethod } = req.body;
+    const { firstName, lastName, password, phone, referralCode: refCode, verificationMethod } = req.body;
+    const email = normalizeEmail(req.body.email);
     const existing = await User.findOne({ email });
 
     if (existing && existing.verified) {
@@ -57,7 +71,7 @@ async function register(req, res, next) {
       await existing.save();
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await VerificationCode.deleteMany({ email });
@@ -76,7 +90,7 @@ async function register(req, res, next) {
         console.error('SMS send failed:', err.message)
       );
     } else {
-      console.log(`[VERIFY CODE] ${email} => ${code}`);
+      if (process.env.NODE_ENV !== 'production') console.log(`[VERIFY CODE] ${email} => ${code}`);
     sendVerificationEmail({ to: email, firstName, code }).catch(err =>
         console.error('[EMAIL ERROR]', err.message)
       );
@@ -93,7 +107,8 @@ async function verifyEmail(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { email, code } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { code } = req.body;
     const entry = await VerificationCode.findOne({ email, code });
 
     if (!entry) {
@@ -144,14 +159,14 @@ async function resendCode(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { email } = req.body;
+    const email = normalizeEmail(req.body.email);
     const user = await User.findOne({ email });
 
     if (!user || user.verified) {
       return res.status(404).json({ message: 'Utilisateur introuvable ou déjà vérifié.' });
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await VerificationCode.deleteMany({ email });
@@ -180,7 +195,8 @@ async function login(req, res, next) {
       return res.status(400).json({ message: validationError });
     }
 
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -233,17 +249,20 @@ async function login(req, res, next) {
 
 async function forgotPassword(req, res, next) {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body.email);
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'Aucun compte avec cet email.' });
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    // Réponse volontairement identique que le compte existe ou non, pour ne pas
+    // permettre à un tiers de déduire quels emails sont enregistrés (énumération de comptes).
+    res.json({ message: 'Si un compte existe avec cet email, un code de réinitialisation a été envoyé.' });
+
+    if (!user) return;
+
+    const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await VerificationCode.deleteMany({ email });
     await VerificationCode.create({ email, code, expiresAt });
-
-    res.json({ message: 'Code de réinitialisation envoyé.' });
 
     sendVerificationEmail({ to: email, firstName: user.firstName, code }).catch(err =>
       console.error('Email send failed:', err.message)
@@ -255,7 +274,8 @@ async function forgotPassword(req, res, next) {
 
 async function resetPassword(req, res, next) {
   try {
-    const { email, code, newPassword } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { code, newPassword } = req.body;
     const entry = await VerificationCode.findOne({ email, code });
 
     if (!entry) return res.status(400).json({ message: 'Code incorrect.' });

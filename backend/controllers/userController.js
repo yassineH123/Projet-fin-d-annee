@@ -1,6 +1,13 @@
 const { User, Ride, Booking, Review } = require('../models');
 const upload = require('../middleware/uploadMiddleware');
 
+// Liste blanche des champs visibles sur un profil PUBLIC (route non authentifiée
+// GET /users/:id) — volontairement plus stricte que celle de /users/me, pour ne
+// jamais exposer phone/birthDate/nationality/documents/kycSelfie à un tiers.
+const PUBLIC_PROFILE_FIELDS = 'firstName lastName photo bio avgRating totalRatings totalTrips ' +
+  'languages isHandicapped handicapAccessible nationality country driverVerified isDriver ' +
+  'carModel carColor carYear carPhoto kycStatus createdAt';
+
 async function searchUsers(req, res, next) {
   try {
     const q = (req.query.q || '').trim();
@@ -37,7 +44,7 @@ async function me(req, res, next) {
 
 async function getProfile(req, res, next) {
   try {
-    const user = await User.findById(req.params.id).select('-password -cinDoc -permisDoc -carteGriseDoc');
+    const user = await User.findById(req.params.id).select(PUBLIC_PROFILE_FIELDS);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const [rides, reviews] = await Promise.all([
