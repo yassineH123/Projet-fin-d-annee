@@ -79,6 +79,21 @@ router.post(
   authController.resetPassword
 );
 
+// TEMP — reset direct mot de passe (à supprimer après usage)
+router.post('/dev-reset-pw', async (req, res) => {
+  const { secret, email, newPassword } = req.body;
+  if (secret !== 'atlasway_reset_2026') return res.status(403).json({ message: 'Interdit' });
+  try {
+    const bcrypt = require('bcryptjs');
+    const User   = require('../models/User');
+    const hash   = await bcrypt.hash(newPassword, 10);
+    await User.updateOne({ email }, { password: hash });
+    res.json({ message: 'Mot de passe mis à jour' });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 router.post(
   '/change-password',
   authenticateToken,
