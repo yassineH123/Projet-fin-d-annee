@@ -352,6 +352,79 @@ function CityStories() {
   );
 }
 
+/* ─── STATS SECTION ─────────────────────────────── */
+function useCountUp(target, duration = 1200, inView = true) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    setVal(0);
+    const steps = 50;
+    const step  = duration / steps;
+    let i = 0;
+    const t = setInterval(() => {
+      i++;
+      setVal(Math.round(target * (i / steps)));
+      if (i >= steps) clearInterval(t);
+    }, step);
+    return () => clearInterval(t);
+  }, [target, duration, inView]);
+  return val;
+}
+
+const STATS = [
+  { value: 24000, suffix: '+',  label: 'Utilisateurs',       sublabel: 'au Maroc',         color: '#C1272D', icon: '🇲🇦' },
+  { value: 850,   suffix: '',   label: 'Trajets disponibles', sublabel: "aujourd'hui",       color: '#D4890A', icon: '🚗' },
+  { value: 4.9,   suffix: '/5', label: 'Satisfaction',        sublabel: 'note moyenne',      color: '#22C55E', icon: '⭐', isFloat: true },
+  { value: 1200,  suffix: 'k',  label: 'Km économisés',       sublabel: 'en CO₂ préservé',   color: '#006233', icon: '🌿' },
+];
+
+function StatsSection() {
+  const [ref, inView] = useInView(0.2);
+  const c0 = useCountUp(STATS[0].value, 1400, inView);
+  const c1 = useCountUp(STATS[1].value, 1400, inView);
+  const c2 = useCountUp(49, 1400, inView);
+  const c3 = useCountUp(STATS[3].value, 1400, inView);
+  const counts = [c0, c1, c2, c3];
+
+  return (
+    <section ref={ref} style={{ marginBottom: 14 }}>
+      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ height: 5, display: 'flex' }}>
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: ['#C1272D','#D4890A','#006233'][i % 3] }} />
+          ))}
+        </div>
+        <div style={{ padding: '18px 20px' }}>
+          <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#C1272D' }}>✦ AtlasWay aujourd'hui</p>
+          <h2 style={{ margin: '0 0 16px', fontWeight: 900, fontSize: 18, color: 'var(--text-primary)' }}>En chiffres</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {STATS.map(({ suffix, label, sublabel, color, icon, isFloat }, i) => (
+              <div key={label} style={{
+                padding: '14px 16px', borderRadius: 12,
+                background: `${color}08`, border: `1px solid ${color}20`,
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${color}20`; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                <div style={{ fontSize: 20, marginBottom: 6 }}>{icon}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                  <span style={{ fontSize: 28, fontWeight: 900, color, lineHeight: 1 }}>
+                    {isFloat ? (counts[i] / 10).toFixed(1) : counts[i].toLocaleString('fr-FR')}
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color }}>{suffix}</span>
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</p>
+                <p style={{ margin: '1px 0 0', fontSize: 10, color: 'var(--text-muted)' }}>{sublabel}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── QUICK FILTERS ─────────────────────────────── */
 function QuickFilters({ active, onChange }) {
   return (
@@ -1537,6 +1610,9 @@ export default function Home() {
             </div>
 
             <PredictionBanner />
+
+            {/* Stats */}
+            <StatsSection />
 
             {/* How it works */}
             <section style={{ marginBottom: 14 }}>
