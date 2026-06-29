@@ -1,9 +1,14 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { requireAdmin } = require('../middleware/permissions');
 const { Ride, Booking, User } = require('../models');
 
 const router = express.Router();
-router.use(authenticateToken);
+// Ces endpoints agrègent des données à l'échelle de toute la plateforme (stats
+// globales, liste d'utilisateurs avec nom/email) : ils doivent être réservés aux
+// administrateurs. Sans cette restriction, n'importe quel compte authentifié
+// pouvait lister les nom/email d'autres utilisateurs via /enterprise/employees.
+router.use(authenticateToken, requireAdmin);
 
 // GET /enterprise/stats — résumé des trajets professionnels
 router.get('/stats', async (req, res, next) => {

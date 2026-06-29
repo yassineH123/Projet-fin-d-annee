@@ -2,14 +2,17 @@ module.exports = function() {
   const express = require('express');
   const router = express.Router();
   const User = require('../models/User');
-  const Trip = require('../models/Trip');
+  const Ride = require('../models/Ride');
   const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-  // GET /privacy/export - export complet réservé au superadmin, sans champs sensibles
+  // GET /privacy/export - export complet réservé au superadmin, sans champs sensibles.
+  // Exporte la collection Ride (les vrais trajets) ; l'ancien code lisait la collection
+  // Trip, désormais supprimée car fantôme/toujours vide. La clé JSON reste "trips" pour
+  // préserver le format de sortie existant.
   router.get('/export', authenticateToken, authorizeRoles('superadmin'), async (req, res) => {
     try {
       const users = await User.find().select('-password -cinDoc -permisDoc -carteGriseDoc -passportDoc -kycSelfie').lean();
-      const trips = await Trip.find().lean();
+      const trips = await Ride.find().lean();
       const payload = { users, trips };
       res.setHeader('Content-Disposition', 'attachment; filename="export.json"');
       res.setHeader('Content-Type', 'application/json');

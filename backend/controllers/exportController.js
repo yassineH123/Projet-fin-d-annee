@@ -1,4 +1,4 @@
-const { Parser } = require('json2csv');
+const { Parser } = require('@json2csv/plainjs');
 const { Booking, Ride, User, Transaction } = require('../models');
 
 async function exportDriverEarnings(req, res, next) {

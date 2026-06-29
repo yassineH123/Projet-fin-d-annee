@@ -106,7 +106,7 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = () => { logout(); toast.success('Déconnexion réussie.'); navigate('/'); };
   const MOROCCAN_CITIES = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Agadir','Meknès','Oujda','Tétouan','Chefchaouen','Essaouira','Ifrane','Merzouga','Laâyoune'];
 
   const handleSearchChange = (e) => {

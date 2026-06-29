@@ -1,7 +1,6 @@
 const multer = require('multer');
 const path = require('path');
 const { v2: cloudinary } = require('cloudinary');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -9,6 +8,28 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+// Moteur de stockage multer pour Cloudinary (remplace multer-storage-cloudinary,
+// abandonné depuis 2020 et incompatible avec multer 2.x / cloudinary 2.x).
+// Implémente le contrat StorageEngine de multer : _handleFile / _removeFile.
+class CloudinaryStorage {
+  constructor({ params }) {
+    this.getParams = typeof params === 'function' ? params : () => params;
+  }
+  _handleFile(req, file, cb) {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      this.getParams(req, file),
+      (err, result) => {
+        if (err) return cb(err);
+        cb(null, { path: result.secure_url, filename: result.public_id, ...result });
+      }
+    );
+    file.stream.pipe(uploadStream);
+  }
+  _removeFile(_req, file, cb) {
+    cloudinary.uploader.destroy(file.filename, cb);
+  }
+}
 
 // Fallback to local storage if Cloudinary not configured
 const useCloudinary = !!(
