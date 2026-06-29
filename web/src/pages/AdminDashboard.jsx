@@ -159,7 +159,11 @@ export default function AdminDashboard() {
   const { user: me } = useAuth();
   const isSuperAdmin = me?.role === 'superadmin';
 
-  const [tab, setTab] = useState('overview');
+  // Onglet initial depuis l'URL (?tab=admins via le lien « Gestion des administrateurs »).
+  const [tab, setTab] = useState(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    return ['overview', 'users', 'rides', 'reports', 'kyc', 'logs', 'admins'].includes(t) ? t : 'overview';
+  });
   const [loading, setLoading] = useState(true);
 
   /* données vue d'ensemble (réelles) */

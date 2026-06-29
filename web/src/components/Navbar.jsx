@@ -4,7 +4,7 @@ import {
   Car, Search, MessageSquare, User, LogOut, Shield, Plus,
   Menu, X, BookOpen, Sun, Moon, ArrowRight, Bell, CheckCircle, Clock, Rss, Star, BarChart2, Users, Globe, Mic, MicOff,
   Map, MapPin, Wallet, Trophy, Crown, Camera, CalendarDays, LifeBuoy, History, Headphones, Navigation,
-  Heart, Building2, LayoutGrid
+  Heart, LayoutGrid, UserCog
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -29,9 +29,67 @@ function timeAgo(date) {
   return 'Hier';
 }
 
+/**
+ * Source unique du menu (desktop dropdown + drawer mobile) — évite toute duplication.
+ * - Admin/superadmin : menu réduit (Dashboard, Messages, Profil [+ Gestion des admins]).
+ * - Utilisateur : sections Compte / Trajets / Communauté / Aide, role-aware (conducteur/passager).
+ * Les badges reproduisent ceux du desktop (messages, réservations, amis, notifications).
+ */
+function buildSections({ isAdmin, isSuperAdmin, isDriver, badges, t }) {
+  if (isAdmin) {
+    return [{
+      title: null,
+      items: [
+        { to: '/admin', icon: Shield, label: 'Dashboard Admin' },
+        ...(isSuperAdmin ? [{ to: '/admin?tab=admins', icon: UserCog, label: 'Gestion des administrateurs' }] : []),
+        { to: '/messages', icon: MessageSquare, label: t.profileMenu.messages, badge: badges.messages },
+        { to: '/profile',  icon: User,          label: t.profileMenu.profile },
+      ],
+    }];
+  }
+  return [
+    { title: 'Compte', items: [
+      { to: '/profile',       icon: User,          label: t.profileMenu.profile },
+      { to: '/messages',      icon: MessageSquare, label: t.profileMenu.messages, badge: badges.messages },
+      { to: '/wallet',        icon: Wallet,        label: 'Portefeuille' },
+      { to: '/notifications', icon: Bell,          label: 'Notifications', badge: badges.notifs },
+      { to: '/premium',       icon: Crown,         label: 'Premium' },
+      { to: '/login-history', icon: History,       label: 'Historique connexions' },
+    ]},
+    { title: 'Trajets', items: [
+      ...(isDriver ? [
+        { to: '/rides/publish',  icon: Plus,      label: t.profileMenu.publish },
+        { to: '/rides/mine',     icon: Car,       label: t.profileMenu.rides },
+        { to: '/analytics/driver', icon: BarChart2, label: 'Mes statistiques' },
+      ] : [
+        { to: '/rides/search',   icon: Search,    label: t.profileMenu.search || 'Rechercher un trajet' },
+        { to: '/bookings',       icon: BookOpen,  label: t.profileMenu.bookings, badge: badges.bookings },
+      ]),
+      { to: '/favorites',   icon: Heart, label: 'Mes favoris' },
+      { to: '/ride-alerts', icon: Bell,  label: 'Alertes trajets' },
+      { to: '/compare',     icon: Map,   label: 'Comparer' },
+    ]},
+    { title: 'Communauté', items: [
+      { to: '/feed',        icon: Rss,         label: 'Feed' },
+      { to: '/friends',     icon: Users,       label: t.profileMenu.friends, badge: badges.friends },
+      { to: '/stories',     icon: Camera,      label: 'Stories' },
+      { to: '/groups',      icon: Users,       label: 'Groupes' },
+      { to: '/events',      icon: CalendarDays,label: 'Événements' },
+      { to: '/leaderboard', icon: Trophy,      label: 'Classement' },
+      { to: '/mobility',    icon: Globe,       label: 'Mobilité' },
+      { to: '/city-ride',   icon: Navigation,  label: 'City' },
+    ]},
+    { title: 'Aide', items: [
+      { to: '/support',            icon: Headphones, label: 'Support & Aide' },
+      { to: '/emergency-contacts', icon: LifeBuoy,   label: 'Contacts SOS' },
+    ]},
+  ];
+}
+
 export default function Navbar() {
   const { user, logout }    = useAuth();
   const isAdmin              = ['admin', 'superadmin'].includes(user?.role);
+  const isSuperAdmin         = user?.role === 'superadmin';
   const { theme, toggle }   = useTheme();
   const { lang, setLang, t } = useLanguage();
   const navigate             = useNavigate();
@@ -71,7 +129,13 @@ export default function Navbar() {
   /* Close menus on route change */
   useEffect(() => {
     setMobileOpen(false); setNotifOpen(false); setProfileOpen(false); setLangOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
+
+  /* Bloque le scroll du body quand le drawer mobile est ouvert */
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   /* Reset badges */
   useEffect(() => {
@@ -129,7 +193,7 @@ export default function Navbar() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setSearchOpen(false);
+    setSearchOpen(false); setMobileOpen(false);
     if (searchQ.trim()) navigate(`/rides/search?from=${encodeURIComponent(searchQ.trim())}`);
     else navigate('/rides/search');
   };
@@ -184,36 +248,12 @@ export default function Navbar() {
     }
   };
 
-  const profileMenuItems = [
-    { to: '/profile',             icon: User,          label: t.profileMenu.profile },
-    ...(isAdmin ? [] : [{ to: '/friends', icon: Users, label: t.profileMenu.friends, badge: friendReqs }]),
-    // Conducteur uniquement (nécessite isDriver + driverVerified, cf. DriverRoute)
-    ...(isAdmin ? [] : user?.isDriver ? [
-      { to: '/driver-dashboard',    icon: BarChart2,     label: t.profileMenu.dashboard },
-      { to: '/analytics/driver',    icon: BarChart2,     label: 'Mes statistiques' },
-      { to: '/rides/publish',       icon: Plus,          label: t.profileMenu.publish },
-      { to: '/rides/mine',          icon: Car,           label: t.profileMenu.rides },
-    ] : [
-      { to: '/rides/search',        icon: Search,        label: t.profileMenu.search || 'Rechercher un trajet' },
-      { to: '/bookings',            icon: BookOpen,      label: t.profileMenu.bookings },
-    ]),
-    { to: '/wallet',              icon: Wallet,        label: 'Portefeuille' },
-    { to: '/leaderboard',         icon: Trophy,        label: 'Classement' },
-    { to: '/premium',             icon: Crown,         label: 'Premium' },
-    { to: '/stories',             icon: Camera,        label: 'Stories' },
-    { to: '/groups',              icon: Users,         label: 'Groupes' },
-    { to: '/events',              icon: CalendarDays,  label: 'Événements' },
-    { to: '/favorites',           icon: Heart,         label: 'Mes favoris' },
-    { to: '/notifications',       icon: Bell,          label: 'Notifications' },
-    { to: '/ride-alerts',         icon: Bell,          label: 'Alertes trajets' },
-    { to: '/emergency-contacts',  icon: LifeBuoy,      label: 'Contacts SOS' },
-    { to: '/enterprise',          icon: Building2,     label: 'Tableau entreprise' },
-    { to: '/support',             icon: Headphones,    label: 'Support & Aide' },
-    { to: '/messages',            icon: MessageSquare, label: t.profileMenu.messages },
-    { to: '/login-history',       icon: History,       label: 'Historique connexions' },
-  ];
+  // ── Menu (source unique desktop + mobile) ──
+  const badges = { messages: unreadMsg, bookings: pendingBooks, friends: friendReqs, notifs: unreadNotifs };
+  const sections = user ? buildSections({ isAdmin, isSuperAdmin, isDriver: user?.isDriver, badges, t }) : [];
 
   return (
+    <>
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled ? 'shadow-lg shadow-black/30' : ''
     }`} style={{
@@ -227,7 +267,7 @@ export default function Navbar() {
 
         {/* ── LOGO (gauche) ── */}
         <Link
-          to={['admin', 'superadmin'].includes(user?.role) ? '/admin' : '/'}
+          to={isAdmin ? '/admin' : '/'}
           onClick={() => { if (location.pathname === '/' || location.pathname === '/admin') window.location.reload(); }}
           className="flex items-center gap-2 flex-shrink-0 group"
         >
@@ -248,12 +288,7 @@ export default function Navbar() {
                 onChange={handleSearchChange}
                 placeholder={t.nav.searchPlaceholder}
                 className="w-full pl-9 pr-10 py-2 rounded-xl text-sm font-medium transition-all"
-                style={{
-                  background: 'var(--bg-700)',
-                  border: '1.5px solid var(--border-color)',
-                  color: 'var(--text-base)',
-                  outline: 'none',
-                }}
+                style={{ background: 'var(--bg-700)', border: '1.5px solid var(--border-color)', color: 'var(--text-base)', outline: 'none' }}
                 onFocus={e => { e.target.style.borderColor = '#C1272D'; e.target.style.boxShadow = '0 0 0 3px rgba(193,39,45,0.1)'; if (searchQ.trim()) setSearchOpen(true); }}
                 onBlur={e  => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
                 autoComplete="off"
@@ -270,8 +305,6 @@ export default function Navbar() {
           {searchOpen && (searchResults.cities.length > 0 || searchResults.users.length > 0 || searchLoading) && (
             <div className="absolute top-[calc(100%+6px)] left-0 w-full rounded-2xl shadow-2xl overflow-hidden z-50"
               style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.22)' }}>
-
-              {/* Villes */}
               {searchResults.cities.length > 0 && (
                 <div>
                   <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Villes</p>
@@ -289,8 +322,6 @@ export default function Navbar() {
                   ))}
                 </div>
               )}
-
-              {/* Conducteurs / Profils */}
               {(searchResults.users.length > 0 || searchLoading) && (
                 <div style={{ borderTop: searchResults.cities.length > 0 ? '1px solid var(--border-color)' : 'none' }}>
                   <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Conducteurs</p>
@@ -308,11 +339,7 @@ export default function Navbar() {
                     >
                       {u.photo
                         ? <img src={u.photo} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                        : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                            style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
-                            {u.firstName?.[0]}
-                          </div>
-                      }
+                        : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>{u.firstName?.[0]}</div>}
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm leading-tight flex items-center gap-1" style={{ color: 'var(--text-base)' }}>
                           {u.firstName} {u.lastName}
@@ -340,7 +367,7 @@ export default function Navbar() {
 
           {user ? (
             <>
-              {/* Feed */}
+              {/* Feed (non-admin) */}
               {!isAdmin && (
                 <NavLink to="/feed" title="Feed"
                   className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
@@ -392,7 +419,7 @@ export default function Navbar() {
                 )}
               </NavLink>
 
-              {/* Amis */}
+              {/* Amis (non-admin) */}
               {!isAdmin && (
                 <NavLink to="/friends" title="Amis"
                   className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all relative"
@@ -410,43 +437,45 @@ export default function Navbar() {
                 </NavLink>
               )}
 
-              {/* ── Explorer dropdown ── */}
-              <div ref={explorerRef} className="relative hidden md:block">
-                <button
-                  onClick={() => { setExplorerOpen(o => !o); setNotifOpen(false); setProfileOpen(false); setLangOpen(false); }}
-                  title="Explorer"
-                  className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
-                  style={{ background: explorerOpen ? 'rgba(212,137,10,0.1)' : 'transparent', color: explorerOpen ? '#D4890A' : 'var(--text-secondary)' }}>
-                  <LayoutGrid size={20} />
-                </button>
-                {explorerOpen && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl overflow-hidden shadow-2xl z-50 p-3"
-                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.2)' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest px-1 mb-2.5" style={{ color: 'var(--text-muted)' }}>Explorer</p>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { to: '/compare',    icon: Map,          label: 'Comparer',   color: '#00BCD4' },
-                        { to: '/mobility',   icon: Globe,        label: 'Mobilité',   color: '#006233' },
-                        { to: '/city-ride',  icon: Navigation,   label: 'City',       color: '#D4890A' },
-                        { to: '/leaderboard',icon: Trophy,       label: 'Classement', color: '#D4890A' },
-                        { to: '/events',     icon: CalendarDays, label: 'Événements', color: '#8B5CF6' },
-                        { to: '/groups',     icon: Users,        label: 'Groupes',    color: '#3B82F6' },
-                      ].map(({ to, icon: Icon, label, color }) => (
-                        <Link key={to} to={to} onClick={() => setExplorerOpen(false)}
-                          className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
-                          style={{ textDecoration: 'none' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-700)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
-                            <Icon size={17} style={{ color }} />
-                          </div>
-                          <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                        </Link>
-                      ))}
+              {/* ── Explorer dropdown (non-admin) ── */}
+              {!isAdmin && (
+                <div ref={explorerRef} className="relative hidden md:block">
+                  <button
+                    onClick={() => { setExplorerOpen(o => !o); setNotifOpen(false); setProfileOpen(false); setLangOpen(false); }}
+                    title="Explorer"
+                    className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                    style={{ background: explorerOpen ? 'rgba(212,137,10,0.1)' : 'transparent', color: explorerOpen ? '#D4890A' : 'var(--text-secondary)' }}>
+                    <LayoutGrid size={20} />
+                  </button>
+                  {explorerOpen && (
+                    <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl overflow-hidden shadow-2xl z-50 p-3"
+                      style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.2)' }}>
+                      <p className="text-[10px] font-black uppercase tracking-widest px-1 mb-2.5" style={{ color: 'var(--text-muted)' }}>Explorer</p>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { to: '/compare',    icon: Map,          label: 'Comparer',   color: '#00BCD4' },
+                          { to: '/mobility',   icon: Globe,        label: 'Mobilité',   color: '#006233' },
+                          { to: '/city-ride',  icon: Navigation,   label: 'City',       color: '#D4890A' },
+                          { to: '/leaderboard',icon: Trophy,       label: 'Classement', color: '#D4890A' },
+                          { to: '/events',     icon: CalendarDays, label: 'Événements', color: '#8B5CF6' },
+                          { to: '/groups',     icon: Users,        label: 'Groupes',    color: '#3B82F6' },
+                        ].map(({ to, icon: Icon, label, color }) => (
+                          <Link key={to} to={to} onClick={() => setExplorerOpen(false)}
+                            className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
+                            style={{ textDecoration: 'none' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-700)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+                              <Icon size={17} style={{ color }} />
+                            </div>
+                            <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               {/* ── Notifications ── */}
               <div ref={notifRef} className="relative hidden md:block">
@@ -464,16 +493,13 @@ export default function Navbar() {
                   )}
                 </button>
 
-                {/* Dropdown notifs */}
                 {notifOpen && (
                   <div className="absolute right-0 top-[calc(100%+8px)] w-80 rounded-2xl overflow-hidden shadow-2xl z-50"
                     style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
                     <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <h3 className="font-black text-base" style={{ color: 'var(--text-base)' }}>{t.nav.notifications}</h3>
                       {unreadNotifs > 0 && (
-                        <button onClick={markAllRead} className="text-xs font-semibold" style={{ color: '#C1272D' }}>
-                          {t.nav.markAllRead}
-                        </button>
+                        <button onClick={markAllRead} className="text-xs font-semibold" style={{ color: '#C1272D' }}>{t.nav.markAllRead}</button>
                       )}
                     </div>
                     {pushReady && (
@@ -490,23 +516,19 @@ export default function Navbar() {
                         const meta = NOTIF_TYPE_META[n.type] || NOTIF_TYPE_META.system;
                         const Icon = meta.icon;
                         return (
-                          <div key={n.id}
-                            onClick={() => markOneRead(n.id)}
+                          <div key={n.id} onClick={() => markOneRead(n.id)}
                             className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-all"
                             style={{ background: n.read ? 'transparent' : 'rgba(193,39,45,0.04)', borderBottom: '1px solid var(--border-color)' }}
                             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-700)'}
                             onMouseLeave={e => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(193,39,45,0.04)'}
                           >
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{ background: `${meta.color}18` }}>
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${meta.color}18` }}>
                               <Icon size={18} style={{ color: meta.color }} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold leading-tight" style={{ color: 'var(--text-base)' }}>{n.title}</p>
                               <p className="text-xs mt-0.5 leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>{n.message}</p>
-                              <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#C1272D' }}>
-                                <Clock size={10} /> {timeAgo(n.createdAt)}
-                              </p>
+                              <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#C1272D' }}><Clock size={10} /> {timeAgo(n.createdAt)}</p>
                             </div>
                             {!n.read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: '#C1272D' }} />}
                           </div>
@@ -515,8 +537,7 @@ export default function Navbar() {
                     </div>
                     <div className="px-4 py-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
                       <Link to="/notifications" onClick={() => setNotifOpen(false)}
-                        className="block w-full text-sm font-semibold py-1.5 rounded-xl transition-all text-center"
-                        style={{ color: '#C1272D' }}>
+                        className="block w-full text-sm font-semibold py-1.5 rounded-xl transition-all text-center" style={{ color: '#C1272D' }}>
                         {t.nav.viewAll}
                       </Link>
                     </div>
@@ -525,20 +546,15 @@ export default function Navbar() {
               </div>
 
               {/* Admin */}
-              {['admin', 'superadmin'].includes(user?.role) && (
+              {isAdmin && (
                 <NavLink to="/admin" title="Admin"
                   className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl transition-all"
-                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Shield size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />
-                    </>
-                  )}
+                  style={({ isActive }) => ({ background: isActive ? 'rgba(193,39,45,0.1)' : 'transparent' })}>
+                  {({ isActive }) => <Shield size={20} style={{ color: isActive ? '#C1272D' : 'var(--text-secondary)' }} />}
                 </NavLink>
               )}
 
-              {/* ── Profil dropdown ── */}
+              {/* ── Profil dropdown (desktop) — regroupé par sections, filtré pour l'admin ── */}
               <div ref={profileRef} className="relative hidden md:block">
                 <button
                   onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); setLangOpen(false); setExplorerOpen(false); }}
@@ -547,56 +563,52 @@ export default function Navbar() {
                 >
                   {user.photo
                     ? <img src={user.photo} alt="" className="w-8 h-8 rounded-full object-cover" style={{ outline: '2px solid #C1272D', outlineOffset: 1 }} />
-                    : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-black"
-                        style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
-                        {user.firstName?.[0]}
-                      </div>
-                  }
+                    : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-black" style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>{user.firstName?.[0]}</div>}
                   <span className="text-sm font-bold hidden lg:block" style={{ color: 'var(--text-base)' }}>{user.firstName}</span>
                 </button>
 
                 {profileOpen && (
                   <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl overflow-hidden shadow-2xl z-50"
-                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', maxHeight: '74vh', overflowY: 'auto' }}>
                     {/* User info */}
                     <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
                       {user.photo
                         ? <img src={user.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
-                        : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black"
-                            style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>
-                            {user.firstName?.[0]}
-                          </div>
-                      }
+                        : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black" style={{ background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>{user.firstName?.[0]}</div>}
                       <div>
                         <p className="font-bold text-sm" style={{ color: 'var(--text-base)' }}>{user.firstName} {user.lastName}</p>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
                       </div>
                     </div>
-                    {profileMenuItems.map(({ to, icon: Icon, label, badge }) => (
-                      <Link key={to} to={to}
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all"
-                        style={{ color: 'var(--text-secondary)' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-base)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                      >
-                        <Icon size={16} />
-                        <span className="flex-1">{label}</span>
-                        {badge > 0 && (
-                          <span className="min-w-[18px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
-                            {badge > 9 ? '9+' : badge}
-                          </span>
+                    {sections.map((section, si) => (
+                      <div key={section.title || si} style={{ borderTop: si > 0 ? '1px solid var(--border-color)' : 'none' }}>
+                        {section.title && (
+                          <p className="px-4 pt-2.5 pb-1 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{section.title}</p>
                         )}
-                      </Link>
+                        {section.items.map(({ to, icon: Icon, label, badge }) => (
+                          <Link key={to} to={to} onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all"
+                            style={{ color: 'var(--text-secondary)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-base)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                          >
+                            <Icon size={16} />
+                            <span className="flex-1">{label}</span>
+                            {badge > 0 && (
+                              <span className="min-w-[18px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center" style={{ background: '#C1272D' }}>
+                                {badge > 9 ? '9+' : badge}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
                     ))}
                     <div style={{ borderTop: '1px solid var(--border-color)' }}>
-                      <button
-                        onClick={handleLogout}
+                      <button onClick={handleLogout}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium w-full transition-all"
                         style={{ color: '#C1272D' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(193,39,45,0.06)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <LogOut size={16} /> {t.nav.logout}
                       </button>
                     </div>
@@ -605,7 +617,7 @@ export default function Navbar() {
               </div>
             </>
           ) : (
-            /* Non connecté */
+            /* Non connecté (desktop) */
             <div className="hidden md:flex items-center gap-2">
               <Link to="/login"
                 className="px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 border"
@@ -663,99 +675,139 @@ export default function Navbar() {
           <button onClick={toggle} title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
             className="flex items-center justify-center w-9 h-9 rounded-xl transition-all"
             style={{ color: 'var(--text-secondary)' }}>
-            {theme === 'dark'
-              ? <Sun size={20} style={{ color: '#D4890A' }} />
-              : <Moon size={20} style={{ color: '#C1272D' }} />
-            }
+            {theme === 'dark' ? <Sun size={20} style={{ color: '#D4890A' }} /> : <Moon size={20} style={{ color: '#C1272D' }} />}
           </button>
 
           {/* Mobile burger */}
           <button className="md:hidden p-2 rounded-xl transition-all" style={{ color: 'var(--text-secondary)' }}
-            onClick={() => setMobileOpen(!mobileOpen)}>
+            onClick={() => setMobileOpen(v => !v)} aria-label="Menu">
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
-      {/* ── MENU MOBILE ── */}
-      {mobileOpen && (
-        <div className="md:hidden px-4 py-4 flex flex-col gap-1" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
-          <MobileLink to="/rides/search"  icon={<Search size={16} />}       label={t.mobile.search} />
-          <MobileLink to="/compare"       icon={<Map size={16} />}           label={t.mobile.compare} />
-          <MobileLink to="/mobility"      icon={<Globe size={16} />}         label="Mobilité" />
-          <MobileLink to="/city-ride"     icon={<Navigation size={16} />}    label="City" />
-          {!isAdmin && <MobileLink to="/feed" icon={<Rss size={16} />} label={t.mobile.feed} />}
-          {user ? (
-            <>
-              {!isAdmin && (user?.isDriver ? (
-                <>
-                  <MobileLink to="/rides/publish" icon={<Plus size={16} />} label={t.mobile.publish} />
-                  <MobileLink to="/rides/mine"    icon={<Car size={16} />}  label={t.mobile.rides} />
-                </>
-              ) : (
-                <MobileLink to="/bookings" icon={<BookOpen size={16} />} label={t.mobile.bookings} badge={pendingBooks} badgeColor="bg-yellow-500 text-black" />
-              ))}
-              <MobileLink to="/messages"      icon={<MessageSquare size={16} />} label={t.mobile.messages}  badge={unreadMsg}    badgeColor="bg-red-500 text-white" />
-              {!isAdmin && <MobileLink to="/friends" icon={<Users size={16} />} label={t.mobile.friends} badge={friendReqs} badgeColor="bg-red-500 text-white" />}
-              <MobileLink to="/profile"       icon={<User size={16} />}          label={t.mobile.profile} />
-              {['admin','superadmin'].includes(user?.role) && (
-                <MobileLink to="/admin" icon={<Shield size={16} />} label={t.mobile.admin} />
-              )}
-              {/* Mobile language selector */}
-              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 8, paddingTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {Object.entries(LANGS).map(([key, l]) => (
-                  <button key={key}
-                    onClick={() => setLang(key)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                    style={{
-                      background: lang === key ? 'rgba(212,137,10,0.12)' : 'var(--bg-700)',
-                      border: `1px solid ${lang === key ? 'rgba(212,137,10,0.5)' : 'var(--border-color)'}`,
-                      color: lang === key ? '#D4890A' : 'var(--text-secondary)',
-                    }}
-                  >
-                    <span>{l.flag}</span> {l.name}
-                  </button>
-                ))}
-              </div>
-              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 8, paddingTop: 8 }}>
-                <button onClick={handleLogout}
-                  className="flex items-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl w-full transition-all"
-                  style={{ color: '#C1272D' }}>
-                  <LogOut size={16} /> {t.mobile.logout}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col gap-2 mt-2">
-              <Link to="/login"    className="btn-secondary text-sm text-center py-3">{t.mobile.login}</Link>
-              <Link to="/register" className="btn-primary  text-sm text-center py-3">{t.mobile.registerFull}</Link>
-              {/* Mobile language selector */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                {Object.entries(LANGS).map(([key, l]) => (
-                  <button key={key}
-                    onClick={() => setLang(key)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                    style={{
-                      background: lang === key ? 'rgba(212,137,10,0.12)' : 'var(--bg-700)',
-                      border: `1px solid ${lang === key ? 'rgba(212,137,10,0.5)' : 'var(--border-color)'}`,
-                      color: lang === key ? '#D4890A' : 'var(--text-secondary)',
-                    }}
-                  >
-                    <span>{l.flag}</span> {l.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </nav>
+
+    {/* ════════════ DRAWER MOBILE (slide + fade) — hors du <nav> (backdrop-filter
+        casserait le position:fixed en créant un bloc conteneur) ════════════ */}
+      <div className="md:hidden">
+        {/* Overlay */}
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.5)',
+            opacity: mobileOpen ? 1 : 0, pointerEvents: mobileOpen ? 'auto' : 'none',
+            transition: 'opacity 0.25s ease',
+          }}
+        />
+        {/* Panneau */}
+        <aside
+          style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 61,
+            width: '86vw', maxWidth: 360, background: 'var(--card-bg)',
+            borderLeft: '1px solid var(--border-color)',
+            transform: mobileOpen ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.28s ease',
+            boxShadow: '-8px 0 40px rgba(0,0,0,0.28)',
+            display: 'flex', flexDirection: 'column',
+          }}
+        >
+          {/* En-tête du drawer */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
+            {user ? (
+              <>
+                {user.photo
+                  ? <img src={user.photo} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                  : <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, background: 'linear-gradient(135deg,#C1272D,#D4890A)' }}>{user.firstName?.[0]}</div>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--text-base)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.firstName} {user.lastName}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</p>
+                </div>
+              </>
+            ) : (
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text-base)', fontFamily: "'Fraunces', serif" }}>AtlasWay</p>
+            )}
+            <button onClick={() => setMobileOpen(false)} aria-label="Fermer" style={{ marginLeft: 'auto', padding: 6, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Recherche */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+            <form onSubmit={handleSearch}>
+              <div style={{ position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  value={searchQ}
+                  onChange={e => setSearchQ(e.target.value)}
+                  placeholder={t.nav.searchPlaceholder}
+                  className="w-full"
+                  style={{ paddingLeft: 36, paddingRight: 12, height: 40, borderRadius: 12, background: 'var(--bg-700)', border: '1.5px solid var(--border-color)', color: 'var(--text-base)', outline: 'none', fontSize: 14, width: '100%' }}
+                  autoComplete="off"
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Contenu scrollable */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+            {user ? (
+              sections.map((section, si) => (
+                <div key={section.title || si} style={{ padding: '4px 8px', borderTop: si > 0 ? '1px solid var(--border-color)' : 'none' }}>
+                  {section.title && (
+                    <p style={{ margin: '8px 8px 4px', fontSize: 10, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{section.title}</p>
+                  )}
+                  {section.items.map(({ to, icon: Icon, label, badge }) => (
+                    <MobileLink key={to} to={to} icon={<Icon size={18} />} label={label} badge={badge || 0} onClick={() => setMobileOpen(false)} />
+                  ))}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Link to="/login"    onClick={() => setMobileOpen(false)} className="btn-secondary text-sm text-center py-3">{t.mobile.login}</Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)} className="btn-primary text-sm text-center py-3">{t.mobile.registerFull}</Link>
+              </div>
+            )}
+          </div>
+
+          {/* Pied : langue + thème + déconnexion */}
+          <div style={{ borderTop: '1px solid var(--border-color)', padding: '12px 16px' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              {Object.entries(LANGS).map(([key, l]) => (
+                <button key={key} onClick={() => setLang(key)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                  style={{
+                    background: lang === key ? 'rgba(212,137,10,0.12)' : 'var(--bg-700)',
+                    border: `1px solid ${lang === key ? 'rgba(212,137,10,0.5)' : 'var(--border-color)'}`,
+                    color: lang === key ? '#D4890A' : 'var(--text-secondary)',
+                  }}>
+                  <span>{l.flag}</span> {l.name}
+                </button>
+              ))}
+              <button onClick={toggle} title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: 'var(--bg-700)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+                {theme === 'dark' ? <Sun size={14} style={{ color: '#D4890A' }} /> : <Moon size={14} style={{ color: '#C1272D' }} />}
+                {theme === 'dark' ? 'Clair' : 'Sombre'}
+              </button>
+            </div>
+            {user && (
+              <button onClick={handleLogout}
+                className="flex items-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl w-full transition-all"
+                style={{ color: '#C1272D', background: 'rgba(193,39,45,0.06)' }}>
+                <LogOut size={16} /> {t.mobile.logout}
+              </button>
+            )}
+          </div>
+        </aside>
+      </div>
+    </>
   );
 }
 
-function MobileLink({ to, icon, label, badge = 0, badgeColor = '' }) {
+function MobileLink({ to, icon, label, badge = 0, onClick }) {
   return (
-    <NavLink to={to}
+    <NavLink to={to} onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
           isActive ? 'bg-primary-500/10 text-primary-400' : 'hover:bg-dark-700'
@@ -766,7 +818,7 @@ function MobileLink({ to, icon, label, badge = 0, badgeColor = '' }) {
       {icon}
       <span className="flex-1">{label}</span>
       {badge > 0 && (
-        <span className={`text-xs font-black px-2 py-0.5 rounded-full ${badgeColor}`}>
+        <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{ background: '#C1272D' }}>
           {badge > 9 ? '9+' : badge}
         </span>
       )}
