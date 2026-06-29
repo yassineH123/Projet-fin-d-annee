@@ -57,11 +57,15 @@ async function getCharts(req, res, next) {
       ]),
     ]);
 
-    // Remplir les mois manquants avec 0
+    // Remplir les mois manquants avec 0.
+    // On construit chaque mois via Date.UTC(année, mois - i, 1) : fixer le jour au 1er
+    // évite le débordement (ex. « 29 février » inexistant qui basculait sur mars, faisant
+    // disparaître février et dupliquer mars), et l'UTC reste aligné sur les buckets
+    // $dateToString (UTC) de l'agrégation ci-dessus.
+    const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
       months.push(d.toISOString().slice(0, 7));
     }
 
