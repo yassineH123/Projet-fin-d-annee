@@ -169,7 +169,7 @@ function AppRoutes() {
           <Route path="/friends"           element={<PrivateRoute><Friends /></PrivateRoute>} />
           <Route path="/wallet"            element={<PrivateRoute><WalletPage /></PrivateRoute>} />
           <Route path="/leaderboard"       element={<Leaderboard />} />
-          <Route path="/analytics/driver"  element={<PrivateRoute><DriverAnalytics /></PrivateRoute>} />
+          <Route path="/analytics/driver"  element={<DriverRoute><DriverAnalytics /></DriverRoute>} />
           <Route path="/login-history"     element={<PrivateRoute><LoginHistory /></PrivateRoute>} />
           <Route path="/stories"           element={<Stories />} />
           <Route path="/groups"            element={<Groups />} />
@@ -181,7 +181,7 @@ function AppRoutes() {
           <Route path="/emergency-contacts" element={<PrivateRoute><EmergencyContacts /></PrivateRoute>} />
           <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/track/:rideId"      element={<TrackRide />} />
-          <Route path="/enterprise"       element={<PrivateRoute><EnterpriseDashboard /></PrivateRoute>} />
+          <Route path="/enterprise"       element={<AdminRoute><EnterpriseDashboard /></AdminRoute>} />
           <Route path="/mobility"         element={<MobilityHub />} />
           <Route path="/book-transport"   element={<PrivateRoute><BookTransport /></PrivateRoute>} />
           <Route path="/city-ride"        element={<PrivateRoute><CityRide /></PrivateRoute>} />

@@ -32,7 +32,6 @@ const Transaction = require('./Transaction');
 const LoginHistory = require('./LoginHistory');
 const PushSubscription = require('./PushSubscription');
 const AuditLog = require('./AuditLog');
-const Trip = require('./Trip');
 const Post = require('./Post');
 const PostComment = require('./PostComment');
 const PostLike = require('./PostLike');
@@ -45,5 +44,5 @@ module.exports = {
   FavoriteRide, RideAlert, PromoCode, SupportTicket, EmergencyContact,
   Story, Group, GroupMember, Event, Premium,
   WaitlistEntry, Transaction, LoginHistory, PushSubscription,
-  AuditLog, Trip, Post, PostComment, PostLike, PostReaction, PostSave,
+  AuditLog, Post, PostComment, PostLike, PostReaction, PostSave,
 };

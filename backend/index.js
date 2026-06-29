@@ -70,7 +70,6 @@ app.use(
   helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }),
   require('express').static(require('path').join(__dirname, 'uploads'))
 );
-app.use('/trips',         require('./routes/trips')());
 app.use('/privacy',       require('./routes/privacy')());
 app.use('/admin',         require('./routes/adminRoutes'));
 app.use('/superadmin',    require('./routes/superadminRoutes'));
