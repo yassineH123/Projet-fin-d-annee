@@ -20,4 +20,4 @@
 1. Ouvrir Enterprise Architect
 2. `File > Import > Import Package from XMI` **ou**
 3. Utiliser un add-in PlantUML pour EA : `Extensions > Manage Add-Ins`
-4. Alternativement : copier le contenu sur **https://www.plantuml.com/plantuml/uml** pour visualiser
+4. Alternativement : copier le contenu sur **https://www.plantuml.com/plantuml/uml** pour visualise
