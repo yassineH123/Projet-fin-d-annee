@@ -33,6 +33,35 @@ export function getAllCities() {
   return Object.keys(CITY_COORDS);
 }
 
+/* Distance à vol d'oiseau entre 2 villes connues (formule de haversine), en km.
+   Retourne null si l'une des villes n'a pas de coordonnées. */
+export function getDistanceKm(cityA, cityB) {
+  const a = CITY_COORDS[cityA];
+  const b = CITY_COORDS[cityB];
+  if (!a || !b) return null;
+  const R = 6371; // rayon terrestre (km)
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLng = toRad(b[1] - a[1]);
+  const lat1 = toRad(a[0]);
+  const lat2 = toRad(b[0]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const distVol = 2 * R * Math.asin(Math.sqrt(h));
+  // Les routes ne sont pas droites : facteur d'allongement ~1.25
+  return Math.round(distVol * 1.25);
+}
+
+/* Prix conseillé pour un trajet (participation aux frais), en DH.
+   Basé sur ~0,55 DH/km/passager (carburant + péage partagés), arrondi à 5 DH,
+   avec un minimum de 15 DH. Retourne { km, price } ou null. */
+export function suggestPrice(cityA, cityB) {
+  const km = getDistanceKm(cityA, cityB);
+  if (km == null) return null;
+  const raw = km * 0.55;
+  const price = Math.max(15, Math.round(raw / 5) * 5);
+  return { km, price };
+}
+
 /* Reverse geocoding via Nominatim (coords → ville) */
 export async function reverseGeocode(lat, lng) {
   try {

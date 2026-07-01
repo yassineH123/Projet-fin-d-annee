@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, MapPin, Navigation } from 'lucide-react';
+import { X, MapPin, Navigation, CheckCircle } from 'lucide-react';
 import { reverseGeocode } from '../utils/geocode';
 
 /* Fix Leaflet default marker icons broken by bundlers */
@@ -101,8 +101,8 @@ export default function MapPicker({ onConfirm, onClose, initialFrom = '', initia
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)', background: '#C1272D' }}>
           <div>
             <h2 className="font-black text-white text-lg">Choisir sur la carte</h2>
-            <p className="text-white/75 text-xs">
-              {selecting === 'from' ? '📍 Cliquez pour sélectionner le départ' : '📍 Cliquez pour sélectionner l\'arrivée'}
+            <p className="flex items-center gap-1.5 text-white/75 text-xs">
+              <MapPin size={13} className="flex-shrink-0" /> {selecting === 'from' ? 'Cliquez pour sélectionner le départ' : 'Cliquez pour sélectionner l\'arrivée'}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
@@ -149,8 +149,8 @@ export default function MapPicker({ onConfirm, onClose, initialFrom = '', initia
 
         {/* Footer */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {fromCity && toCity ? '✅ Les deux points sont sélectionnés' : 'Cliquez sur la carte pour placer vos points'}
+          <p className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+            {fromCity && toCity ? <><CheckCircle size={13} style={{ color: '#006233' }} /> Les deux points sont sélectionnés</> : 'Cliquez sur la carte pour placer vos points'}
           </p>
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-secondary text-sm py-2 px-4">Annuler</button>

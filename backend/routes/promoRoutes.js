@@ -1,0 +1,11 @@
+const express = require('express');
+const ctrl = require('../controllers/promoController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const { requireAdmin: isAdmin } = require('../middleware/permissions');
+const router = express.Router();
+router.post('/validate', authenticateToken, ctrl.validate);
+router.post('/apply',    authenticateToken, ctrl.apply);
+router.get('/',          authenticateToken, isAdmin, ctrl.getAll);
+router.post('/create',   authenticateToken, isAdmin, ctrl.create);
+router.delete('/:id',    authenticateToken, isAdmin, ctrl.remove);
+module.exports = router;

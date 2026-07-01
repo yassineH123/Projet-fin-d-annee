@@ -1,0 +1,11 @@
+const express = require('express');
+const ctrl = require('../controllers/supportController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const { requireAdmin: isAdmin } = require('../middleware/permissions');
+const router = express.Router();
+router.post('/',              authenticateToken, ctrl.create);
+router.get('/me',             authenticateToken, ctrl.getMine);
+router.get('/all',            authenticateToken, isAdmin, ctrl.getAll);
+router.patch('/:id/reply',    authenticateToken, isAdmin, ctrl.reply);
+router.patch('/:id/status',   authenticateToken, isAdmin, ctrl.updateStatus);
+module.exports = router;

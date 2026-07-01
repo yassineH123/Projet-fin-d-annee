@@ -1,0 +1,10 @@
+const express = require('express');
+const ctrl = require('../controllers/storyController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
+const router = express.Router();
+router.get('/',          ctrl.getActive);
+router.post('/',         authenticateToken, upload.media.single('media'), ctrl.create);
+router.post('/:id/view', authenticateToken, ctrl.view);
+router.delete('/:id',    authenticateToken, ctrl.remove);
+module.exports = router;

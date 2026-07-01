@@ -18,4 +18,6 @@ router.post('/',
   reviewController.create
 );
 
+router.post('/:id/respond', authenticateToken, reviewController.respond);
+
 module.exports = router;

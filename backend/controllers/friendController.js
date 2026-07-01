@@ -1,6 +1,6 @@
-const { Op } = require('sequelize');
 const { Friendship, User } = require('../models');
 const { createNotification } = require('../services/notificationService');
+const { isAdmin, isOwner } = require('../middleware/permissions');
 
 async function sendRequest(req, res, next) {
   try {
@@ -9,19 +9,26 @@ async function sendRequest(req, res, next) {
     if (!receiverId) return res.status(400).json({ message: 'receiverId requis.' });
     if (requesterId === receiverId) return res.status(400).json({ message: 'Vous ne pouvez pas vous ajouter vous-même.' });
 
+    if (isAdmin(req.user)) {
+      return res.status(403).json({ message: 'Les administrateurs ne peuvent pas avoir d\'amis.' });
+    }
+    const receiver = await User.findById(receiverId).select('id role');
+    if (!receiver) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    if (isAdmin(receiver)) {
+      return res.status(403).json({ message: 'Impossible d\'envoyer une demande d\'ami à un administrateur.' });
+    }
+
     const existing = await Friendship.findOne({
-      where: {
-        [Op.or]: [
-          { requesterId, receiverId },
-          { requesterId: receiverId, receiverId: requesterId },
-        ],
-      },
+      $or: [
+        { requesterId, receiverId },
+        { requesterId: receiverId, receiverId: requesterId },
+      ],
     });
     if (existing) return res.status(409).json({ message: 'Demande déjà envoyée ou amis.', status: existing.status, id: existing.id });
 
     const friendship = await Friendship.create({ requesterId, receiverId });
 
-    const requester = await User.findByPk(requesterId, { attributes: ['firstName', 'lastName'] });
+    const requester = await User.findById(requesterId).select('firstName lastName');
     createNotification(receiverId, {
       type: 'system',
       title: "Nouvelle demande d'ami",
@@ -35,10 +42,11 @@ async function sendRequest(req, res, next) {
 
 async function accept(req, res, next) {
   try {
-    const friendship = await Friendship.findByPk(req.params.id);
+    const friendship = await Friendship.findById(req.params.id);
     if (!friendship) return res.status(404).json({ message: 'Demande introuvable.' });
-    if (friendship.receiverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
-    await friendship.update({ status: 'accepted' });
+    if (!isOwner(req.user, friendship.receiverId)) return res.status(403).json({ message: 'Accès refusé.' });
+    friendship.set({ status: 'accepted' });
+    await friendship.save();
 
     createNotification(friendship.requesterId, {
       type: 'system',
@@ -52,10 +60,10 @@ async function accept(req, res, next) {
 
 async function refuse(req, res, next) {
   try {
-    const friendship = await Friendship.findByPk(req.params.id);
+    const friendship = await Friendship.findById(req.params.id);
     if (!friendship) return res.status(404).json({ message: 'Demande introuvable.' });
-    if (friendship.receiverId !== req.user.id) return res.status(403).json({ message: 'Accès refusé.' });
-    await friendship.destroy();
+    if (!isOwner(req.user, friendship.receiverId)) return res.status(403).json({ message: 'Accès refusé.' });
+    await friendship.deleteOne();
     return res.json({ message: 'Demande refusée.' });
   } catch (err) { return next(err); }
 }
@@ -64,14 +72,12 @@ async function removeFriend(req, res, next) {
   try {
     const userId = req.user.id;
     const { friendId } = req.params;
-    await Friendship.destroy({
-      where: {
-        [Op.or]: [
-          { requesterId: userId, receiverId: friendId },
-          { requesterId: friendId, receiverId: userId },
-        ],
-        status: 'accepted',
-      },
+    await Friendship.deleteMany({
+      $or: [
+        { requesterId: userId, receiverId: friendId },
+        { requesterId: friendId, receiverId: userId },
+      ],
+      status: 'accepted',
     });
     return res.json({ message: 'Ami supprimé.' });
   } catch (err) { return next(err); }
@@ -80,25 +86,21 @@ async function removeFriend(req, res, next) {
 async function getFriends(req, res, next) {
   try {
     const userId = req.user.id;
-    const friendships = await Friendship.findAll({
-      where: { [Op.or]: [{ requesterId: userId }, { receiverId: userId }], status: 'accepted' },
+    const friendships = await Friendship.find({
+      $or: [{ requesterId: userId }, { receiverId: userId }], status: 'accepted',
     });
     const friendIds = friendships.map(f => f.requesterId === userId ? f.receiverId : f.requesterId);
-    const friends = await User.findAll({
-      where: { id: friendIds },
-      attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating', 'totalTrips', 'isDriver', 'availabilityStatus', 'driverVerified'],
-    });
+    const friends = await User.find({ _id: { $in: friendIds } })
+      .select('id firstName lastName photo avgRating totalTrips isDriver availabilityStatus driverVerified');
     return res.json({ friends });
   } catch (err) { return next(err); }
 }
 
 async function getRequests(req, res, next) {
   try {
-    const requests = await Friendship.findAll({
-      where: { receiverId: req.user.id, status: 'pending' },
-      include: [{ model: User, as: 'requester', attributes: ['id', 'firstName', 'lastName', 'photo', 'avgRating'] }],
-      order: [['createdAt', 'DESC']],
-    });
+    const requests = await Friendship.find({ receiverId: req.user.id, status: 'pending' })
+      .populate({ path: 'requester', select: 'id firstName lastName photo avgRating' })
+      .sort({ createdAt: -1 });
     return res.json({ requests });
   } catch (err) { return next(err); }
 }
@@ -108,12 +110,10 @@ async function getStatus(req, res, next) {
     const userId   = req.user.id;
     const targetId = req.params.userId;
     const friendship = await Friendship.findOne({
-      where: {
-        [Op.or]: [
-          { requesterId: userId, receiverId: targetId },
-          { requesterId: targetId, receiverId: userId },
-        ],
-      },
+      $or: [
+        { requesterId: userId, receiverId: targetId },
+        { requesterId: targetId, receiverId: userId },
+      ],
     });
     if (!friendship) return res.json({ status: 'none' });
     return res.json({ status: friendship.status, id: friendship.id, isMine: friendship.requesterId === userId });
@@ -123,8 +123,8 @@ async function getStatus(req, res, next) {
 async function getMutual(req, res, next) {
   try {
     const getIds = async (uid) => {
-      const fs = await Friendship.findAll({
-        where: { [Op.or]: [{ requesterId: uid }, { receiverId: uid }], status: 'accepted' },
+      const fs = await Friendship.find({
+        $or: [{ requesterId: uid }, { receiverId: uid }], status: 'accepted',
       });
       return fs.map(f => (f.requesterId === uid ? f.receiverId : f.requesterId));
     };
@@ -136,7 +136,7 @@ async function getMutual(req, res, next) {
 
 async function pendingCount(req, res, next) {
   try {
-    const count = await Friendship.count({ where: { receiverId: req.user.id, status: 'pending' } });
+    const count = await Friendship.countDocuments({ receiverId: req.user.id, status: 'pending' });
     return res.json({ count });
   } catch (err) { return next(err); }
 }

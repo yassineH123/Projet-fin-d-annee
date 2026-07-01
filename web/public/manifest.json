@@ -1,0 +1,47 @@
+{
+  "name": "AtlasWay — Covoiturage Maroc",
+  "short_name": "AtlasWay",
+  "description": "La première plateforme de covoiturage 100% marocaine",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07090F",
+  "theme_color": "#E8192C",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Rechercher un trajet",
+      "short_name": "Rechercher",
+      "url": "/rides/search",
+      "description": "Trouver un trajet rapidement"
+    },
+    {
+      "name": "Publier un trajet",
+      "short_name": "Publier",
+      "url": "/publish",
+      "description": "Proposer un trajet"
+    }
+  ]
+}

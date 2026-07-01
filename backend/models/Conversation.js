@@ -1,39 +1,20 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Conversation = sequelize.define('Conversation', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  participant1Id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  participant2Id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  rideId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  lastMessageAt: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  type: {
-    type: DataTypes.ENUM('direct', 'group'),
-    defaultValue: 'direct',
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-}, {
-  tableName: 'conversations',
-  timestamps: true,
+const conversationSchema = new Schema({
+  participant1Id: { type: String, ref: 'User', required: true },
+  participant2Id: { type: String, ref: 'User', required: true },
+  rideId: { type: String, ref: 'Ride', default: null },
+  lastMessageAt: { type: Date, default: null },
+  type: { type: String, enum: ['direct', 'group'], default: 'direct' },
+  name: { type: String, default: null },
 });
 
-module.exports = Conversation;
+conversationSchema.plugin(idPlugin);
+
+conversationSchema.virtual('participant1', { ref: 'User', localField: 'participant1Id', foreignField: '_id', justOne: true });
+conversationSchema.virtual('participant2', { ref: 'User', localField: 'participant2Id', foreignField: '_id', justOne: true });
+conversationSchema.virtual('messages', { ref: 'Message', localField: '_id', foreignField: 'conversationId' });
+conversationSchema.virtual('members', { ref: 'ConversationMember', localField: '_id', foreignField: 'conversationId' });
+
+module.exports = model('Conversation', conversationSchema);

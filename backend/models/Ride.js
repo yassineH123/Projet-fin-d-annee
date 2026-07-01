@@ -1,63 +1,33 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Ride = sequelize.define('Ride', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  driverId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  from: {
-    type: DataTypes.STRING(150),
-    allowNull: false,
-  },
-  to: {
-    type: DataTypes.STRING(150),
-    allowNull: false,
-  },
-  departureDate: {
-    type: DataTypes.DATE,
-    allowNull: false,
-  },
-  price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  seats: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  seatsAvailable: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.ENUM('active', 'cancelled', 'completed'),
-    defaultValue: 'active',
-  },
-  instantBooking: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-  isRecurring: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-  recurringDays: {
-    type: DataTypes.JSON,
-    defaultValue: [],
-  },
-}, {
-  tableName: 'rides',
-  timestamps: true,
+const rideSchema = new Schema({
+  driverId: { type: String, ref: 'User', required: true },
+  from: { type: String, maxlength: 150, required: true },
+  to:   { type: String, maxlength: 150, required: true },
+  departureDate: { type: Date, required: true },
+  price: { type: Number, required: true },
+  seats: { type: Number, required: true },
+  seatsAvailable: { type: Number, required: true },
+  description: { type: String, default: null },
+  status: { type: String, enum: ['active', 'cancelled', 'completed'], default: 'active' },
+  instantBooking: { type: Boolean, default: false },
+  isRecurring: { type: Boolean, default: false },
+  recurringDays: { type: Schema.Types.Mixed, default: [] },
+  transportMode: { type: String, enum: ['voiture', 'moto', 'minibus', 'van'], default: 'voiture', required: true },
+  stops: { type: Schema.Types.Mixed, default: [] },
+  distanceKm: { type: Number, default: null },
+  womenOnly: { type: Boolean, default: false },
 });
 
-module.exports = Ride;
+rideSchema.plugin(idPlugin);
+
+rideSchema.index({ from: 1, to: 1, departureDate: 1, status: 1 });
+rideSchema.index({ driverId: 1 });
+rideSchema.index({ status: 1, departureDate: 1 });
+
+rideSchema.virtual('driver', { ref: 'User', localField: 'driverId', foreignField: '_id', justOne: true });
+rideSchema.virtual('bookings', { ref: 'Booking', localField: '_id', foreignField: 'rideId' });
+rideSchema.virtual('waitlist', { ref: 'WaitlistEntry', localField: '_id', foreignField: 'rideId' });
+
+module.exports = model('Ride', rideSchema);

@@ -1,34 +1,61 @@
-const { Op } = require('sequelize');
 const { User, Ride, Booking, Review } = require('../models');
+const upload = require('../middleware/uploadMiddleware');
+
+// Liste blanche des champs visibles sur un profil PUBLIC (route non authentifiée
+// GET /users/:id) — volontairement plus stricte que celle de /users/me, pour ne
+// jamais exposer phone/birthDate/nationality/documents/kycSelfie à un tiers.
+const PUBLIC_PROFILE_FIELDS = 'firstName lastName photo bio avgRating totalRatings totalTrips ' +
+  'languages isHandicapped handicapAccessible nationality country driverVerified isDriver ' +
+  'carModel carColor carYear carPhoto kycStatus createdAt';
+
+async function searchUsers(req, res, next) {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q || q.length < 2) return res.json({ users: [] });
+
+    const users = await User.find({
+      status: 'active',
+      $or: [
+        { firstName: { $regex: q, $options: 'i' } },
+        { lastName:  { $regex: q, $options: 'i' } },
+      ],
+    })
+      .select('id firstName lastName photo avgRating totalTrips isDriver driverVerified')
+      .sort({ avgRating: -1 })
+      .limit(6);
+
+    return res.json({ users });
+  } catch (err) { return next(err); }
+}
 
 async function me(req, res, next) {
   try {
-    const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
-    return res.json({ user });
+
+    // Avis reçus (pour pouvoir y répondre depuis son propre profil)
+    const reviews = await Review.find({ reviewedId: req.user.id })
+      .populate({ path: 'reviewer', select: 'id firstName lastName photo' })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    return res.json({ user, reviews });
   } catch (err) { return next(err); }
 }
 
 async function getProfile(req, res, next) {
   try {
-    const user = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password', 'cinDoc', 'permisDoc', 'carteGriseDoc'] },
-    });
+    const user = await User.findById(req.params.id).select(PUBLIC_PROFILE_FIELDS);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const [rides, reviews] = await Promise.all([
-      Ride.findAll({
-        where: { driverId: req.params.id, status: 'active' },
-        attributes: ['id', 'from', 'to', 'departureDate', 'price', 'seatsAvailable'],
-        order: [['departureDate', 'ASC']],
-        limit: 5,
-      }),
-      Review.findAll({
-        where: { reviewedId: req.params.id },
-        include: [{ model: User, as: 'reviewer', attributes: ['id', 'firstName', 'lastName', 'photo'] }],
-        order: [['createdAt', 'DESC']],
-        limit: 10,
-      }),
+      Ride.find({ driverId: req.params.id, status: 'active' })
+        .select('id from to departureDate price seatsAvailable')
+        .sort({ departureDate: 1 })
+        .limit(5),
+      Review.find({ reviewedId: req.params.id })
+        .populate({ path: 'reviewer', select: 'id firstName lastName photo' })
+        .sort({ createdAt: -1 })
+        .limit(10),
     ]);
 
     return res.json({ user, rides, reviews });
@@ -37,13 +64,14 @@ async function getProfile(req, res, next) {
 
 async function updateProfile(req, res, next) {
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const {
       firstName, lastName, phone, bio, preferences, languages,
       carModel, carColor, carYear, licensePlate,
       isHandicapped, handicapAccessible,
+      nationality, country, birthDate, gender,
     } = req.body;
 
     const updates = {};
@@ -57,6 +85,10 @@ async function updateProfile(req, res, next) {
     if (licensePlate !== undefined)      updates.licensePlate      = licensePlate;
     if (isHandicapped !== undefined)     updates.isHandicapped     = isHandicapped === 'true' || isHandicapped === true;
     if (handicapAccessible !== undefined) updates.handicapAccessible = handicapAccessible === 'true' || handicapAccessible === true;
+    if (nationality !== undefined)        updates.nationality        = nationality;
+    if (gender      !== undefined)        updates.gender             = gender || null;
+    if (country     !== undefined)        updates.country            = country;
+    if (birthDate   !== undefined)        updates.birthDate          = birthDate || null;
 
     if (preferences) {
       updates.preferences = typeof preferences === 'string' ? JSON.parse(preferences) : preferences;
@@ -65,25 +97,27 @@ async function updateProfile(req, res, next) {
       updates.languages = typeof languages === 'string' ? JSON.parse(languages) : languages;
     }
 
-    if (req.files?.photo?.[0])        updates.photo        = `/uploads/${req.files.photo[0].filename}`;
-    if (req.files?.carPhoto?.[0])     updates.carPhoto     = `/uploads/${req.files.carPhoto[0].filename}`;
-    if (req.files?.cinDoc?.[0])       updates.cinDoc       = `/uploads/${req.files.cinDoc[0].filename}`;
-    if (req.files?.permisDoc?.[0])    updates.permisDoc    = `/uploads/${req.files.permisDoc[0].filename}`;
-    if (req.files?.carteGriseDoc?.[0]) updates.carteGriseDoc = `/uploads/${req.files.carteGriseDoc[0].filename}`;
+    if (req.files?.photo?.[0])        updates.photo        = upload.getFileUrl(req.files.photo[0]);
+    if (req.files?.carPhoto?.[0])     updates.carPhoto     = upload.getFileUrl(req.files.carPhoto[0]);
+    if (req.files?.cinDoc?.[0])       updates.cinDoc       = upload.getFileUrl(req.files.cinDoc[0]);
+    if (req.files?.permisDoc?.[0])    updates.permisDoc    = upload.getFileUrl(req.files.permisDoc[0]);
+    if (req.files?.carteGriseDoc?.[0]) updates.carteGriseDoc = upload.getFileUrl(req.files.carteGriseDoc[0]);
+    if (req.files?.passportDoc?.[0])   updates.passportDoc   = upload.getFileUrl(req.files.passportDoc[0]);
 
-    if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0]) {
+    if (req.files?.cinDoc?.[0] || req.files?.permisDoc?.[0] || req.files?.carteGriseDoc?.[0] || req.files?.passportDoc?.[0]) {
       updates.driverVerified = false; // reset, admin doit re-valider
     }
 
-    await user.update(updates);
-    const updated = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
+    user.set(updates);
+    await user.save();
+    const updated = await User.findById(req.user.id).select('-password');
     return res.json({ user: updated });
   } catch (err) { return next(err); }
 }
 
 async function completeOnboarding(req, res, next) {
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const { type, firstName, lastName, licensePlate } = req.body;
@@ -100,8 +134,9 @@ async function completeOnboarding(req, res, next) {
     if (req.files?.carPhoto?.[0]) updates.carPhoto     = `/uploads/${req.files.carPhoto[0].filename}`;
     if (isDriver && licensePlate)  updates.licensePlate = licensePlate;
 
-    await user.update(updates);
-    const updated = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
+    user.set(updates);
+    await user.save();
+    const updated = await User.findById(req.user.id).select('-password');
     return res.json({ user: updated });
   } catch (err) { return next(err); }
 }
@@ -112,11 +147,9 @@ async function driverStats(req, res, next) {
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const rides = await Ride.findAll({
-      where: { driverId },
-      include: [{ model: Booking, as: 'bookings', where: { status: 'accepted' }, required: false }],
-      order: [['departureDate', 'ASC']],
-    });
+    const rides = await Ride.find({ driverId })
+      .populate({ path: 'bookings', match: { status: 'accepted' } })
+      .sort({ departureDate: 1 });
 
     let totalPassengers = 0, totalEarnings = 0, monthlyEarnings = 0;
     rides.forEach(ride => {
@@ -130,15 +163,14 @@ async function driverStats(req, res, next) {
     const upcomingRides = rides.filter(r => r.status === 'active' && new Date(r.departureDate) > now);
     const completedRides = rides.filter(r => r.status === 'completed').length;
 
-    const driver = await User.findByPk(driverId, {
-      attributes: ['avgRating', 'totalRatings', 'referralCode', 'badges', 'driverVerified', 'handicapAccessible', 'totalTrips'],
-    });
+    const driver = await User.findById(driverId)
+      .select('avgRating totalRatings referralCode badges driverVerified handicapAccessible totalTrips');
 
-    const referredCount = await User.count({ where: { referredBy: driverId } });
+    const referredCount = await User.countDocuments({ referredBy: driverId });
 
     const badges = computeBadges(driver, rides.length, referredCount);
     if (JSON.stringify(badges) !== JSON.stringify(driver.badges || [])) {
-      await User.update({ badges }, { where: { id: driverId } });
+      await User.findByIdAndUpdate(driverId, { badges });
     }
 
     return res.json({
@@ -169,4 +201,24 @@ function computeBadges(user, totalRides, referredCount) {
   return badges;
 }
 
-module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats };
+// Soumission de la vérification d'identité (KYC) : selfie + CIN
+async function submitKyc(req, res, next) {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const updates = {};
+    if (req.files?.kycSelfie?.[0]) updates.kycSelfie = upload.getFileUrl(req.files.kycSelfie[0]);
+    if (req.files?.cinDoc?.[0])    updates.cinDoc    = `/uploads/${req.files.cinDoc[0].filename}`;
+
+    if (!updates.kycSelfie && !user.kycSelfie) return res.status(400).json({ message: 'Selfie requis.' });
+    if (!updates.cinDoc && !user.cinDoc)       return res.status(400).json({ message: "Photo de la CIN requise." });
+
+    updates.kycStatus = 'pending';
+    user.set(updates);
+    await user.save();
+    return res.json({ message: 'Vérification d\'identité soumise.', kycStatus: 'pending' });
+  } catch (err) { return next(err); }
+}
+
+module.exports = { me, getProfile, updateProfile, completeOnboarding, driverStats, searchUsers, submitKyc };

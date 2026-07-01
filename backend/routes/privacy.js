@@ -2,13 +2,17 @@ module.exports = function() {
   const express = require('express');
   const router = express.Router();
   const User = require('../models/User');
-  const Trip = require('../models/Trip');
+  const Ride = require('../models/Ride');
+  const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-  // GET /privacy/export - returns a JSON export (mock)
-  router.get('/export', async (req, res) => {
+  // GET /privacy/export - export complet réservé au superadmin, sans champs sensibles.
+  // Exporte la collection Ride (les vrais trajets) ; l'ancien code lisait la collection
+  // Trip, désormais supprimée car fantôme/toujours vide. La clé JSON reste "trips" pour
+  // préserver le format de sortie existant.
+  router.get('/export', authenticateToken, authorizeRoles('superadmin'), async (req, res) => {
     try {
-      const users = await User.findAll();
-      const trips = await Trip.findAll();
+      const users = await User.find().select('-password -cinDoc -permisDoc -carteGriseDoc -passportDoc -kycSelfie').lean();
+      const trips = await Ride.find().lean();
       const payload = { users, trips };
       res.setHeader('Content-Disposition', 'attachment; filename="export.json"');
       res.setHeader('Content-Type', 'application/json');
@@ -18,11 +22,12 @@ module.exports = function() {
     }
   });
 
-  // POST /privacy/delete - delete a user's data by email (mock)
-  router.post('/delete', async (req, res) => {
+  // POST /privacy/delete - un utilisateur ne peut supprimer que son propre compte
+  router.post('/delete', authenticateToken, async (req, res) => {
     try {
-      const { email } = req.body;
-      await User.destroy({ where: { email } });
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+      await user.deleteOne();
       return res.json({ ok: true });
     } catch (error) {
       return res.status(500).json({ error: error.message });

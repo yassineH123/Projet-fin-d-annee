@@ -1,13 +1,16 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
-const User = require('./User');
-const Post = require('./Post');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const PostComment = sequelize.define('PostComment', {
-  id:      { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  userId:  { type: DataTypes.UUID, allowNull: false, references: { model: User, key: 'id' } },
-  postId:  { type: DataTypes.UUID, allowNull: false, references: { model: Post, key: 'id' } },
-  content: { type: DataTypes.TEXT, allowNull: false },
-}, { timestamps: true, tableName: 'post_comments' });
+const postCommentSchema = new Schema({
+  userId:  { type: String, ref: 'User', required: true },
+  postId:  { type: String, ref: 'Post', required: true },
+  content: { type: String, required: true },
+});
 
-module.exports = PostComment;
+postCommentSchema.plugin(idPlugin);
+
+// Capitalized to match unaliased Sequelize default-name association — see
+// web/src/pages/Feed.jsx (c.User?.firstName for comment authors).
+postCommentSchema.virtual('User', { ref: 'User', localField: 'userId', foreignField: '_id', justOne: true });
+
+module.exports = model('PostComment', postCommentSchema);

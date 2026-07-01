@@ -1,0 +1,11 @@
+const express = require('express');
+const ctrl = require('../controllers/groupController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const router = express.Router();
+router.get('/',           ctrl.getAll);
+router.post('/',          authenticateToken, ctrl.create);
+router.get('/me',         authenticateToken, ctrl.getMyGroups);
+router.get('/:id',        ctrl.getOne);
+router.post('/:id/join',  authenticateToken, ctrl.join);
+router.post('/:id/leave', authenticateToken, ctrl.leave);
+module.exports = router;

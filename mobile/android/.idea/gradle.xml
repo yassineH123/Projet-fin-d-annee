@@ -7,11 +7,11 @@
         <compositeConfiguration>
           <compositeBuild compositeDefinitionSource="SCRIPT">
             <builds>
-              <build path="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin" name="gradle-plugin-root">
+              <build path="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin" name="gradle-plugin-root">
                 <projects>
-                  <project path="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin" />
-                  <project path="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin" />
-                  <project path="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin/settings-plugin" />
+                  <project path="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin" />
+                  <project path="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin" />
+                  <project path="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin/settings-plugin" />
                 </projects>
               </build>
             </builds>
@@ -24,13 +24,17 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/../node_modules/@react-native-async-storage/async-storage/android" />
+            <option value="$PROJECT_DIR$/../node_modules/@react-native-community/geolocation/android" />
+            <option value="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin" />
+            <option value="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin" />
+            <option value="$PROJECT_DIR$/../node_modules/@react-native/gradle-plugin/settings-plugin" />
             <option value="$PROJECT_DIR$/../node_modules/react-native-gesture-handler/android" />
-            <option value="$PROJECT_DIR$/../../node_modules/@react-native-async-storage/async-storage/android" />
-            <option value="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin" />
-            <option value="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin" />
-            <option value="$PROJECT_DIR$/../../node_modules/@react-native/gradle-plugin/settings-plugin" />
-            <option value="$PROJECT_DIR$/../../node_modules/react-native-safe-area-context/android" />
-            <option value="$PROJECT_DIR$/../../node_modules/react-native-screens/android" />
+            <option value="$PROJECT_DIR$/../node_modules/react-native-maps/android" />
+            <option value="$PROJECT_DIR$/../node_modules/react-native-safe-area-context/android" />
+            <option value="$PROJECT_DIR$/../node_modules/react-native-screens/android" />
+            <option value="$PROJECT_DIR$/../node_modules/react-native-svg/android" />
+            <option value="$PROJECT_DIR$/../node_modules/react-native-webview/android" />
           </set>
         </option>
       </GradleProjectSettings>

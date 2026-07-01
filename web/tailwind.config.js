@@ -55,8 +55,7 @@ export default {
       },
       fontFamily: {
         sans:    ['Cairo', 'system-ui', 'sans-serif'],
-        heading: ['Amiri', 'Georgia', 'serif'],
-        display: ['Amiri', 'Georgia', 'serif'],
+        heading: ['Amiri', 'serif'],
       },
       backgroundImage: {
         // Motif zellige géométrique marocain

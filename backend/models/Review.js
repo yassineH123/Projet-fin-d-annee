@@ -1,33 +1,24 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
-const User = require('./User');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Review = sequelize.define('Review', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: User,
-      key: 'id'
-    }
-  },
-  rating: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    validate: { min: 1, max: 5 }
-  },
-  comment: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  tableName: 'reviews',
+const reviewSchema = new Schema({
+  reviewerId: { type: String, ref: 'User', required: true },
+  reviewedId: { type: String, ref: 'User', required: true },
+  rideId: { type: String, ref: 'Ride', required: true },
+  type: { type: String, enum: ['driver', 'passenger'], required: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  punctuality: { type: Number, default: null, min: 1, max: 5 },
+  driving: { type: Number, default: null, min: 1, max: 5 },
+  communication: { type: Number, default: null, min: 1, max: 5 },
+  cleanliness: { type: Number, default: null, min: 1, max: 5 },
+  comment: { type: String, default: null },
+  response: { type: String, default: null },
 });
 
-module.exports = Review;
+reviewSchema.plugin(idPlugin);
+
+reviewSchema.virtual('reviewer', { ref: 'User', localField: 'reviewerId', foreignField: '_id', justOne: true });
+reviewSchema.virtual('reviewed', { ref: 'User', localField: 'reviewedId', foreignField: '_id', justOne: true });
+reviewSchema.virtual('ride', { ref: 'Ride', localField: 'rideId', foreignField: '_id', justOne: true });
+
+module.exports = model('Review', reviewSchema);

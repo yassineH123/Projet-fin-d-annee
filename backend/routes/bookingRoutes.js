@@ -2,12 +2,14 @@ const express = require('express');
 const { body } = require('express-validator');
 const bookingController = require('../controllers/bookingController');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { blockAdmins } = require('../middleware/permissions');
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
 router.post('/',
+  blockAdmins('Un administrateur ne peut pas réserver de trajet.'),
   [
     body('rideId').notEmpty().withMessage('ID du trajet requis.'),
     body('seats').isInt({ min: 1 }).withMessage('Nombre de places invalide.'),

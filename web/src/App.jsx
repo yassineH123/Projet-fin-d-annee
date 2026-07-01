@@ -1,55 +1,100 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { Component, lazy, Suspense } from 'react';
 
-import Home          from './pages/Home';
-import Login         from './pages/Login';
-import Register      from './pages/Register';
-import SearchRides   from './pages/SearchRides';
-import RideDetail    from './pages/RideDetail';
-import PublishRide   from './pages/PublishRide';
-import MyRides       from './pages/MyRides';
-import MyBookings    from './pages/MyBookings';
-import Profile       from './pages/Profile';
-import Messages      from './pages/Messages';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminHome      from './pages/AdminHome';
-import EditRide      from './pages/EditRide';
-import WriteReview   from './pages/WriteReview';
-import Onboarding    from './pages/Onboarding';
-import NotFound        from './pages/NotFound';
-import Feed             from './pages/Feed';
-import ForgotPassword   from './pages/ForgotPassword';
-import DriverDashboard  from './pages/DriverDashboard';
-import Friends          from './pages/Friends';
-import Compare          from './pages/Compare';
-import SOSButton        from './components/SOSButton';
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary]', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, color: '#fff', background: '#1a0a0a', minHeight: '100vh', fontFamily: 'monospace' }}>
+          <h2 style={{ color: '#F87171', marginBottom: 16 }}>Une erreur est survenue</h2>
+          <pre style={{ background: '#2a0a0a', padding: 16, borderRadius: 8, overflow: 'auto', color: '#fca5a5', fontSize: 13, maxHeight: 300 }}>
+            {this.state.error.toString()}
+            {'\n\n'}
+            {this.state.error.stack}
+          </pre>
+          <button onClick={() => { this.setState({ error: null }); window.location.href = '/'; }}
+            style={{ marginTop: 16, padding: '8px 20px', background: '#C1272D', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            Retour à l'accueil
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
-/* ── Barre de progression lors des navigations ── */
-function RouteProgress() {
-  const location = useLocation();
-  const [width, setWidth] = useState(0);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    setVisible(true);
-    setWidth(0);
-    let r = requestAnimationFrame(() => requestAnimationFrame(() => setWidth(72)));
-    const t1 = setTimeout(() => setWidth(100), 420);
-    const t2 = setTimeout(() => setVisible(false), 720);
-    return () => { cancelAnimationFrame(r); clearTimeout(t1); clearTimeout(t2); };
-  }, [location.key]);
-
+function PageLoader() {
   return (
-    <div className="route-progress-track" style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.25s ease' }}>
-      <div className="route-progress-bar" style={{ width: `${width}%` }} />
+    <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: '50%',
+        border: '3px solid rgba(193,39,45,0.2)',
+        borderTopColor: '#C1272D',
+        animation: 'spin 0.7s linear infinite',
+      }} />
     </div>
   );
 }
+
+// Pages chargées au démarrage (critiques — above the fold)
+import Home          from './pages/Home';
+import Login         from './pages/Login';
+import Register      from './pages/Register';
+import NotFound      from './pages/NotFound';
+import Onboarding    from './pages/Onboarding';
+
+// Pages lazy-loadées (chargées à la demande)
+const SearchRides      = lazy(() => import('./pages/SearchRides'));
+const RideDetail       = lazy(() => import('./pages/RideDetail'));
+const PublishRide      = lazy(() => import('./pages/PublishRide'));
+const MyRides          = lazy(() => import('./pages/MyRides'));
+const MyBookings       = lazy(() => import('./pages/MyBookings'));
+const Profile          = lazy(() => import('./pages/Profile'));
+const Messages         = lazy(() => import('./pages/Messages'));
+const AdminDashboard   = lazy(() => import('./pages/AdminDashboard'));
+const EditRide         = lazy(() => import('./pages/EditRide'));
+const WriteReview      = lazy(() => import('./pages/WriteReview'));
+const Feed             = lazy(() => import('./pages/Feed'));
+const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'));
+const DriverDashboard  = lazy(() => import('./pages/DriverDashboard'));
+const Friends          = lazy(() => import('./pages/Friends'));
+const Compare          = lazy(() => import('./pages/Compare'));
+const WalletPage       = lazy(() => import('./pages/Wallet'));
+const Leaderboard      = lazy(() => import('./pages/Leaderboard'));
+const DriverAnalytics  = lazy(() => import('./pages/DriverAnalytics'));
+const LoginHistory     = lazy(() => import('./pages/LoginHistory'));
+const Stories          = lazy(() => import('./pages/Stories'));
+const Groups           = lazy(() => import('./pages/Groups'));
+const Events           = lazy(() => import('./pages/Events'));
+const Premium          = lazy(() => import('./pages/Premium'));
+const Support          = lazy(() => import('./pages/Support'));
+const RideAlerts       = lazy(() => import('./pages/RideAlerts'));
+const EmergencyContacts = lazy(() => import('./pages/EmergencyContacts'));
+const Favorites         = lazy(() => import('./pages/Favorites'));
+const Notifications     = lazy(() => import('./pages/Notifications'));
+const TrackRide             = lazy(() => import('./pages/TrackRide'));
+const EnterpriseDashboard   = lazy(() => import('./pages/EnterpriseDashboard'));
+const MobilityHub           = lazy(() => import('./pages/MobilityHub'));
+const BookTransport         = lazy(() => import('./pages/BookTransport'));
+const CityRide              = lazy(() => import('./pages/CityRide'));
+
+import SOSButton           from './components/SOSButton';
+import AccessibilityWidget from './components/AccessibilityWidget';
+import ChatWidget          from './components/ChatWidget';
+import BecomeDriverModal   from './components/BecomeDriverModal';
+import WelcomeTour         from './components/WelcomeTour';
+import { HelmetProvider }  from 'react-helmet-async';
+import { useState } from 'react';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -57,6 +102,7 @@ function PrivateRoute({ children }) {
   if (!user) return <Navigate to="/login" replace />;
   const isAdmin = user.role === 'admin' || user.role === 'superadmin';
   if (!isAdmin && user.onboardingDone === false) return <Navigate to="/onboarding" replace />;
+  if (!isAdmin && user.isDriver && !user.driverVerified) return <Navigate to="/onboarding" replace />;
   return children;
 }
 
@@ -66,14 +112,40 @@ function AdminRoute({ children }) {
   return user && ['admin', 'superadmin'].includes(user.role) ? children : <Navigate to="/" replace />;
 }
 
+function DriverRoute({ children }) {
+  const { user, loading } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.onboardingDone === false || (user.isDriver && !user.driverVerified)) return <Navigate to="/onboarding" replace />;
+  if (!user.isDriver) {
+    return (
+      <>
+        <BecomeDriverModal
+          onClose={() => { setShowModal(false); window.history.back(); }}
+          isVerificationPending={user.driverVerificationStatus === 'pending'}
+        />
+      </>
+    );
+  }
+  return children;
+}
+
 function AppRoutes() {
   const location = useLocation();
+  const { user } = useAuth();
   return (
     <div className="flex flex-col min-h-screen">
-      <RouteProgress />
+      <a href="#main-content" className="skip-link">Aller au contenu</a>
       <Navbar />
       <SOSButton />
-      <main key={location.pathname} className="flex-1 page-enter">
+      <AccessibilityWidget />
+      <ChatWidget />
+      <WelcomeTour user={user} />
+      <main id="main-content" className="flex-1">
+        <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+        <div key={location.pathname} className="page-enter">
         <Routes>
           <Route path="/"               element={<Home />} />
           <Route path="/login"          element={<Login />} />
@@ -81,23 +153,43 @@ function AppRoutes() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/rides/search"   element={<SearchRides />} />
           <Route path="/rides/:id"      element={<RideDetail />} />
-          <Route path="/rides/publish"  element={<PrivateRoute><PublishRide /></PrivateRoute>} />
-          <Route path="/rides/mine"      element={<PrivateRoute><MyRides /></PrivateRoute>} />
-          <Route path="/rides/:id/edit" element={<PrivateRoute><EditRide /></PrivateRoute>} />
+          <Route path="/rides/publish"  element={<DriverRoute><PublishRide /></DriverRoute>} />
+          <Route path="/rides/mine"      element={<DriverRoute><MyRides /></DriverRoute>} />
+          <Route path="/rides/:id/edit" element={<DriverRoute><EditRide /></DriverRoute>} />
           <Route path="/reviews/write"  element={<PrivateRoute><WriteReview /></PrivateRoute>} />
           <Route path="/bookings"       element={<PrivateRoute><MyBookings /></PrivateRoute>} />
           <Route path="/profile"        element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/profile/:id"    element={<Profile />} />
           <Route path="/messages"       element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/admin"          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/admin/home"     element={<AdminRoute><AdminHome /></AdminRoute>} />
           <Route path="/feed"             element={<Feed />} />
           <Route path="/compare"          element={<Compare />} />
           <Route path="/onboarding"       element={<Onboarding />} />
-          <Route path="/driver-dashboard" element={<PrivateRoute><DriverDashboard /></PrivateRoute>} />
-          <Route path="/friends"          element={<PrivateRoute><Friends /></PrivateRoute>} />
-          <Route path="*"                 element={<NotFound />} />
+          <Route path="/driver-dashboard"  element={<DriverRoute><DriverDashboard /></DriverRoute>} />
+          <Route path="/friends"           element={<PrivateRoute><Friends /></PrivateRoute>} />
+          <Route path="/wallet"            element={<PrivateRoute><WalletPage /></PrivateRoute>} />
+          <Route path="/leaderboard"       element={<Leaderboard />} />
+          <Route path="/analytics/driver"  element={<DriverRoute><DriverAnalytics /></DriverRoute>} />
+          <Route path="/login-history"     element={<PrivateRoute><LoginHistory /></PrivateRoute>} />
+          <Route path="/stories"           element={<Stories />} />
+          <Route path="/groups"            element={<Groups />} />
+          <Route path="/events"            element={<Events />} />
+          <Route path="/premium"           element={<PrivateRoute><Premium /></PrivateRoute>} />
+          <Route path="/support"           element={<PrivateRoute><Support /></PrivateRoute>} />
+          <Route path="/ride-alerts"       element={<PrivateRoute><RideAlerts /></PrivateRoute>} />
+          <Route path="/favorites"         element={<PrivateRoute><Favorites /></PrivateRoute>} />
+          <Route path="/emergency-contacts" element={<PrivateRoute><EmergencyContacts /></PrivateRoute>} />
+          <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
+          <Route path="/track/:rideId"      element={<TrackRide />} />
+          <Route path="/enterprise"       element={<AdminRoute><EnterpriseDashboard /></AdminRoute>} />
+          <Route path="/mobility"         element={<MobilityHub />} />
+          <Route path="/book-transport"   element={<PrivateRoute><BookTransport /></PrivateRoute>} />
+          <Route path="/city-ride"        element={<PrivateRoute><CityRide /></PrivateRoute>} />
+          <Route path="*"                  element={<NotFound />} />
         </Routes>
+        </div>
+        </Suspense>
+        </ErrorBoundary>
       </main>
       <Footer />
     </div>
@@ -106,12 +198,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ThemeProvider>
-    </LanguageProvider>
+    <HelmetProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </HelmetProvider>
   );
 }

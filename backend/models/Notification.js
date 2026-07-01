@@ -1,17 +1,20 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Notification = sequelize.define('Notification', {
-  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  userId: { type: DataTypes.UUID, allowNull: false },
-  type: {
-    type: DataTypes.ENUM('booking', 'message', 'review', 'ride', 'system'),
-    defaultValue: 'system',
-  },
-  title:   { type: DataTypes.STRING, allowNull: false },
-  message: { type: DataTypes.TEXT, allowNull: true },
-  link:    { type: DataTypes.STRING, allowNull: true },
-  read:    { type: DataTypes.BOOLEAN, defaultValue: false },
-}, { tableName: 'notifications', timestamps: true });
+const notificationSchema = new Schema({
+  userId: { type: String, ref: 'User', required: true },
+  type: { type: String, enum: ['booking', 'message', 'review', 'ride', 'system'], default: 'system' },
+  title: { type: String, required: true },
+  message: { type: String, default: null },
+  link: { type: String, default: null },
+  read: { type: Boolean, default: false },
+});
 
-module.exports = Notification;
+notificationSchema.plugin(idPlugin);
+
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, read: 1 });
+
+notificationSchema.virtual('user', { ref: 'User', localField: 'userId', foreignField: '_id', justOne: true });
+
+module.exports = model('Notification', notificationSchema);

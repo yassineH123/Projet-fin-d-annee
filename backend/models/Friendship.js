@@ -1,14 +1,15 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../database');
+const { Schema, model } = require('mongoose');
+const idPlugin = require('./plugins/idPlugin');
 
-const Friendship = sequelize.define('Friendship', {
-  id:          { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  requesterId: { type: DataTypes.UUID, allowNull: false },
-  receiverId:  { type: DataTypes.UUID, allowNull: false },
-  status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'refused', 'blocked'),
-    defaultValue: 'pending',
-  },
-}, { tableName: 'friendships', timestamps: true });
+const friendshipSchema = new Schema({
+  requesterId: { type: String, ref: 'User', required: true },
+  receiverId: { type: String, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'accepted', 'refused', 'blocked'], default: 'pending' },
+});
 
-module.exports = Friendship;
+friendshipSchema.plugin(idPlugin);
+
+friendshipSchema.virtual('requester', { ref: 'User', localField: 'requesterId', foreignField: '_id', justOne: true });
+friendshipSchema.virtual('receiver', { ref: 'User', localField: 'receiverId', foreignField: '_id', justOne: true });
+
+module.exports = model('Friendship', friendshipSchema);
